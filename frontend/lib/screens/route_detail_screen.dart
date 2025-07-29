@@ -196,6 +196,15 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                             Text(route.wallSection),
                           ],
                         ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Icon(Icons.format_list_numbered,
+                                size: 16, color: Colors.grey),
+                            const SizedBox(width: 4),
+                            Text('Lane ${route.lane}'),
+                          ],
+                        ),
                         if (route.description != null) ...[
                           const SizedBox(height: 16),
                           Text(

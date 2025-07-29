@@ -168,6 +168,14 @@ class RouteCard extends StatelessWidget {
                     route.wallSection,
                     style: TextStyle(color: Colors.grey[600]),
                   ),
+                  const SizedBox(width: 16),
+                  const Icon(Icons.format_list_numbered,
+                      size: 16, color: Colors.grey),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Lane ${route.lane}',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
                 ],
               ),
               if (route.description != null) ...[

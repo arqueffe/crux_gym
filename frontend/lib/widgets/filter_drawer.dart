@@ -63,6 +63,8 @@ class FilterDrawer extends StatelessWidget {
                     const SizedBox(height: 16),
                     _buildGradeFilter(routeProvider),
                     const SizedBox(height: 16),
+                    _buildLaneFilter(routeProvider),
+                    const SizedBox(height: 16),
                     _buildRouteSetterFilter(routeProvider),
                     const SizedBox(height: 24),
 
@@ -179,6 +181,32 @@ class FilterDrawer extends StatelessWidget {
       ],
       onChanged: (value) {
         routeProvider.setGradeFilter(value);
+      },
+    );
+  }
+
+  Widget _buildLaneFilter(RouteProvider routeProvider) {
+    return DropdownButtonFormField<int>(
+      decoration: const InputDecoration(
+        labelText: 'Lane',
+        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        border: OutlineInputBorder(),
+      ),
+      value: routeProvider.selectedLane,
+      items: [
+        const DropdownMenuItem<int>(
+          value: null,
+          child: Text('All Lanes'),
+        ),
+        ...routeProvider.lanes.map(
+          (lane) => DropdownMenuItem<int>(
+            value: lane,
+            child: Text('Lane $lane'),
+          ),
+        ),
+      ],
+      onChanged: (value) {
+        routeProvider.setLaneFilter(value);
       },
     );
   }

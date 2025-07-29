@@ -74,10 +74,38 @@ class FilterBar extends StatelessWidget {
                       },
                     ),
                   ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: DropdownButtonFormField<int>(
+                      decoration: const InputDecoration(
+                        labelText: 'Lane',
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        border: OutlineInputBorder(),
+                      ),
+                      value: routeProvider.selectedLane,
+                      items: [
+                        const DropdownMenuItem<int>(
+                          value: null,
+                          child: Text('All Lanes'),
+                        ),
+                        ...routeProvider.lanes.map(
+                          (lane) => DropdownMenuItem<int>(
+                            value: lane,
+                            child: Text('Lane $lane'),
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        routeProvider.setLaneFilter(value);
+                      },
+                    ),
+                  ),
                 ],
               ),
               if (routeProvider.selectedWallSection != null ||
-                  routeProvider.selectedGrade != null) ...[
+                  routeProvider.selectedGrade != null ||
+                  routeProvider.selectedLane != null) ...[
                 const SizedBox(height: 8),
                 Align(
                   alignment: Alignment.centerRight,

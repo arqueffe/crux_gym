@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/route_models.dart' as models;
 import '../providers/route_provider.dart';
+import '../providers/auth_provider.dart';
 
 class RouteInteractions extends StatefulWidget {
   final models.Route route;
@@ -13,7 +14,6 @@ class RouteInteractions extends StatefulWidget {
 }
 
 class _RouteInteractionsState extends State<RouteInteractions> {
-  final _userNameController = TextEditingController(text: 'Anonymous User');
   bool _isLiked = false;
   bool _isTicked = false;
   Map<String, dynamic>? _tickData;
@@ -26,12 +26,16 @@ class _RouteInteractionsState extends State<RouteInteractions> {
   }
 
   void _checkIfLiked() {
+    final authProvider = context.read<AuthProvider>();
+    final currentUser = authProvider.currentUser;
+    if (currentUser == null) return;
+
     final isLiked = widget.route.likes?.any(
-          (like) => like.userName == _userNameController.text.trim(),
+          (like) => like.userId == currentUser.id,
         ) ??
         false;
 
-    if (_isLiked != isLiked) {
+    if (mounted && _isLiked != isLiked) {
       setState(() {
         _isLiked = isLiked;
       });
@@ -40,10 +44,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
 
   void _checkIfTicked() async {
     final routeProvider = context.read<RouteProvider>();
-    final tickStatus = await routeProvider.getUserTickStatus(
-      widget.route.id,
-      _userNameController.text,
-    );
+    final tickStatus = await routeProvider.getUserTickStatus(widget.route.id);
     if (mounted) {
       setState(() {
         _isTicked = tickStatus?['ticked'] ?? false;
@@ -75,18 +76,53 @@ class _RouteInteractionsState extends State<RouteInteractions> {
             ),
             const SizedBox(height: 16),
 
-            // User Name Input
-            TextField(
-              controller: _userNameController,
-              decoration: const InputDecoration(
-                labelText: 'Your Name',
-                border: OutlineInputBorder(),
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              ),
-              onChanged: (value) {
-                _checkIfLiked();
-                _checkIfTicked();
+            // User info display
+            Consumer<AuthProvider>(
+              builder: (context, authProvider, child) {
+                final user = authProvider.currentUser;
+                if (user == null) return const SizedBox.shrink();
+
+                return Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceVariant,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 16,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        child: Text(
+                          user.username[0].toUpperCase(),
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onPrimary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Logged in as:',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                          Text(
+                            user.username,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
               },
             ),
             const SizedBox(height: 16),
@@ -104,7 +140,9 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                   ),
                   label: Text(_isLiked ? 'Unlike' : 'Like'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _isLiked ? Colors.red[50] : null,
+                    backgroundColor: _isLiked
+                        ? Colors.red.shade50
+                        : Theme.of(context).colorScheme.primaryContainer,
                   ),
                 ),
                 ElevatedButton.icon(
@@ -115,7 +153,9 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                   ),
                   label: Text(_isTicked ? 'Ticked' : 'Tick'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _isTicked ? Colors.green[50] : null,
+                    backgroundColor: _isTicked
+                        ? Colors.green.shade50
+                        : Theme.of(context).colorScheme.primaryContainer,
                   ),
                 ),
                 ElevatedButton.icon(
@@ -131,66 +171,119 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                 ElevatedButton.icon(
                   onPressed: () => _showWarningDialog(),
                   icon: const Icon(Icons.warning),
-                  label: const Text('Report Warning'),
+                  label: const Text('Report Issue'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange[50],
-                    foregroundColor: Colors.orange[800],
+                    backgroundColor: Colors.orange.shade50,
+                    foregroundColor: Colors.orange.shade700,
                   ),
                 ),
               ],
             ),
+            const SizedBox(height: 16),
+
+            // Tick information if route is ticked
+            if (_isTicked && _tickData != null)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  border: Border.all(color: Colors.green.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.green.shade600),
+                        const SizedBox(width: 8),
+                        Text(
+                          'You completed this route!',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_tickData!['tick'] != null) ...[
+                      const SizedBox(height: 8),
+                      Text('Attempts: ${_tickData!['tick']['attempts']}'),
+                      if (_tickData!['tick']['flash'] == true)
+                        Text(
+                          'FLASH! ⚡',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange.shade600,
+                          ),
+                        ),
+                      if (_tickData!['tick']['notes'] != null &&
+                          _tickData!['tick']['notes'].toString().isNotEmpty)
+                        Text('Notes: ${_tickData!['tick']['notes']}'),
+                    ],
+                  ],
+                ),
+              ),
+
+            // Current user's like status
+            if (_isLiked)
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  border: Border.all(color: Colors.red.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.favorite, color: Colors.red.shade600, size: 16),
+                    const SizedBox(width: 4),
+                    Text(
+                      'You liked this route',
+                      style: TextStyle(color: Colors.red.shade700),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
     );
   }
 
-  void _toggleLike() async {
-    if (_userNameController.text.trim().isEmpty) {
-      _showSnackBar('Please enter your name');
-      return;
-    }
-
+  Future<void> _toggleLike() async {
     final routeProvider = context.read<RouteProvider>();
-    final wasLiked = _isLiked;
-    final success = await routeProvider.toggleLike(
-      widget.route.id,
-      _userNameController.text.trim(),
-    );
+    final success = await routeProvider.toggleLike(widget.route.id);
 
-    if (!mounted) return;
+    if (!mounted) return; // Check if widget is still mounted
 
     if (success) {
-      // Get the updated route from the provider and check like status
-      models.Route? updatedRoute;
-      try {
-        updatedRoute = routeProvider.selectedRoute ??
-            routeProvider.routes.firstWhere((r) => r.id == widget.route.id);
-      } catch (e) {
-        // If we can't find the updated route, fall back to the original
-        updatedRoute = widget.route;
-      }
-
-      final isNowLiked = updatedRoute.likes?.any(
-              (like) => like.userName == _userNameController.text.trim()) ??
-          false;
-
-      setState(() {
-        _isLiked = isNowLiked;
-      });
-      _showSnackBar(!wasLiked ? 'Route liked!' : 'Route unliked!');
+      _checkIfLiked();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_isLiked ? 'Route unliked!' : 'Route liked!'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
     } else {
-      _showSnackBar('Failed to toggle like');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${routeProvider.error}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
   void _showTickDialog() {
     if (_isTicked) {
-      // If already ticked, show option to untick
+      // Show untick confirmation
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Untick Route'),
+          title: const Text('Remove Tick'),
           content: const Text(
               'Are you sure you want to remove your tick for this route?'),
           actions: [
@@ -198,27 +291,26 @@ class _RouteInteractionsState extends State<RouteInteractions> {
               onPressed: () => Navigator.pop(context),
               child: const Text('Cancel'),
             ),
-            ElevatedButton(
+            TextButton(
               onPressed: () {
                 Navigator.pop(context);
-                _toggleTick();
+                _untickRoute();
               },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text('Untick'),
+              child: const Text('Remove'),
             ),
           ],
         ),
       );
     } else {
-      // Show tick dialog with options
+      // Show tick dialog
       int attempts = 1;
       bool flash = false;
-      final notesController = TextEditingController();
+      String notes = '';
 
       showDialog(
         context: context,
         builder: (context) => StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
+          builder: (context, setState) => AlertDialog(
             title: const Text('Tick Route'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -226,43 +318,40 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                 Row(
                   children: [
                     const Text('Attempts: '),
-                    const SizedBox(width: 8),
-                    DropdownButton<int>(
-                      value: attempts,
-                      items: List.generate(10, (i) => i + 1)
-                          .map((i) => DropdownMenuItem(
-                                value: i,
-                                child: Text('$i'),
-                              ))
-                          .toList(),
-                      onChanged: (value) {
-                        setDialogState(() {
-                          attempts = value!;
-                          flash = attempts == 1;
-                        });
-                      },
+                    Expanded(
+                      child: Slider(
+                        value: attempts.toDouble(),
+                        min: 1,
+                        max: 20,
+                        divisions: 19,
+                        label: attempts.toString(),
+                        onChanged: (value) {
+                          setState(() {
+                            attempts = value.round();
+                          });
+                        },
+                      ),
                     ),
+                    Text(attempts.toString()),
                   ],
                 ),
-                const SizedBox(height: 16),
                 CheckboxListTile(
-                  title: const Text('Flash (first attempt)'),
+                  title: const Text('Flash (first try)'),
                   value: flash,
                   onChanged: (value) {
-                    setDialogState(() {
-                      flash = value!;
+                    setState(() {
+                      flash = value ?? false;
                       if (flash) attempts = 1;
                     });
                   },
                 ),
-                const SizedBox(height: 16),
                 TextField(
-                  controller: notesController,
                   decoration: const InputDecoration(
                     labelText: 'Notes (optional)',
                     border: OutlineInputBorder(),
                   ),
-                  maxLines: 2,
+                  maxLines: 3,
+                  onChanged: (value) => notes = value,
                 ),
               ],
             ),
@@ -271,10 +360,10 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                 onPressed: () => Navigator.pop(context),
                 child: const Text('Cancel'),
               ),
-              ElevatedButton(
+              TextButton(
                 onPressed: () {
                   Navigator.pop(context);
-                  _submitTick(attempts, flash, notesController.text);
+                  _tickRoute(attempts: attempts, flash: flash, notes: notes);
                 },
                 child: const Text('Tick'),
               ),
@@ -285,59 +374,57 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     }
   }
 
-  void _toggleTick() async {
-    if (_userNameController.text.trim().isEmpty) {
-      _showSnackBar('Please enter your name');
-      return;
-    }
-
+  Future<void> _tickRoute(
+      {int attempts = 1, bool flash = false, String? notes}) async {
     final routeProvider = context.read<RouteProvider>();
     final success = await routeProvider.toggleTick(
       widget.route.id,
-      _userNameController.text.trim(),
+      attempts: attempts,
+      flash: flash,
+      notes: notes?.trim().isEmpty == true ? null : notes?.trim(),
     );
 
-    if (!mounted) return;
+    if (!mounted) return; // Check if widget is still mounted
 
     if (success) {
-      setState(() {
-        _isTicked = !_isTicked;
-        if (!_isTicked) _tickData = null;
-      });
-      _showSnackBar(_isTicked ? 'Route ticked!' : 'Tick removed!');
-      if (_isTicked) {
-        _checkIfTicked(); // Refresh tick data
-      }
+      _checkIfTicked();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Route ticked! 🎉'),
+          duration: Duration(seconds: 2),
+        ),
+      );
     } else {
-      _showSnackBar('Failed to toggle tick');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${routeProvider.error}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
-  void _submitTick(int attempts, bool flash, String notes) async {
-    if (_userNameController.text.trim().isEmpty) {
-      _showSnackBar('Please enter your name');
-      return;
-    }
-
+  Future<void> _untickRoute() async {
     final routeProvider = context.read<RouteProvider>();
-    final success = await routeProvider.toggleTick(
-      widget.route.id,
-      _userNameController.text.trim(),
-      attempts: attempts,
-      flash: flash,
-      notes: notes.trim().isEmpty ? null : notes.trim(),
-    );
+    final success = await routeProvider.toggleTick(widget.route.id);
 
-    if (!mounted) return;
+    if (!mounted) return; // Check if widget is still mounted
 
     if (success) {
-      setState(() {
-        _isTicked = true;
-      });
-      _showSnackBar('Route ticked!');
-      _checkIfTicked(); // Refresh tick data
+      _checkIfTicked();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tick removed'),
+          duration: Duration(seconds: 2),
+        ),
+      );
     } else {
-      _showSnackBar('Failed to tick route');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${routeProvider.error}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -348,60 +435,61 @@ class _RouteInteractionsState extends State<RouteInteractions> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Add Comment'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: commentController,
-              decoration: const InputDecoration(
-                labelText: 'Your comment',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 3,
-            ),
-          ],
+        content: TextField(
+          controller: commentController,
+          decoration: const InputDecoration(
+            labelText: 'Your comment',
+            border: OutlineInputBorder(),
+          ),
+          maxLines: 4,
+          autofocus: true,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
-            onPressed: () => _submitComment(commentController.text),
-            child: const Text('Submit'),
+          TextButton(
+            onPressed: () {
+              if (commentController.text.trim().isNotEmpty) {
+                Navigator.pop(context);
+                _addComment(commentController.text.trim());
+              }
+            },
+            child: const Text('Add Comment'),
           ),
         ],
       ),
     );
   }
 
-  void _submitComment(String content) async {
-    if (_userNameController.text.trim().isEmpty || content.trim().isEmpty) {
-      _showSnackBar('Please enter your name and comment');
-      return;
-    }
-
-    Navigator.pop(context);
-
+  Future<void> _addComment(String content) async {
     final routeProvider = context.read<RouteProvider>();
-    final success = await routeProvider.addComment(
-      widget.route.id,
-      _userNameController.text.trim(),
-      content.trim(),
-    );
+    final success = await routeProvider.addComment(widget.route.id, content);
 
-    if (!mounted) return;
+    if (!mounted) return; // Check if widget is still mounted
 
     if (success) {
-      _showSnackBar('Comment added!');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Comment added!'),
+          duration: Duration(seconds: 2),
+        ),
+      );
     } else {
-      _showSnackBar('Failed to add comment');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${routeProvider.error}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
   void _showGradeProposalDialog() {
     String? selectedGrade;
     final reasoningController = TextEditingController();
+
     final grades = [
       'V0',
       'V1',
@@ -413,174 +501,203 @@ class _RouteInteractionsState extends State<RouteInteractions> {
       'V7',
       'V8',
       'V9',
-      'V10'
+      'V10',
+      'V11',
+      'V12'
     ];
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Propose Grade'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DropdownButtonFormField<String>(
-              decoration: const InputDecoration(
-                labelText: 'Proposed Grade',
-                border: OutlineInputBorder(),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Propose Grade'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                decoration: const InputDecoration(
+                  labelText: 'Proposed Grade',
+                  border: OutlineInputBorder(),
+                ),
+                value: selectedGrade,
+                items: grades
+                    .map((grade) => DropdownMenuItem(
+                          value: grade,
+                          child: Text(grade),
+                        ))
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    selectedGrade = value;
+                  });
+                },
               ),
-              items: grades
-                  .map((grade) => DropdownMenuItem(
-                        value: grade,
-                        child: Text(grade),
-                      ))
-                  .toList(),
-              onChanged: (value) => selectedGrade = value,
+              const SizedBox(height: 16),
+              TextField(
+                controller: reasoningController,
+                decoration: const InputDecoration(
+                  labelText: 'Reasoning (optional)',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: reasoningController,
-              decoration: const InputDecoration(
-                labelText: 'Reasoning (optional)',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 3,
+            TextButton(
+              onPressed: selectedGrade == null
+                  ? null
+                  : () {
+                      Navigator.pop(context);
+                      _proposeGrade(
+                        selectedGrade!,
+                        reasoningController.text.trim().isEmpty
+                            ? null
+                            : reasoningController.text.trim(),
+                      );
+                    },
+              child: const Text('Propose'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () =>
-                _submitGradeProposal(selectedGrade, reasoningController.text),
-            child: const Text('Submit'),
-          ),
-        ],
       ),
     );
   }
 
-  void _submitGradeProposal(String? grade, String reasoning) async {
-    if (_userNameController.text.trim().isEmpty || grade == null) {
-      _showSnackBar('Please enter your name and select a grade');
-      return;
-    }
-
-    Navigator.pop(context);
-
+  Future<void> _proposeGrade(String proposedGrade, String? reasoning) async {
     final routeProvider = context.read<RouteProvider>();
     final success = await routeProvider.proposeGrade(
       widget.route.id,
-      _userNameController.text.trim(),
-      grade,
-      reasoning.trim().isEmpty ? null : reasoning.trim(),
+      proposedGrade,
+      reasoning,
     );
 
-    if (!mounted) return;
+    if (!mounted) return; // Check if widget is still mounted
 
     if (success) {
-      _showSnackBar('Grade proposal submitted!');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Grade proposal submitted!'),
+          duration: Duration(seconds: 2),
+        ),
+      );
     } else {
-      _showSnackBar('Failed to submit grade proposal');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${routeProvider.error}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
   void _showWarningDialog() {
     String? selectedWarningType;
     final descriptionController = TextEditingController();
+
     final warningTypes = [
       'broken_hold',
       'safety_issue',
       'needs_cleaning',
       'loose_hold',
-      'sharp_hold',
       'other'
     ];
 
+    final warningLabels = {
+      'broken_hold': 'Broken Hold',
+      'safety_issue': 'Safety Issue',
+      'needs_cleaning': 'Needs Cleaning',
+      'loose_hold': 'Loose Hold',
+      'other': 'Other'
+    };
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Report Warning'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DropdownButtonFormField<String>(
-              decoration: const InputDecoration(
-                labelText: 'Warning Type',
-                border: OutlineInputBorder(),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Report Issue'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                decoration: const InputDecoration(
+                  labelText: 'Issue Type',
+                  border: OutlineInputBorder(),
+                ),
+                value: selectedWarningType,
+                items: warningTypes
+                    .map((type) => DropdownMenuItem(
+                          value: type,
+                          child: Text(warningLabels[type] ?? type),
+                        ))
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    selectedWarningType = value;
+                  });
+                },
               ),
-              items: warningTypes
-                  .map((type) => DropdownMenuItem(
-                        value: type,
-                        child: Text(type.replaceAll('_', ' ').toUpperCase()),
-                      ))
-                  .toList(),
-              onChanged: (value) => selectedWarningType = value,
+              const SizedBox(height: 16),
+              TextField(
+                controller: descriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Description',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Description',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 3,
+            TextButton(
+              onPressed: (selectedWarningType == null ||
+                      descriptionController.text.trim().isEmpty)
+                  ? null
+                  : () {
+                      Navigator.pop(context);
+                      _addWarning(selectedWarningType!,
+                          descriptionController.text.trim());
+                    },
+              child: const Text('Report'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () =>
-                _submitWarning(selectedWarningType, descriptionController.text),
-            child: const Text('Submit'),
-          ),
-        ],
       ),
     );
   }
 
-  void _submitWarning(String? warningType, String description) async {
-    if (_userNameController.text.trim().isEmpty ||
-        warningType == null ||
-        description.trim().isEmpty) {
-      _showSnackBar('Please fill in all fields');
-      return;
-    }
-
-    Navigator.pop(context);
-
+  Future<void> _addWarning(String warningType, String description) async {
     final routeProvider = context.read<RouteProvider>();
     final success = await routeProvider.addWarning(
       widget.route.id,
-      _userNameController.text.trim(),
       warningType,
-      description.trim(),
+      description,
     );
 
-    if (!mounted) return;
+    if (!mounted) return; // Check if widget is still mounted
 
     if (success) {
-      _showSnackBar('Warning reported!');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Issue reported!'),
+          duration: Duration(seconds: 2),
+        ),
+      );
     } else {
-      _showSnackBar('Failed to report warning');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${routeProvider.error}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
-  }
-
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  }
-
-  @override
-  void dispose() {
-    _userNameController.dispose();
-    super.dispose();
   }
 }

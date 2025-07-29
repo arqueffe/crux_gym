@@ -1,10 +1,17 @@
 import 'package:flutter/foundation.dart';
 import '../models/route_models.dart';
 import '../services/api_service.dart';
+import '../providers/auth_provider.dart';
 import '../widgets/filter_drawer.dart';
 
 class RouteProvider extends ChangeNotifier {
-  final ApiService _apiService = ApiService();
+  late final ApiService _apiService;
+  final AuthProvider _authProvider;
+
+  RouteProvider({required AuthProvider authProvider})
+      : _authProvider = authProvider {
+    _apiService = ApiService(authProvider: authProvider);
+  }
 
   List<Route> _routes = [];
   List<Route> _currentRoutes = [];
@@ -13,9 +20,11 @@ class RouteProvider extends ChangeNotifier {
   String? _error;
   String? _selectedWallSection;
   String? _selectedGrade;
+  int? _selectedLane;
   String? _selectedRouteSetter;
   List<String> _wallSections = [];
   List<String> _grades = [];
+  List<int> _lanes = [];
   List<String> _routeSetters = [];
   SortOption _selectedSort = SortOption.newest;
   FilterState _tickedFilter = FilterState.all;
@@ -29,9 +38,11 @@ class RouteProvider extends ChangeNotifier {
   String? get error => _error;
   String? get selectedWallSection => _selectedWallSection;
   String? get selectedGrade => _selectedGrade;
+  int? get selectedLane => _selectedLane;
   String? get selectedRouteSetter => _selectedRouteSetter;
   List<String> get wallSections => _wallSections;
   List<String> get grades => _grades;
+  List<int> get lanes => _lanes;
   List<String> get routeSetters => _routeSetters;
   SortOption get selectedSort => _selectedSort;
   FilterState get tickedFilter => _tickedFilter;
@@ -41,6 +52,7 @@ class RouteProvider extends ChangeNotifier {
   bool get hasActiveFilters =>
       _selectedWallSection != null ||
       _selectedGrade != null ||
+      _selectedLane != null ||
       _selectedRouteSetter != null ||
       _tickedFilter != FilterState.all ||
       _likedFilter != FilterState.all ||
@@ -52,6 +64,7 @@ class RouteProvider extends ChangeNotifier {
       loadRoutes(),
       loadWallSections(),
       loadGrades(),
+      loadLanes(),
       loadRouteSetters(),
     ]);
   }
@@ -63,6 +76,7 @@ class RouteProvider extends ChangeNotifier {
       _routes = await _apiService.getRoutes(
         wallSection: _selectedWallSection,
         grade: _selectedGrade,
+        lane: _selectedLane,
       );
 
       // Apply client-side filters
@@ -97,6 +111,12 @@ class RouteProvider extends ChangeNotifier {
       filteredRoutes = filteredRoutes
           .where((route) => route.grade == _selectedGrade)
           .toList();
+    }
+
+    // Filter by lane
+    if (_selectedLane != null) {
+      filteredRoutes =
+          filteredRoutes.where((route) => route.lane == _selectedLane).toList();
     }
 
     // Filter by route setter
@@ -181,20 +201,23 @@ class RouteProvider extends ChangeNotifier {
   }
 
   // Like/Unlike route
-  Future<bool> toggleLike(int routeId, String userName) async {
+  Future<bool> toggleLike(int routeId) async {
     try {
       // First, refresh the route data to get the current like status
       await loadRoute(routeId);
 
       final route =
           _selectedRoute ?? _routes.firstWhere((r) => r.id == routeId);
+      final currentUser = _authProvider.currentUser;
+      if (currentUser == null) return false;
+
       final isLiked =
-          route.likes?.any((like) => like.userName == userName) ?? false;
+          route.likes?.any((like) => like.userId == currentUser.id) ?? false;
 
       if (isLiked) {
-        await _apiService.unlikeRoute(routeId, userName);
+        await _apiService.unlikeRoute(routeId);
       } else {
-        await _apiService.likeRoute(routeId, userName);
+        await _apiService.likeRoute(routeId);
       }
 
       // Refresh the specific route to get updated data
@@ -211,23 +234,21 @@ class RouteProvider extends ChangeNotifier {
 
   // Tick/Untick route
   Future<bool> toggleTick(
-    int routeId,
-    String userName, {
+    int routeId, {
     int attempts = 1,
     bool flash = false,
     String? notes,
   }) async {
     try {
       // Check if route is already ticked
-      final tickStatus = await _apiService.getUserTick(routeId, userName);
+      final tickStatus = await _apiService.getUserTick(routeId);
       final isTicked = tickStatus['ticked'] ?? false;
 
       if (isTicked) {
-        await _apiService.untickRoute(routeId, userName);
+        await _apiService.untickRoute(routeId);
       } else {
         await _apiService.tickRoute(
           routeId,
-          userName,
           attempts: attempts,
           flash: flash,
           notes: notes,
@@ -249,19 +270,18 @@ class RouteProvider extends ChangeNotifier {
   }
 
   // Check if user has ticked a route
-  Future<Map<String, dynamic>?> getUserTickStatus(
-      int routeId, String userName) async {
+  Future<Map<String, dynamic>?> getUserTickStatus(int routeId) async {
     try {
-      return await _apiService.getUserTick(routeId, userName);
+      return await _apiService.getUserTick(routeId);
     } catch (e) {
       return null;
     }
   }
 
   // Add comment
-  Future<bool> addComment(int routeId, String userName, String content) async {
+  Future<bool> addComment(int routeId, String content) async {
     try {
-      await _apiService.addComment(routeId, userName, content);
+      await _apiService.addComment(routeId, content);
       // Refresh the route to show new comment
       await loadRoute(routeId);
       return true;
@@ -275,13 +295,11 @@ class RouteProvider extends ChangeNotifier {
   // Propose grade
   Future<bool> proposeGrade(
     int routeId,
-    String userName,
     String proposedGrade,
     String? reasoning,
   ) async {
     try {
-      await _apiService.proposeGrade(
-          routeId, userName, proposedGrade, reasoning);
+      await _apiService.proposeGrade(routeId, proposedGrade, reasoning);
       // Refresh the route to show new proposal
       await loadRoute(routeId);
       return true;
@@ -295,12 +313,11 @@ class RouteProvider extends ChangeNotifier {
   // Add warning
   Future<bool> addWarning(
     int routeId,
-    String userName,
     String warningType,
     String description,
   ) async {
     try {
-      await _apiService.addWarning(routeId, userName, warningType, description);
+      await _apiService.addWarning(routeId, warningType, description);
       // Refresh the route to show new warning
       await loadRoute(routeId);
       return true;
@@ -325,6 +342,16 @@ class RouteProvider extends ChangeNotifier {
   Future<void> loadGrades() async {
     try {
       _grades = await _apiService.getGrades();
+    } catch (e) {
+      _error = e.toString();
+    }
+    notifyListeners();
+  }
+
+  // Load lanes
+  Future<void> loadLanes() async {
+    try {
+      _lanes = await _apiService.getLanes();
     } catch (e) {
       _error = e.toString();
     }
@@ -356,6 +383,11 @@ class RouteProvider extends ChangeNotifier {
     _applyFiltersAndSort();
   }
 
+  void setLaneFilter(int? lane) {
+    _selectedLane = lane;
+    _applyFiltersAndSort();
+  }
+
   void setRouteSetterFilter(String? routeSetter) {
     _selectedRouteSetter = routeSetter;
     _applyFiltersAndSort();
@@ -384,12 +416,14 @@ class RouteProvider extends ChangeNotifier {
   void clearFilters() {
     _selectedWallSection = null;
     _selectedGrade = null;
+    _selectedLane = null;
     loadRoutes();
   }
 
   void clearAllFilters() {
     _selectedWallSection = null;
     _selectedGrade = null;
+    _selectedLane = null;
     _selectedRouteSetter = null;
     _tickedFilter = FilterState.all;
     _likedFilter = FilterState.all;

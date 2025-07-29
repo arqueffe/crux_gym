@@ -18,6 +18,7 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
 
   String? _selectedGrade;
   String? _selectedWallSection;
+  int? _selectedLane;
   String? _selectedColor;
 
   final _grades = [
@@ -166,6 +167,32 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
                           ),
                           const SizedBox(height: 16),
 
+                          // Lane
+                          DropdownButtonFormField<int>(
+                            decoration: const InputDecoration(
+                              labelText: 'Lane *',
+                              border: OutlineInputBorder(),
+                              helperText:
+                                  'Select the lane number for this route',
+                            ),
+                            value: _selectedLane,
+                            items: List.generate(10, (index) => index + 1)
+                                .map((lane) => DropdownMenuItem(
+                                      value: lane,
+                                      child: Text('Lane $lane'),
+                                    ))
+                                .toList(),
+                            onChanged: (value) =>
+                                setState(() => _selectedLane = value),
+                            validator: (value) {
+                              if (value == null) {
+                                return 'Lane is required';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+
                           // Color (optional)
                           DropdownButtonFormField<String>(
                             decoration: const InputDecoration(
@@ -291,6 +318,7 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
         grade: _selectedGrade!,
         routeSetter: _routeSetterController.text.trim(),
         wallSection: _selectedWallSection!,
+        lane: _selectedLane!,
         color: _selectedColor,
         description: _descriptionController.text.trim().isEmpty
             ? null

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/route_provider.dart';
+import '../providers/auth_provider.dart';
 import '../widgets/route_card.dart';
 import '../widgets/filter_drawer.dart';
+import '../widgets/interactive_climbing_wall.dart';
 import 'route_detail_screen.dart';
 import 'add_route_screen.dart';
 
@@ -29,6 +31,75 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('Climbing Gym Routes'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          // User info and logout
+          Consumer<AuthProvider>(
+            builder: (context, authProvider, child) {
+              return PopupMenuButton<String>(
+                onSelected: (value) async {
+                  if (value == 'logout') {
+                    await authProvider.logout();
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    enabled: false,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Logged in as:',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        Text(
+                          authProvider.currentUser?.username ?? 'Unknown',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuDivider(),
+                  const PopupMenuItem(
+                    value: 'logout',
+                    child: Row(
+                      children: [
+                        Icon(Icons.logout),
+                        SizedBox(width: 8),
+                        Text('Logout'),
+                      ],
+                    ),
+                  ),
+                ],
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircleAvatar(
+                        radius: 16,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        child: Text(
+                          (authProvider.currentUser?.username ?? 'U')[0]
+                              .toUpperCase(),
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onPrimary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.arrow_drop_down),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
           Builder(builder: (BuildContext context) {
             return IconButton(
               onPressed: () {
@@ -95,52 +166,61 @@ class _HomeScreenState extends State<HomeScreen> {
 
           return Column(
             children: [
-              // Active filters indicator
-              if (routeProvider.hasActiveFilters)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer,
-                    border: Border(
-                      bottom: BorderSide(
-                        color: Theme.of(context).colorScheme.outline,
-                      ),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.filter_alt,
-                        size: 16,
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Filters active - ${routeProvider.routes.length} routes shown',
-                          style: TextStyle(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onPrimaryContainer,
-                            fontWeight: FontWeight.w500,
+              // Interactive Climbing Wall
+              const InteractiveClimbingWall(),
+
+              // Consistent spacer or active filters indicator
+              Container(
+                width: double.infinity,
+                height: 48, // Fixed height to prevent layout jumps
+                padding: const EdgeInsets.all(12),
+                decoration: routeProvider.hasActiveFilters
+                    ? BoxDecoration(
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                        border: Border(
+                          bottom: BorderSide(
+                            color: Theme.of(context).colorScheme.outline,
                           ),
                         ),
-                      ),
-                      TextButton(
-                        onPressed: () => routeProvider.clearAllFilters(),
-                        child: Text(
-                          'Clear All',
-                          style: TextStyle(
+                      )
+                    : null,
+                child: routeProvider.hasActiveFilters
+                    ? Row(
+                        children: [
+                          Icon(
+                            Icons.filter_alt,
+                            size: 16,
                             color: Theme.of(context)
                                 .colorScheme
                                 .onPrimaryContainer,
                           ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Filters active - ${routeProvider.routes.length} routes shown',
+                              style: TextStyle(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onPrimaryContainer,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => routeProvider.clearAllFilters(),
+                            child: Text(
+                              'Clear All',
+                              style: TextStyle(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onPrimaryContainer,
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    : null, // Empty space when no filters but same height
+              ),
               Expanded(
                 child: routeProvider.routes.isEmpty
                     ? const Center(

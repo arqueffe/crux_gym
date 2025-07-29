@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:provider/provider.dart';
 import 'providers/route_provider.dart';
+import 'providers/auth_provider.dart';
 import 'screens/home_screen.dart';
+import 'screens/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,13 +22,23 @@ class ClimbingGymApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => RouteProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => AuthProvider()),
+        ChangeNotifierProxyProvider<AuthProvider, RouteProvider>(
+          create: (context) => RouteProvider(
+            authProvider: context.read<AuthProvider>(),
+          ),
+          update: (context, auth, previous) => RouteProvider(
+            authProvider: auth,
+          ),
+        ),
+      ],
       child: MaterialApp(
         title: 'Climbing Gym Routes',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
           appBarTheme: const AppBarTheme(
             centerTitle: true,
@@ -45,8 +57,57 @@ class ClimbingGymApp extends StatelessWidget {
             ),
           ),
         ),
-        home: const HomeScreen(),
+        home: const AuthWrapper(),
       ),
+    );
+  }
+}
+
+class AuthWrapper extends StatefulWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  @override
+  void initState() {
+    super.initState();
+    // Initialize authentication when app starts
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AuthProvider>().initialize();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        // Show loading screen during initialization
+        if (authProvider.isLoading) {
+          return const Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Initializing...'),
+                ],
+              ),
+            ),
+          );
+        }
+
+        // Show login screen if not authenticated
+        if (!authProvider.isAuthenticated) {
+          return const LoginScreen();
+        }
+
+        // Show main app if authenticated
+        return const HomeScreen();
+      },
     );
   }
 }

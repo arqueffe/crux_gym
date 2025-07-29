@@ -4,6 +4,7 @@ class Route {
   final String grade;
   final String routeSetter;
   final String wallSection;
+  final int lane;
   final String? color;
   final String? description;
   final DateTime createdAt;
@@ -24,6 +25,7 @@ class Route {
     required this.grade,
     required this.routeSetter,
     required this.wallSection,
+    required this.lane,
     this.color,
     this.description,
     required this.createdAt,
@@ -46,6 +48,7 @@ class Route {
       grade: json['grade'],
       routeSetter: json['route_setter'],
       wallSection: json['wall_section'],
+      lane: json['lane'],
       color: json['color'],
       description: json['description'],
       createdAt: DateTime.parse(json['created_at']),
@@ -80,6 +83,7 @@ class Route {
       'grade': grade,
       'route_setter': routeSetter,
       'wall_section': wallSection,
+      'lane': lane,
       'color': color,
       'description': description,
     };
@@ -88,12 +92,14 @@ class Route {
 
 class Like {
   final int id;
+  final int userId;
   final String userName;
   final int routeId;
   final DateTime createdAt;
 
   Like({
     required this.id,
+    required this.userId,
     required this.userName,
     required this.routeId,
     required this.createdAt,
@@ -102,6 +108,7 @@ class Like {
   factory Like.fromJson(Map<String, dynamic> json) {
     return Like(
       id: json['id'],
+      userId: json['user_id'],
       userName: json['user_name'],
       routeId: json['route_id'],
       createdAt: DateTime.parse(json['created_at']),
@@ -117,6 +124,7 @@ class Like {
 
 class Comment {
   final int id;
+  final int userId;
   final String userName;
   final String content;
   final int routeId;
@@ -124,6 +132,7 @@ class Comment {
 
   Comment({
     required this.id,
+    required this.userId,
     required this.userName,
     required this.content,
     required this.routeId,
@@ -133,6 +142,7 @@ class Comment {
   factory Comment.fromJson(Map<String, dynamic> json) {
     return Comment(
       id: json['id'],
+      userId: json['user_id'],
       userName: json['user_name'],
       content: json['content'],
       routeId: json['route_id'],
@@ -142,7 +152,6 @@ class Comment {
 
   Map<String, dynamic> toJson() {
     return {
-      'user_name': userName,
       'content': content,
     };
   }
@@ -150,6 +159,7 @@ class Comment {
 
 class GradeProposal {
   final int id;
+  final int userId;
   final String userName;
   final String proposedGrade;
   final String? reasoning;
@@ -158,6 +168,7 @@ class GradeProposal {
 
   GradeProposal({
     required this.id,
+    required this.userId,
     required this.userName,
     required this.proposedGrade,
     this.reasoning,
@@ -168,6 +179,7 @@ class GradeProposal {
   factory GradeProposal.fromJson(Map<String, dynamic> json) {
     return GradeProposal(
       id: json['id'],
+      userId: json['user_id'],
       userName: json['user_name'],
       proposedGrade: json['proposed_grade'],
       reasoning: json['reasoning'],
@@ -178,7 +190,6 @@ class GradeProposal {
 
   Map<String, dynamic> toJson() {
     return {
-      'user_name': userName,
       'proposed_grade': proposedGrade,
       'reasoning': reasoning,
     };
@@ -187,6 +198,7 @@ class GradeProposal {
 
 class Warning {
   final int id;
+  final int userId;
   final String userName;
   final String warningType;
   final String description;
@@ -196,6 +208,7 @@ class Warning {
 
   Warning({
     required this.id,
+    required this.userId,
     required this.userName,
     required this.warningType,
     required this.description,
@@ -207,6 +220,7 @@ class Warning {
   factory Warning.fromJson(Map<String, dynamic> json) {
     return Warning(
       id: json['id'],
+      userId: json['user_id'],
       userName: json['user_name'],
       warningType: json['warning_type'],
       description: json['description'],
@@ -218,7 +232,6 @@ class Warning {
 
   Map<String, dynamic> toJson() {
     return {
-      'user_name': userName,
       'warning_type': warningType,
       'description': description,
     };
@@ -227,6 +240,7 @@ class Warning {
 
 class Tick {
   final int id;
+  final int userId;
   final String userName;
   final int routeId;
   final int attempts;
@@ -236,6 +250,7 @@ class Tick {
 
   Tick({
     required this.id,
+    required this.userId,
     required this.userName,
     required this.routeId,
     required this.attempts,
@@ -247,6 +262,7 @@ class Tick {
   factory Tick.fromJson(Map<String, dynamic> json) {
     return Tick(
       id: json['id'],
+      userId: json['user_id'],
       userName: json['user_name'],
       routeId: json['route_id'],
       attempts: json['attempts'],
@@ -258,7 +274,6 @@ class Tick {
 
   Map<String, dynamic> toJson() {
     return {
-      'user_name': userName,
       'attempts': attempts,
       'flash': flash,
       'notes': notes,

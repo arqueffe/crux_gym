@@ -1,23 +1,32 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/route_models.dart';
+import '../providers/auth_provider.dart';
 
 class ApiService {
   static const String baseUrl = 'http://localhost:5000/api';
+  final AuthProvider authProvider;
+
+  ApiService({required this.authProvider});
+
+  // Get headers with authentication
+  Map<String, String> get _headers => authProvider.getAuthHeaders();
 
   // Routes
-  Future<List<Route>> getRoutes({String? wallSection, String? grade}) async {
+  Future<List<Route>> getRoutes(
+      {String? wallSection, String? grade, int? lane}) async {
     var uri = Uri.parse('$baseUrl/routes');
     var queryParams = <String, String>{};
 
     if (wallSection != null) queryParams['wall_section'] = wallSection;
     if (grade != null) queryParams['grade'] = grade;
+    if (lane != null) queryParams['lane'] = lane.toString();
 
     if (queryParams.isNotEmpty) {
       uri = Uri.parse('$baseUrl/routes').replace(queryParameters: queryParams);
     }
 
-    final response = await http.get(uri);
+    final response = await http.get(uri, headers: _headers);
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
       return data.map((json) => Route.fromJson(json)).toList();
@@ -27,7 +36,10 @@ class ApiService {
   }
 
   Future<Route> getRoute(int routeId) async {
-    final response = await http.get(Uri.parse('$baseUrl/routes/$routeId'));
+    final response = await http.get(
+      Uri.parse('$baseUrl/routes/$routeId'),
+      headers: _headers,
+    );
     if (response.statusCode == 200) {
       return Route.fromJson(json.decode(response.body));
     } else {
@@ -38,7 +50,7 @@ class ApiService {
   Future<Route> createRoute(Route route) async {
     final response = await http.post(
       Uri.parse('$baseUrl/routes'),
-      headers: {'Content-Type': 'application/json'},
+      headers: _headers,
       body: json.encode(route.toJson()),
     );
     if (response.statusCode == 201) {
@@ -49,11 +61,10 @@ class ApiService {
   }
 
   // Likes
-  Future<Like> likeRoute(int routeId, String userName) async {
+  Future<Like> likeRoute(int routeId) async {
     final response = await http.post(
       Uri.parse('$baseUrl/routes/$routeId/like'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({'user_name': userName}),
+      headers: _headers,
     );
     if (response.statusCode == 201) {
       return Like.fromJson(json.decode(response.body));
@@ -64,11 +75,10 @@ class ApiService {
     }
   }
 
-  Future<void> unlikeRoute(int routeId, String userName) async {
+  Future<void> unlikeRoute(int routeId) async {
     final response = await http.delete(
       Uri.parse('$baseUrl/routes/$routeId/unlike'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({'user_name': userName}),
+      headers: _headers,
     );
     if (response.statusCode != 200) {
       throw Exception('Failed to unlike route');
@@ -76,13 +86,11 @@ class ApiService {
   }
 
   // Comments
-  Future<Comment> addComment(
-      int routeId, String userName, String content) async {
+  Future<Comment> addComment(int routeId, String content) async {
     final response = await http.post(
       Uri.parse('$baseUrl/routes/$routeId/comments'),
-      headers: {'Content-Type': 'application/json'},
+      headers: _headers,
       body: json.encode({
-        'user_name': userName,
         'content': content,
       }),
     );
@@ -96,15 +104,13 @@ class ApiService {
   // Grade Proposals
   Future<GradeProposal> proposeGrade(
     int routeId,
-    String userName,
     String proposedGrade,
     String? reasoning,
   ) async {
     final response = await http.post(
       Uri.parse('$baseUrl/routes/$routeId/grade-proposals'),
-      headers: {'Content-Type': 'application/json'},
+      headers: _headers,
       body: json.encode({
-        'user_name': userName,
         'proposed_grade': proposedGrade,
         'reasoning': reasoning,
       }),
@@ -119,15 +125,13 @@ class ApiService {
   // Warnings
   Future<Warning> addWarning(
     int routeId,
-    String userName,
     String warningType,
     String description,
   ) async {
     final response = await http.post(
       Uri.parse('$baseUrl/routes/$routeId/warnings'),
-      headers: {'Content-Type': 'application/json'},
+      headers: _headers,
       body: json.encode({
-        'user_name': userName,
         'warning_type': warningType,
         'description': description,
       }),
@@ -141,17 +145,15 @@ class ApiService {
 
   // Ticks
   Future<Tick> tickRoute(
-    int routeId,
-    String userName, {
+    int routeId, {
     int attempts = 1,
     bool flash = false,
     String? notes,
   }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/routes/$routeId/ticks'),
-      headers: {'Content-Type': 'application/json'},
+      headers: _headers,
       body: json.encode({
-        'user_name': userName,
         'attempts': attempts,
         'flash': flash,
         'notes': notes,
@@ -166,19 +168,20 @@ class ApiService {
     }
   }
 
-  Future<void> untickRoute(int routeId, String userName) async {
+  Future<void> untickRoute(int routeId) async {
     final response = await http.delete(
-      Uri.parse('$baseUrl/routes/$routeId/ticks/$userName'),
-      headers: {'Content-Type': 'application/json'},
+      Uri.parse('$baseUrl/routes/$routeId/ticks'),
+      headers: _headers,
     );
     if (response.statusCode != 200) {
       throw Exception('Failed to untick route');
     }
   }
 
-  Future<Map<String, dynamic>> getUserTick(int routeId, String userName) async {
+  Future<Map<String, dynamic>> getUserTick(int routeId) async {
     final response = await http.get(
-      Uri.parse('$baseUrl/routes/$routeId/ticks/$userName'),
+      Uri.parse('$baseUrl/routes/$routeId/ticks/me'),
+      headers: _headers,
     );
     if (response.statusCode == 200) {
       return json.decode(response.body);
@@ -189,7 +192,10 @@ class ApiService {
 
   // Utility
   Future<List<String>> getWallSections() async {
-    final response = await http.get(Uri.parse('$baseUrl/wall-sections'));
+    final response = await http.get(
+      Uri.parse('$baseUrl/wall-sections'),
+      headers: _headers,
+    );
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
       return data.cast<String>();
@@ -199,12 +205,28 @@ class ApiService {
   }
 
   Future<List<String>> getGrades() async {
-    final response = await http.get(Uri.parse('$baseUrl/grades'));
+    final response = await http.get(
+      Uri.parse('$baseUrl/grades'),
+      headers: _headers,
+    );
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
       return data.cast<String>();
     } else {
       throw Exception('Failed to load grades');
+    }
+  }
+
+  Future<List<int>> getLanes() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/lanes'),
+      headers: _headers,
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      return data.cast<int>();
+    } else {
+      throw Exception('Failed to load lanes');
     }
   }
 }
