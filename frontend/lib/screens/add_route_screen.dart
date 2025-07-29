@@ -300,6 +300,7 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
         commentsCount: 0,
         gradeProposalsCount: 0,
         warningsCount: 0,
+        ticksCount: 0,
       );
 
       final routeProvider = context.read<RouteProvider>();

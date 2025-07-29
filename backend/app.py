@@ -30,6 +30,8 @@ class Route(db.Model):
     comments = db.relationship('Comment', backref='route', lazy=True, cascade='all, delete-orphan')
     grade_proposals = db.relationship('GradeProposal', backref='route', lazy=True, cascade='all, delete-orphan')
     warnings = db.relationship('Warning', backref='route', lazy=True, cascade='all, delete-orphan')
+    ticks = db.relationship('Tick', backref='route', lazy=True, cascade='all, delete-orphan')
+    ticks = db.relationship('Tick', backref='route', lazy=True, cascade='all, delete-orphan')
 
     def to_dict(self):
         return {
@@ -44,7 +46,8 @@ class Route(db.Model):
             'likes_count': len(self.likes),
             'comments_count': len(self.comments),
             'grade_proposals_count': len(self.grade_proposals),
-            'warnings_count': len(self.warnings)
+            'warnings_count': len(self.warnings),
+            'ticks_count': len(self.ticks)
         }
 
 class Like(db.Model):
@@ -115,6 +118,28 @@ class Warning(db.Model):
             'created_at': self.created_at.isoformat()
         }
 
+class Tick(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_name = db.Column(db.String(100), nullable=False)
+    route_id = db.Column(db.Integer, db.ForeignKey('route.id'), nullable=False)
+    attempts = db.Column(db.Integer, default=1)  # Number of attempts to complete
+    flash = db.Column(db.Boolean, default=False)  # True if completed on first try
+    notes = db.Column(db.Text, nullable=True)  # Optional notes about the ascent
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Ensure one tick per user per route
+    __table_args__ = (db.UniqueConstraint('user_name', 'route_id', name='unique_user_route_tick'),)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_name': self.user_name,
+            'route_id': self.route_id,
+            'attempts': self.attempts,
+            'flash': self.flash,
+            'notes': self.notes,
+            'created_at': self.created_at.isoformat()
+        }
 # API Routes
 
 @app.route('/api/routes', methods=['GET'])
@@ -143,6 +168,7 @@ def get_route(route_id):
     route_data['comments'] = [comment.to_dict() for comment in route.comments]
     route_data['grade_proposals'] = [proposal.to_dict() for proposal in route.grade_proposals]
     route_data['warnings'] = [warning.to_dict() for warning in route.warnings]
+    route_data['ticks'] = [tick.to_dict() for tick in route.ticks]
     
     return jsonify(route_data)
 
@@ -246,6 +272,65 @@ def add_warning(route_id):
     db.session.commit()
     
     return jsonify(warning.to_dict()), 201
+
+@app.route('/api/routes/<int:route_id>/ticks', methods=['POST'])
+def add_tick(route_id):
+    """Add a tick (successful ascent) for a route"""
+    data = request.get_json()
+    
+    # Check if user already ticked this route
+    existing_tick = Tick.query.filter_by(
+        route_id=route_id,
+        user_name=data['user_name']
+    ).first()
+    
+    if existing_tick:
+        return jsonify({'error': 'Route already ticked by this user'}), 400
+    
+    tick = Tick(
+        route_id=route_id,
+        user_name=data['user_name'],
+        attempts=data.get('attempts', 1),
+        flash=data.get('flash', False),
+        notes=data.get('notes')
+    )
+    
+    db.session.add(tick)
+    db.session.commit()
+    
+    return jsonify(tick.to_dict()), 201
+
+@app.route('/api/routes/<int:route_id>/ticks/<string:user_name>', methods=['DELETE'])
+def remove_tick(route_id, user_name):
+    """Remove a tick for a route"""
+    tick = Tick.query.filter_by(
+        route_id=route_id,
+        user_name=user_name
+    ).first()
+    
+    if not tick:
+        return jsonify({'error': 'Tick not found'}), 404
+    
+    db.session.delete(tick)
+    db.session.commit()
+    
+    return jsonify({'message': 'Tick removed successfully'}), 200
+
+@app.route('/api/routes/<int:route_id>/ticks/<string:user_name>', methods=['GET'])
+def get_user_tick(route_id, user_name):
+    """Get a specific user's tick for a route"""
+    tick = Tick.query.filter_by(
+        route_id=route_id,
+        user_name=user_name
+    ).first()
+    
+    if not tick:
+        return jsonify({'ticked': False}), 200
+    
+    return jsonify({
+        'ticked': True,
+        'tick': tick.to_dict()
+    }), 200
 
 @app.route('/api/wall-sections', methods=['GET'])
 def get_wall_sections():

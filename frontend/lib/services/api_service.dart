@@ -139,6 +139,54 @@ class ApiService {
     }
   }
 
+  // Ticks
+  Future<Tick> tickRoute(
+    int routeId,
+    String userName, {
+    int attempts = 1,
+    bool flash = false,
+    String? notes,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/routes/$routeId/ticks'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'user_name': userName,
+        'attempts': attempts,
+        'flash': flash,
+        'notes': notes,
+      }),
+    );
+    if (response.statusCode == 201) {
+      return Tick.fromJson(json.decode(response.body));
+    } else if (response.statusCode == 400) {
+      throw Exception('Route already ticked');
+    } else {
+      throw Exception('Failed to tick route');
+    }
+  }
+
+  Future<void> untickRoute(int routeId, String userName) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/routes/$routeId/ticks/$userName'),
+      headers: {'Content-Type': 'application/json'},
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Failed to untick route');
+    }
+  }
+
+  Future<Map<String, dynamic>> getUserTick(int routeId, String userName) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/routes/$routeId/ticks/$userName'),
+    );
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Failed to get tick status');
+    }
+  }
+
   // Utility
   Future<List<String>> getWallSections() async {
     final response = await http.get(Uri.parse('$baseUrl/wall-sections'));

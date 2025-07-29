@@ -124,6 +124,15 @@ class RouteCard extends StatelessWidget {
                           Text('${route.commentsCount}'),
                         ],
                       ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.check_circle,
+                              color: Colors.green, size: 16),
+                          const SizedBox(width: 4),
+                          Text('${route.ticksCount}'),
+                        ],
+                      ),
                       if (route.warningsCount > 0) ...[
                         const SizedBox(height: 4),
                         Row(

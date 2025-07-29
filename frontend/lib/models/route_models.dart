@@ -11,10 +11,12 @@ class Route {
   final int commentsCount;
   final int gradeProposalsCount;
   final int warningsCount;
+  final int ticksCount;
   final List<Like>? likes;
   final List<Comment>? comments;
   final List<GradeProposal>? gradeProposals;
   final List<Warning>? warnings;
+  final List<Tick>? ticks;
 
   Route({
     required this.id,
@@ -29,10 +31,12 @@ class Route {
     required this.commentsCount,
     required this.gradeProposalsCount,
     required this.warningsCount,
+    required this.ticksCount,
     this.likes,
     this.comments,
     this.gradeProposals,
     this.warnings,
+    this.ticks,
   });
 
   factory Route.fromJson(Map<String, dynamic> json) {
@@ -49,6 +53,7 @@ class Route {
       commentsCount: json['comments_count'],
       gradeProposalsCount: json['grade_proposals_count'],
       warningsCount: json['warnings_count'],
+      ticksCount: json['ticks_count'] ?? 0,
       likes: json['likes'] != null
           ? (json['likes'] as List).map((e) => Like.fromJson(e)).toList()
           : null,
@@ -62,6 +67,9 @@ class Route {
           : null,
       warnings: json['warnings'] != null
           ? (json['warnings'] as List).map((e) => Warning.fromJson(e)).toList()
+          : null,
+      ticks: json['ticks'] != null
+          ? (json['ticks'] as List).map((e) => Tick.fromJson(e)).toList()
           : null,
     );
   }
@@ -213,6 +221,47 @@ class Warning {
       'user_name': userName,
       'warning_type': warningType,
       'description': description,
+    };
+  }
+}
+
+class Tick {
+  final int id;
+  final String userName;
+  final int routeId;
+  final int attempts;
+  final bool flash;
+  final String? notes;
+  final DateTime createdAt;
+
+  Tick({
+    required this.id,
+    required this.userName,
+    required this.routeId,
+    required this.attempts,
+    required this.flash,
+    this.notes,
+    required this.createdAt,
+  });
+
+  factory Tick.fromJson(Map<String, dynamic> json) {
+    return Tick(
+      id: json['id'],
+      userName: json['user_name'],
+      routeId: json['route_id'],
+      attempts: json['attempts'],
+      flash: json['flash'],
+      notes: json['notes'],
+      createdAt: DateTime.parse(json['created_at']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'user_name': userName,
+      'attempts': attempts,
+      'flash': flash,
+      'notes': notes,
     };
   }
 }

@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:provider/provider.dart';
 import 'providers/route_provider.dart';
 import 'screens/home_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize InAppWebView for flutter_3d_controller
+  if (InAppWebViewPlatform.instance is InAppWebViewPlatform) {
+    // Platform is already initialized
+  }
+
   runApp(const ClimbingGymApp());
 }
 

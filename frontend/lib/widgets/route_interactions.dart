@@ -15,18 +15,41 @@ class RouteInteractions extends StatefulWidget {
 class _RouteInteractionsState extends State<RouteInteractions> {
   final _userNameController = TextEditingController(text: 'Anonymous User');
   bool _isLiked = false;
+  bool _isTicked = false;
+  Map<String, dynamic>? _tickData;
 
   @override
   void initState() {
     super.initState();
     _checkIfLiked();
+    _checkIfTicked();
   }
 
   void _checkIfLiked() {
-    _isLiked = widget.route.likes?.any(
-          (like) => like.userName == _userNameController.text,
+    final isLiked = widget.route.likes?.any(
+          (like) => like.userName == _userNameController.text.trim(),
         ) ??
         false;
+
+    if (_isLiked != isLiked) {
+      setState(() {
+        _isLiked = isLiked;
+      });
+    }
+  }
+
+  void _checkIfTicked() async {
+    final routeProvider = context.read<RouteProvider>();
+    final tickStatus = await routeProvider.getUserTickStatus(
+      widget.route.id,
+      _userNameController.text,
+    );
+    if (mounted) {
+      setState(() {
+        _isTicked = tickStatus?['ticked'] ?? false;
+        _tickData = tickStatus?['tick'];
+      });
+    }
   }
 
   @override
@@ -34,6 +57,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.route.id != widget.route.id) {
       _checkIfLiked();
+      _checkIfTicked();
     }
   }
 
@@ -60,6 +84,10 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                 contentPadding:
                     EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
+              onChanged: (value) {
+                _checkIfLiked();
+                _checkIfTicked();
+              },
             ),
             const SizedBox(height: 16),
 
@@ -77,6 +105,17 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                   label: Text(_isLiked ? 'Unlike' : 'Like'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _isLiked ? Colors.red[50] : null,
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () => _showTickDialog(),
+                  icon: Icon(
+                    _isTicked ? Icons.check_circle : Icons.check_circle_outline,
+                    color: _isTicked ? Colors.green : null,
+                  ),
+                  label: Text(_isTicked ? 'Ticked' : 'Tick'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _isTicked ? Colors.green[50] : null,
                   ),
                 ),
                 ElevatedButton.icon(
@@ -113,18 +152,192 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     }
 
     final routeProvider = context.read<RouteProvider>();
+    final wasLiked = _isLiked;
     final success = await routeProvider.toggleLike(
       widget.route.id,
       _userNameController.text.trim(),
     );
 
+    if (!mounted) return;
+
     if (success) {
+      // Get the updated route from the provider and check like status
+      models.Route? updatedRoute;
+      try {
+        updatedRoute = routeProvider.selectedRoute ??
+            routeProvider.routes.firstWhere((r) => r.id == widget.route.id);
+      } catch (e) {
+        // If we can't find the updated route, fall back to the original
+        updatedRoute = widget.route;
+      }
+
+      final isNowLiked = updatedRoute.likes?.any(
+              (like) => like.userName == _userNameController.text.trim()) ??
+          false;
+
       setState(() {
-        _isLiked = !_isLiked;
+        _isLiked = isNowLiked;
       });
-      _showSnackBar(_isLiked ? 'Route liked!' : 'Route unliked!');
+      _showSnackBar(!wasLiked ? 'Route liked!' : 'Route unliked!');
     } else {
       _showSnackBar('Failed to toggle like');
+    }
+  }
+
+  void _showTickDialog() {
+    if (_isTicked) {
+      // If already ticked, show option to untick
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Untick Route'),
+          content: const Text(
+              'Are you sure you want to remove your tick for this route?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _toggleTick();
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text('Untick'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      // Show tick dialog with options
+      int attempts = 1;
+      bool flash = false;
+      final notesController = TextEditingController();
+
+      showDialog(
+        context: context,
+        builder: (context) => StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: const Text('Tick Route'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    const Text('Attempts: '),
+                    const SizedBox(width: 8),
+                    DropdownButton<int>(
+                      value: attempts,
+                      items: List.generate(10, (i) => i + 1)
+                          .map((i) => DropdownMenuItem(
+                                value: i,
+                                child: Text('$i'),
+                              ))
+                          .toList(),
+                      onChanged: (value) {
+                        setDialogState(() {
+                          attempts = value!;
+                          flash = attempts == 1;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                CheckboxListTile(
+                  title: const Text('Flash (first attempt)'),
+                  value: flash,
+                  onChanged: (value) {
+                    setDialogState(() {
+                      flash = value!;
+                      if (flash) attempts = 1;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: notesController,
+                  decoration: const InputDecoration(
+                    labelText: 'Notes (optional)',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 2,
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _submitTick(attempts, flash, notesController.text);
+                },
+                child: const Text('Tick'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+
+  void _toggleTick() async {
+    if (_userNameController.text.trim().isEmpty) {
+      _showSnackBar('Please enter your name');
+      return;
+    }
+
+    final routeProvider = context.read<RouteProvider>();
+    final success = await routeProvider.toggleTick(
+      widget.route.id,
+      _userNameController.text.trim(),
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      setState(() {
+        _isTicked = !_isTicked;
+        if (!_isTicked) _tickData = null;
+      });
+      _showSnackBar(_isTicked ? 'Route ticked!' : 'Tick removed!');
+      if (_isTicked) {
+        _checkIfTicked(); // Refresh tick data
+      }
+    } else {
+      _showSnackBar('Failed to toggle tick');
+    }
+  }
+
+  void _submitTick(int attempts, bool flash, String notes) async {
+    if (_userNameController.text.trim().isEmpty) {
+      _showSnackBar('Please enter your name');
+      return;
+    }
+
+    final routeProvider = context.read<RouteProvider>();
+    final success = await routeProvider.toggleTick(
+      widget.route.id,
+      _userNameController.text.trim(),
+      attempts: attempts,
+      flash: flash,
+      notes: notes.trim().isEmpty ? null : notes.trim(),
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      setState(() {
+        _isTicked = true;
+      });
+      _showSnackBar('Route ticked!');
+      _checkIfTicked(); // Refresh tick data
+    } else {
+      _showSnackBar('Failed to tick route');
     }
   }
 
@@ -176,6 +389,8 @@ class _RouteInteractionsState extends State<RouteInteractions> {
       _userNameController.text.trim(),
       content.trim(),
     );
+
+    if (!mounted) return;
 
     if (success) {
       _showSnackBar('Comment added!');
@@ -263,6 +478,8 @@ class _RouteInteractionsState extends State<RouteInteractions> {
       reasoning.trim().isEmpty ? null : reasoning.trim(),
     );
 
+    if (!mounted) return;
+
     if (success) {
       _showSnackBar('Grade proposal submitted!');
     } else {
@@ -345,6 +562,8 @@ class _RouteInteractionsState extends State<RouteInteractions> {
       warningType,
       description.trim(),
     );
+
+    if (!mounted) return;
 
     if (success) {
       _showSnackBar('Warning reported!');

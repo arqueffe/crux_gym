@@ -1,28 +1,50 @@
 import 'package:flutter/foundation.dart';
 import '../models/route_models.dart';
 import '../services/api_service.dart';
+import '../widgets/filter_drawer.dart';
 
 class RouteProvider extends ChangeNotifier {
   final ApiService _apiService = ApiService();
 
   List<Route> _routes = [];
+  List<Route> _currentRoutes = [];
   Route? _selectedRoute;
   bool _isLoading = false;
   String? _error;
   String? _selectedWallSection;
   String? _selectedGrade;
+  String? _selectedRouteSetter;
   List<String> _wallSections = [];
   List<String> _grades = [];
+  List<String> _routeSetters = [];
+  SortOption _selectedSort = SortOption.newest;
+  FilterState _tickedFilter = FilterState.all;
+  FilterState _likedFilter = FilterState.all;
+  FilterState _warnedFilter = FilterState.all;
 
   // Getters
-  List<Route> get routes => _routes;
+  List<Route> get routes => _currentRoutes;
   Route? get selectedRoute => _selectedRoute;
   bool get isLoading => _isLoading;
   String? get error => _error;
   String? get selectedWallSection => _selectedWallSection;
   String? get selectedGrade => _selectedGrade;
+  String? get selectedRouteSetter => _selectedRouteSetter;
   List<String> get wallSections => _wallSections;
   List<String> get grades => _grades;
+  List<String> get routeSetters => _routeSetters;
+  SortOption get selectedSort => _selectedSort;
+  FilterState get tickedFilter => _tickedFilter;
+  FilterState get likedFilter => _likedFilter;
+  FilterState get warnedFilter => _warnedFilter;
+
+  bool get hasActiveFilters =>
+      _selectedWallSection != null ||
+      _selectedGrade != null ||
+      _selectedRouteSetter != null ||
+      _tickedFilter != FilterState.all ||
+      _likedFilter != FilterState.all ||
+      _warnedFilter != FilterState.all;
 
   // Load initial data
   Future<void> loadInitialData() async {
@@ -30,6 +52,7 @@ class RouteProvider extends ChangeNotifier {
       loadRoutes(),
       loadWallSections(),
       loadGrades(),
+      loadRouteSetters(),
     ]);
   }
 
@@ -41,11 +64,92 @@ class RouteProvider extends ChangeNotifier {
         wallSection: _selectedWallSection,
         grade: _selectedGrade,
       );
+
+      // Apply client-side filters
+      _applyClientSideFilters();
+
+      // Apply sorting
+      _sortRoutes();
+
+      // Update route setters list after loading routes
+      await loadRouteSetters();
+
       _error = null;
     } catch (e) {
       _error = e.toString();
     }
     _setLoading(false);
+  }
+
+  // Apply client-side filters (for features not supported by API)
+  void _applyClientSideFilters() {
+    List<Route> filteredRoutes = List.from(_routes);
+
+    // Filter by wall section
+    if (_selectedWallSection != null) {
+      filteredRoutes = filteredRoutes
+          .where((route) => route.wallSection == _selectedWallSection)
+          .toList();
+    }
+
+    // Filter by grade
+    if (_selectedGrade != null) {
+      filteredRoutes = filteredRoutes
+          .where((route) => route.grade == _selectedGrade)
+          .toList();
+    }
+
+    // Filter by route setter
+    if (_selectedRouteSetter != null) {
+      filteredRoutes = filteredRoutes
+          .where((route) => route.routeSetter == _selectedRouteSetter)
+          .toList();
+    }
+
+    // Filter by ticked status (assuming we have user context)
+    if (_tickedFilter != FilterState.all) {
+      if (_tickedFilter == FilterState.only) {
+        filteredRoutes = filteredRoutes
+            .where((route) => route.ticksCount > 0) // Show only ticked routes
+            .toList();
+      } else if (_tickedFilter == FilterState.exclude) {
+        filteredRoutes = filteredRoutes
+            .where(
+                (route) => route.ticksCount == 0) // Show only non-ticked routes
+            .toList();
+      }
+    }
+
+    // Filter by liked status (assuming we have user context)
+    if (_likedFilter != FilterState.all) {
+      if (_likedFilter == FilterState.only) {
+        filteredRoutes = filteredRoutes
+            .where((route) => route.likesCount > 0) // Show only liked routes
+            .toList();
+      } else if (_likedFilter == FilterState.exclude) {
+        filteredRoutes = filteredRoutes
+            .where(
+                (route) => route.likesCount == 0) // Show only non-liked routes
+            .toList();
+      }
+    }
+
+    // Filter by warned status
+    if (_warnedFilter != FilterState.all) {
+      if (_warnedFilter == FilterState.only) {
+        filteredRoutes = filteredRoutes
+            .where(
+                (route) => route.warningsCount > 0) // Show only warned routes
+            .toList();
+      } else if (_warnedFilter == FilterState.exclude) {
+        filteredRoutes = filteredRoutes
+            .where((route) =>
+                route.warningsCount == 0) // Show only non-warned routes
+            .toList();
+      }
+    }
+
+    _currentRoutes = filteredRoutes;
   }
 
   // Load specific route with details
@@ -79,7 +183,11 @@ class RouteProvider extends ChangeNotifier {
   // Like/Unlike route
   Future<bool> toggleLike(int routeId, String userName) async {
     try {
-      final route = _routes.firstWhere((r) => r.id == routeId);
+      // First, refresh the route data to get the current like status
+      await loadRoute(routeId);
+
+      final route =
+          _selectedRoute ?? _routes.firstWhere((r) => r.id == routeId);
       final isLiked =
           route.likes?.any((like) => like.userName == userName) ?? false;
 
@@ -98,6 +206,55 @@ class RouteProvider extends ChangeNotifier {
       _error = e.toString();
       notifyListeners();
       return false;
+    }
+  }
+
+  // Tick/Untick route
+  Future<bool> toggleTick(
+    int routeId,
+    String userName, {
+    int attempts = 1,
+    bool flash = false,
+    String? notes,
+  }) async {
+    try {
+      // Check if route is already ticked
+      final tickStatus = await _apiService.getUserTick(routeId, userName);
+      final isTicked = tickStatus['ticked'] ?? false;
+
+      if (isTicked) {
+        await _apiService.untickRoute(routeId, userName);
+      } else {
+        await _apiService.tickRoute(
+          routeId,
+          userName,
+          attempts: attempts,
+          flash: flash,
+          notes: notes,
+        );
+      }
+
+      // Refresh the specific route to get updated data
+      if (_selectedRoute?.id == routeId) {
+        await loadRoute(routeId);
+      }
+      // Also refresh the routes list
+      await loadRoutes();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Check if user has ticked a route
+  Future<Map<String, dynamic>?> getUserTickStatus(
+      int routeId, String userName) async {
+    try {
+      return await _apiService.getUserTick(routeId, userName);
+    } catch (e) {
+      return null;
     }
   }
 
@@ -174,21 +331,78 @@ class RouteProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Load route setters
+  Future<void> loadRouteSetters() async {
+    try {
+      // Extract route setters from existing routes
+      final setters =
+          _routes.map((route) => route.routeSetter).toSet().toList();
+      setters.sort();
+      _routeSetters = setters;
+    } catch (e) {
+      _error = e.toString();
+    }
+    notifyListeners();
+  }
+
   // Filter methods
   void setWallSectionFilter(String? wallSection) {
     _selectedWallSection = wallSection;
-    loadRoutes();
+    _applyFiltersAndSort();
   }
 
   void setGradeFilter(String? grade) {
     _selectedGrade = grade;
-    loadRoutes();
+    _applyFiltersAndSort();
+  }
+
+  void setRouteSetterFilter(String? routeSetter) {
+    _selectedRouteSetter = routeSetter;
+    _applyFiltersAndSort();
+  }
+
+  void setSortOption(SortOption sortOption) {
+    _selectedSort = sortOption;
+    _applyFiltersAndSort();
+  }
+
+  void setTickedFilter(FilterState state) {
+    _tickedFilter = state;
+    _applyFiltersAndSort();
+  }
+
+  void setLikedFilter(FilterState state) {
+    _likedFilter = state;
+    _applyFiltersAndSort();
+  }
+
+  void setWarnedFilter(FilterState state) {
+    _warnedFilter = state;
+    _applyFiltersAndSort();
   }
 
   void clearFilters() {
     _selectedWallSection = null;
     _selectedGrade = null;
     loadRoutes();
+  }
+
+  void clearAllFilters() {
+    _selectedWallSection = null;
+    _selectedGrade = null;
+    _selectedRouteSetter = null;
+    _tickedFilter = FilterState.all;
+    _likedFilter = FilterState.all;
+    _warnedFilter = FilterState.all;
+    _selectedSort = SortOption.newest;
+    loadRoutes();
+  }
+
+  // Apply all filters and sorting
+  void _applyFiltersAndSort() {
+    _applyClientSideFilters();
+    _sortRoutes();
+    notifyListeners();
   }
 
   // Private helper methods
@@ -200,5 +414,49 @@ class RouteProvider extends ChangeNotifier {
   void clearError() {
     _error = null;
     notifyListeners();
+  }
+
+  // Private method to sort routes based on the selected sort option
+  void _sortRoutes() {
+    switch (_selectedSort) {
+      case SortOption.newest:
+        _currentRoutes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        break;
+      case SortOption.oldest:
+        _currentRoutes.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        break;
+      case SortOption.nameAZ:
+        _currentRoutes.sort((a, b) => a.name.compareTo(b.name));
+        break;
+      case SortOption.nameZA:
+        _currentRoutes.sort((a, b) => b.name.compareTo(a.name));
+        break;
+      case SortOption.gradeAsc:
+        _currentRoutes.sort((a, b) => a.grade.compareTo(b.grade));
+        break;
+      case SortOption.gradeDesc:
+        _currentRoutes.sort((a, b) => b.grade.compareTo(a.grade));
+        break;
+      case SortOption.mostLikes:
+        _currentRoutes.sort((a, b) => b.likesCount.compareTo(a.likesCount));
+        break;
+      case SortOption.leastLikes:
+        _currentRoutes.sort((a, b) => a.likesCount.compareTo(b.likesCount));
+        break;
+      case SortOption.mostComments:
+        _currentRoutes
+            .sort((a, b) => b.commentsCount.compareTo(a.commentsCount));
+        break;
+      case SortOption.leastComments:
+        _currentRoutes
+            .sort((a, b) => a.commentsCount.compareTo(b.commentsCount));
+        break;
+      case SortOption.mostTicks:
+        _currentRoutes.sort((a, b) => b.ticksCount.compareTo(a.ticksCount));
+        break;
+      case SortOption.leastTicks:
+        _currentRoutes.sort((a, b) => a.ticksCount.compareTo(b.ticksCount));
+        break;
+    }
   }
 }

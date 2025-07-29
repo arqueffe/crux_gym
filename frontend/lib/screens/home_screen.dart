@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/route_models.dart';
 import '../providers/route_provider.dart';
 import '../widgets/route_card.dart';
-import '../widgets/filter_bar.dart';
+import '../widgets/filter_drawer.dart';
 import 'route_detail_screen.dart';
 import 'add_route_screen.dart';
 
@@ -30,6 +29,27 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('Climbing Gym Routes'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          Builder(builder: (BuildContext context) {
+            return IconButton(
+              onPressed: () {
+                Scaffold.of(context).openEndDrawer();
+              },
+              icon: const Icon(Icons.filter_list),
+              tooltip: 'Filters',
+            );
+          }),
+          // IconButton(
+          //   onPressed: () {
+          //     Navigator.push(
+          //       context,
+          //       MaterialPageRoute(
+          //         builder: (context) => const WallViewer(),
+          //       ),
+          //     );
+          //   },
+          //   icon: const Icon(Icons.view_in_ar),
+          //   tooltip: '3D Wall View',
+          // ),
           IconButton(
             onPressed: () {
               Navigator.push(
@@ -44,6 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+      endDrawer: const FilterDrawer(),
       body: Consumer<RouteProvider>(
         builder: (context, routeProvider, child) {
           if (routeProvider.isLoading && routeProvider.routes.isEmpty) {
@@ -74,7 +95,52 @@ class _HomeScreenState extends State<HomeScreen> {
 
           return Column(
             children: [
-              const FilterBar(),
+              // Active filters indicator
+              if (routeProvider.hasActiveFilters)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.filter_alt,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Filters active - ${routeProvider.routes.length} routes shown',
+                          style: TextStyle(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onPrimaryContainer,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => routeProvider.clearAllFilters(),
+                        child: Text(
+                          'Clear All',
+                          style: TextStyle(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onPrimaryContainer,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               Expanded(
                 child: routeProvider.routes.isEmpty
                     ? const Center(
