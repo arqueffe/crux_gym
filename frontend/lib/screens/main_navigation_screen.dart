@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'home_screen.dart';
 import 'profile_screen.dart';
+import '../providers/route_provider.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -27,6 +29,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           setState(() {
             _currentIndex = index;
           });
+
+          // Refresh routes when returning to the Routes tab (index 0)
+          if (index == 0) {
+            final routeProvider =
+                Provider.of<RouteProvider>(context, listen: false);
+            routeProvider.refreshRoutes();
+          }
         },
         items: const [
           BottomNavigationBarItem(

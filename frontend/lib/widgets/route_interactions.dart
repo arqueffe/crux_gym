@@ -139,7 +139,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                     _isLiked ? Icons.favorite : Icons.favorite_border,
                     color: _isLiked ? Colors.red : null,
                   ),
-                  label: Text(_isLiked ? 'Unlike' : 'Like'),
+                  label: Text(_isLiked ? 'Liked' : 'Like'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _isLiked
                         ? Colors.red.shade50
@@ -183,71 +183,71 @@ class _RouteInteractionsState extends State<RouteInteractions> {
             const SizedBox(height: 16),
 
             // Tick information if route is ticked
-            if (_isTicked && _tickData != null)
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  border: Border.all(color: Colors.green.shade300),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.check_circle, color: Colors.green.shade600),
-                        const SizedBox(width: 8),
-                        Text(
-                          'You completed this route!',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green.shade700,
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (_tickData!['tick'] != null) ...[
-                      const SizedBox(height: 8),
-                      Text('Attempts: ${_tickData!['tick']['attempts']}'),
-                      if (_tickData!['tick']['flash'] == true)
-                        Text(
-                          'FLASH! ⚡',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.orange.shade600,
-                          ),
-                        ),
-                      if (_tickData!['tick']['notes'] != null &&
-                          _tickData!['tick']['notes'].toString().isNotEmpty)
-                        Text('Notes: ${_tickData!['tick']['notes']}'),
-                    ],
-                  ],
-                ),
-              ),
+            // if (_isTicked && _tickData != null)
+            //   Container(
+            //     padding: const EdgeInsets.all(12),
+            //     decoration: BoxDecoration(
+            //       color: Colors.green.shade50,
+            //       border: Border.all(color: Colors.green.shade300),
+            //       borderRadius: BorderRadius.circular(8),
+            //     ),
+            //     child: Column(
+            //       crossAxisAlignment: CrossAxisAlignment.start,
+            //       children: [
+            //         Row(
+            //           children: [
+            //             Icon(Icons.check_circle, color: Colors.green.shade600),
+            //             const SizedBox(width: 8),
+            //             Text(
+            //               'You completed this route!',
+            //               style: TextStyle(
+            //                 fontWeight: FontWeight.bold,
+            //                 color: Colors.green.shade700,
+            //               ),
+            //             ),
+            //           ],
+            //         ),
+            //         if (_tickData!['tick'] != null) ...[
+            //           const SizedBox(height: 8),
+            //           Text('Attempts: ${_tickData!['tick']['attempts']}'),
+            //           if (_tickData!['tick']['flash'] == true)
+            //             Text(
+            //               'FLASH! ⚡',
+            //               style: TextStyle(
+            //                 fontWeight: FontWeight.bold,
+            //                 color: Colors.orange.shade600,
+            //               ),
+            //             ),
+            //           if (_tickData!['tick']['notes'] != null &&
+            //               _tickData!['tick']['notes'].toString().isNotEmpty)
+            //             Text('Notes: ${_tickData!['tick']['notes']}'),
+            //         ],
+            //       ],
+            //     ),
+            //   ),
 
             // Current user's like status
-            if (_isLiked)
-              Container(
-                margin: const EdgeInsets.only(top: 8),
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  border: Border.all(color: Colors.red.shade300),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.favorite, color: Colors.red.shade600, size: 16),
-                    const SizedBox(width: 4),
-                    Text(
-                      'You liked this route',
-                      style: TextStyle(color: Colors.red.shade700),
-                    ),
-                  ],
-                ),
-              ),
+            // if (_isLiked)
+            //   Container(
+            //     margin: const EdgeInsets.only(top: 8),
+            //     padding: const EdgeInsets.all(8),
+            //     decoration: BoxDecoration(
+            //       color: Colors.red.shade50,
+            //       border: Border.all(color: Colors.red.shade300),
+            //       borderRadius: BorderRadius.circular(8),
+            //     ),
+            //     child: Row(
+            //       mainAxisSize: MainAxisSize.min,
+            //       children: [
+            //         Icon(Icons.favorite, color: Colors.red.shade600, size: 16),
+            //         const SizedBox(width: 4),
+            //         Text(
+            //           'You liked this route',
+            //           style: TextStyle(color: Colors.red.shade700),
+            //         ),
+            //       ],
+            //     ),
+            //   ),
           ],
         ),
       ),

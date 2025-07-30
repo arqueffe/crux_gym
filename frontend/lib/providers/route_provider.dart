@@ -73,11 +73,8 @@ class RouteProvider extends ChangeNotifier {
   Future<void> loadRoutes() async {
     _setLoading(true);
     try {
-      _routes = await _apiService.getRoutes(
-        wallSection: _selectedWallSection,
-        grade: _selectedGrade,
-        lane: _selectedLane,
-      );
+      // Always fetch all routes first to ensure we have the complete dataset
+      _routes = await _apiService.getRoutes();
 
       // Apply client-side filters
       _applyClientSideFilters();
@@ -93,6 +90,11 @@ class RouteProvider extends ChangeNotifier {
       _error = e.toString();
     }
     _setLoading(false);
+  }
+
+  // Refresh routes while preserving current filters
+  Future<void> refreshRoutes() async {
+    await loadRoutes();
   }
 
   // Apply client-side filters (for features not supported by API)
