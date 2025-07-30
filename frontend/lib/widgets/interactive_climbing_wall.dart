@@ -82,26 +82,32 @@ class _InteractiveClimbingWallState extends State<InteractiveClimbingWall> {
             padding: const EdgeInsets.all(16),
             child: SizedBox(
               height: MediaQuery.of(context).size.height *
-                  0.3, // 30% of screen height
+                  0.3, // Max 30% of screen height
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  // Calculate scale to fit height, maintaining aspect ratio
+                  // Calculate scale to fit both width and height, maintaining aspect ratio
+                  final widthScale =
+                      constraints.maxWidth / _wallData!.imageInfo.width;
                   final heightScale =
                       constraints.maxHeight / _wallData!.imageInfo.height;
-                  final scaledWidth = _wallData!.imageInfo.width * heightScale;
 
-                  return SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    physics: const AlwaysScrollableScrollPhysics(),
+                  // Use the smaller scale to ensure the image fits completely
+                  final scale =
+                      widthScale < heightScale ? widthScale : heightScale;
+
+                  final scaledWidth = _wallData!.imageInfo.width * scale;
+                  final scaledHeight = _wallData!.imageInfo.height * scale;
+
+                  return Center(
                     child: SizedBox(
                       width: scaledWidth,
-                      height: constraints.maxHeight,
+                      height: scaledHeight,
                       child: Stack(
                         children: [
                           // Background image
                           Container(
                             width: scaledWidth,
-                            height: constraints.maxHeight,
+                            height: scaledHeight,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(8),
                               image: const DecorationImage(
@@ -116,7 +122,7 @@ class _InteractiveClimbingWallState extends State<InteractiveClimbingWall> {
                                 routeProvider.selectedLane == shape.laneNumber;
                             return _buildLaneOverlay(
                               shape,
-                              heightScale, // Use height scale instead
+                              scale, // Use the calculated scale
                               isSelected,
                               () => _onLaneSelected(
                                   routeProvider, shape.laneNumber),

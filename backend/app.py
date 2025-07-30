@@ -563,6 +563,99 @@ def get_lanes():
     lanes = db.session.query(Route.lane).distinct().order_by(Route.lane).all()
     return jsonify([lane[0] for lane in lanes])
 
+# User Profile Routes
+@app.route('/api/user/ticks', methods=['GET'])
+@jwt_required()
+def get_user_ticks():
+    """Get all ticks for the current user with route details"""
+    user_id = get_current_user_id()
+    
+    # Join ticks with routes to get route details
+    ticks_with_routes = db.session.query(Tick, Route).join(Route).filter(
+        Tick.user_id == user_id
+    ).order_by(Tick.created_at.desc()).all()
+    
+    result = []
+    for tick, route in ticks_with_routes:
+        tick_data = tick.to_dict()
+        tick_data['route_name'] = route.name
+        tick_data['route_grade'] = route.grade
+        tick_data['wall_section'] = route.wall_section
+        result.append(tick_data)
+    
+    return jsonify(result)
+
+@app.route('/api/user/likes', methods=['GET'])
+@jwt_required()
+def get_user_likes():
+    """Get all likes for the current user with route details"""
+    user_id = get_current_user_id()
+    
+    # Join likes with routes to get route details
+    likes_with_routes = db.session.query(Like, Route).join(Route).filter(
+        Like.user_id == user_id
+    ).order_by(Like.created_at.desc()).all()
+    
+    result = []
+    for like, route in likes_with_routes:
+        like_data = like.to_dict()
+        like_data['route_name'] = route.name
+        like_data['route_grade'] = route.grade
+        like_data['wall_section'] = route.wall_section
+        result.append(like_data)
+    
+    return jsonify(result)
+
+@app.route('/api/user/stats', methods=['GET'])
+@jwt_required()
+def get_user_stats():
+    """Get comprehensive user statistics"""
+    user_id = get_current_user_id()
+    
+    # Get all user activities
+    ticks = Tick.query.filter_by(user_id=user_id).all()
+    likes = Like.query.filter_by(user_id=user_id).all()
+    comments = Comment.query.filter_by(user_id=user_id).all()
+    
+    # Calculate statistics
+    total_ticks = len(ticks)
+    total_likes = len(likes)
+    total_comments = len(comments)
+    total_flashes = sum(1 for tick in ticks if tick.flash)
+    total_attempts = sum(tick.attempts for tick in ticks)
+    average_attempts = total_attempts / total_ticks if total_ticks > 0 else 0
+    
+    # Get achieved grades (from ticks)
+    achieved_grades = list(set([
+        Route.query.get(tick.route_id).grade for tick in ticks
+    ]))
+    
+    # Find hardest grade (simple V-scale logic)
+    hardest_grade = None
+    if achieved_grades:
+        v_grades = [grade for grade in achieved_grades if grade.startswith('V')]
+        if v_grades:
+            v_numbers = [int(grade[1:]) for grade in v_grades if grade[1:].isdigit()]
+            if v_numbers:
+                hardest_number = max(v_numbers)
+                hardest_grade = f'V{hardest_number}'
+    
+    # Get unique wall sections
+    unique_wall_sections = len(set([
+        Route.query.get(tick.route_id).wall_section for tick in ticks
+    ]))
+    
+    return jsonify({
+        'total_ticks': total_ticks,
+        'total_likes': total_likes,
+        'total_comments': total_comments,
+        'total_flashes': total_flashes,
+        'average_attempts': round(average_attempts, 2),
+        'hardest_grade': hardest_grade,
+        'unique_wall_sections': unique_wall_sections,
+        'achieved_grades': sorted(achieved_grades, key=lambda x: int(x[1:]) if x.startswith('V') and x[1:].isdigit() else 0)
+    })
+
 # Initialize database
 def init_db():
     """Initialize database with sample data"""

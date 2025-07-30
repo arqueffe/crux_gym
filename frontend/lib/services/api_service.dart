@@ -12,6 +12,26 @@ class ApiService {
   // Get headers with authentication
   Map<String, String> get _headers => authProvider.getAuthHeaders();
 
+  // Generic HTTP methods
+  Future<Map<String, dynamic>> get(String endpoint) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl$endpoint'),
+      headers: _headers,
+    );
+
+    if (response.statusCode == 200) {
+      return {
+        'success': true,
+        'data': json.decode(response.body),
+      };
+    } else {
+      return {
+        'success': false,
+        'error': 'Request failed with status ${response.statusCode}',
+      };
+    }
+  }
+
   // Routes
   Future<List<Route>> getRoutes(
       {String? wallSection, String? grade, int? lane}) async {

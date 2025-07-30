@@ -3,7 +3,8 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:provider/provider.dart';
 import 'providers/route_provider.dart';
 import 'providers/auth_provider.dart';
-import 'screens/home_screen.dart';
+import 'providers/profile_provider.dart';
+import 'screens/main_navigation_screen.dart';
 import 'screens/login_screen.dart';
 
 void main() async {
@@ -30,6 +31,14 @@ class ClimbingGymApp extends StatelessWidget {
             authProvider: context.read<AuthProvider>(),
           ),
           update: (context, auth, previous) => RouteProvider(
+            authProvider: auth,
+          ),
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, ProfileProvider>(
+          create: (context) => ProfileProvider(
+            authProvider: context.read<AuthProvider>(),
+          ),
+          update: (context, auth, previous) => ProfileProvider(
             authProvider: auth,
           ),
         ),
@@ -106,7 +115,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
         }
 
         // Show main app if authenticated
-        return const HomeScreen();
+        return const MainNavigationScreen();
       },
     );
   }

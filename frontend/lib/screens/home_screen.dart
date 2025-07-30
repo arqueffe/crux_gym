@@ -30,6 +30,8 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('Climbing Gym Routes'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        automaticallyImplyLeading:
+            false, // Remove back button since we're using bottom nav
         actions: [
           // User info and logout
           Consumer<AuthProvider>(
