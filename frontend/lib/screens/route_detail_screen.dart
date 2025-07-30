@@ -116,6 +116,46 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                                           ),
                                         ),
                                       ),
+                                      // Show averaged proposed grade if available
+                                      if (route.averageProposedGrade !=
+                                          null) ...[
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: _getGradeColor(
+                                                route.averageProposedGrade!),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            border: Border.all(
+                                              color: Colors.white,
+                                              width: 2,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(
+                                                Icons.people,
+                                                color: Colors.white,
+                                                size: 12,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                route.averageProposedGrade!,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
                                       if (route.color != null) ...[
                                         const SizedBox(width: 8),
                                         Container(
@@ -131,6 +171,28 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                                       ],
                                     ],
                                   ),
+                                  // Explanation for averaged proposed grade
+                                  if (route.averageProposedGrade != null) ...[
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.info_outline,
+                                          size: 14,
+                                          color: Colors.grey.shade600,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Community suggested: ${route.averageProposedGrade} (avg of ${route.gradeProposalsCount} proposals)',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey.shade600,
+                                            fontStyle: FontStyle.italic,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),

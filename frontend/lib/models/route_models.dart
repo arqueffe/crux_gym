@@ -88,6 +88,61 @@ class Route {
       'description': description,
     };
   }
+
+  // Calculate average proposed grade
+  String? get averageProposedGrade {
+    if (gradeProposals == null || gradeProposals!.isEmpty) {
+      return null;
+    }
+
+    // Map grades to numeric values for averaging
+    Map<String, int> gradeValues = {
+      'V0': 0,
+      'V1': 1,
+      'V2': 2,
+      'V3': 3,
+      'V4': 4,
+      'V5': 5,
+      'V6': 6,
+      'V7': 7,
+      'V8': 8,
+      'V9': 9,
+      'V10': 10,
+      'V11': 11,
+      'V12': 12,
+    };
+
+    List<String> grades = [
+      'V0',
+      'V1',
+      'V2',
+      'V3',
+      'V4',
+      'V5',
+      'V6',
+      'V7',
+      'V8',
+      'V9',
+      'V10',
+      'V11',
+      'V12'
+    ];
+
+    double total = 0;
+    int count = 0;
+
+    for (var proposal in gradeProposals!) {
+      if (gradeValues.containsKey(proposal.proposedGrade)) {
+        total += gradeValues[proposal.proposedGrade]!;
+        count++;
+      }
+    }
+
+    if (count == 0) return null;
+
+    int averageIndex = (total / count).round();
+    return grades[averageIndex.clamp(0, grades.length - 1)];
+  }
 }
 
 class Like {
