@@ -202,8 +202,9 @@ class TicksList extends StatelessWidget {
   Color _getGradeColor(String grade) {
     // Simple color coding based on grade difficulty
     if (grade.contains('V0') || grade.contains('V1')) return Colors.green;
-    if (grade.contains('V2') || grade.contains('V3'))
+    if (grade.contains('V2') || grade.contains('V3')) {
       return Colors.yellow.shade700;
+    }
     if (grade.contains('V4') || grade.contains('V5')) return Colors.orange;
     if (grade.contains('V6') || grade.contains('V7')) return Colors.red;
     return Colors.purple;
@@ -221,7 +222,7 @@ class TicksList extends StatelessWidget {
       return '${difference.inDays} days ago';
     } else if (difference.inDays < 30) {
       final weeks = (difference.inDays / 7).floor();
-      return '${weeks} ${weeks == 1 ? 'week' : 'weeks'} ago';
+      return '$weeks ${weeks == 1 ? 'week' : 'weeks'} ago';
     } else {
       return '${date.day}/${date.month}/${date.year}';
     }

@@ -1,56 +1,569 @@
-# Climbing Gym Backend API
+# Crux Backend - Flask REST API
 
-A Flask-based REST API for managing climbing gym routes and user interactions.
+A comprehensive Flask-based REST API for climbing gym route management with JWT authentication, user interactions, and comprehensive route tracking.
+
+## Overview
+
+The Crux backend provides a complete API for managing climbing gym routes, user authentication, and community interactions. Built with Flask and SQLAlchemy, it offers a robust foundation for climbing gym management systems.
 
 ## Features
 
-- Route management (CRUD operations)
-- User interactions: likes, comments, grade proposals, warnings
-- Gym topology with wall sections
-- Route filtering by grade and wall section
+### Core Functionality
+- **JWT Authentication**: Secure user registration, login, and session management
+- **Route Management**: Complete CRUD operations with detailed route information
+- **User Interactions**: Comprehensive tracking of likes, comments, grade proposals, warnings, and ticks
+- **Statistics & Analytics**: User performance tracking and climbing statistics
+- **Data Filtering**: Advanced filtering and sorting capabilities
+- **Sample Data**: Automatic initialization with realistic test data
 
-## Setup
+### Security & Performance
+- Password hashing with Flask-Bcrypt
+- JWT token validation and expiration handling
+- CORS support for cross-origin requests
+- Comprehensive error handling and logging
+- Request/response logging middleware
 
-1. Run the setup script:
+## Quick Start
+
+### Prerequisites
+- Python 3.8 or higher
+- pip (Python package installer)
+
+### Installation
+
+1. **Clone the repository** (if not already done):
    ```bash
-   setup.bat
+   git clone <repository-url>
+   cd Crux/backend
    ```
 
-2. Activate the virtual environment:
+2. **Install dependencies**:
    ```bash
-   venv\Scripts\activate.bat
+   pip install -r requirements.txt
    ```
 
-3. Start the server:
+3. **Run the application**:
    ```bash
    python app.py
    ```
 
-The API will be available at `http://localhost:5000`
+The API will be available at `http://localhost:5000` with automatic database initialization and sample data.
+
+### Environment Variables (Optional)
+```bash
+export JWT_SECRET_KEY="your-production-secret-key"
+export FLASK_ENV="development"  # or "production"
+```
+
+## Database Models
+
+### User Model
+```python
+class User:
+    id: Integer (Primary Key)
+    username: String (Unique, Required)
+    email: String (Unique, Required)
+    password_hash: String (Required)
+    created_at: DateTime
+    is_active: Boolean
+```
+
+### Route Model
+```python
+class Route:
+    id: Integer (Primary Key)
+    name: String (Required)
+    grade: String (Required)           # e.g., "V4", "V7"
+    route_setter: String (Required)
+    wall_section: String (Required)    # e.g., "Overhang Wall"
+    lane: Integer (Required)
+    color: String (Optional)           # e.g., "Red", "Blue"
+    description: Text (Optional)
+    created_at: DateTime
+    
+    # Relationships
+    likes: List[Like]
+    comments: List[Comment]
+    grade_proposals: List[GradeProposal]
+    warnings: List[Warning]
+    ticks: List[Tick]
+```
+
+### Interaction Models
+```python
+class Like:
+    id: Integer (Primary Key)
+    user_id: Integer (Foreign Key)
+    route_id: Integer (Foreign Key)
+    created_at: DateTime
+
+class Comment:
+    id: Integer (Primary Key)
+    user_id: Integer (Foreign Key)
+    route_id: Integer (Foreign Key)
+    content: Text (Required)
+    created_at: DateTime
+
+class GradeProposal:
+    id: Integer (Primary Key)
+    user_id: Integer (Foreign Key)
+    route_id: Integer (Foreign Key)
+    proposed_grade: String (Required)
+    reasoning: Text (Optional)
+    created_at: DateTime
+
+class Warning:
+    id: Integer (Primary Key)
+    user_id: Integer (Foreign Key)
+    route_id: Integer (Foreign Key)
+    warning_type: String (Required)    # "broken_hold", "safety_issue", etc.
+    description: Text (Required)
+    status: String                     # "open", "acknowledged", "resolved"
+    created_at: DateTime
+
+class Tick:
+    id: Integer (Primary Key)
+    user_id: Integer (Foreign Key)
+    route_id: Integer (Foreign Key)
+    attempts: Integer                  # Number of attempts to complete
+    flash: Boolean                     # True if completed on first try
+    notes: Text (Optional)
+    created_at: DateTime
+```
 
 ## API Endpoints
 
-### Routes
-- `GET /api/routes` - Get all routes (with optional filtering)
-- `GET /api/routes/{id}` - Get specific route with details
-- `POST /api/routes` - Create new route
+### Authentication Endpoints
 
-### User Interactions
-- `POST /api/routes/{id}/like` - Like a route
-- `DELETE /api/routes/{id}/unlike` - Unlike a route
-- `POST /api/routes/{id}/comments` - Add comment
-- `POST /api/routes/{id}/grade-proposals` - Propose grade change
-- `POST /api/routes/{id}/warnings` - Report warning
+#### Register User
+```http
+POST /api/auth/register
+Content-Type: application/json
 
-### Utility
-- `GET /api/wall-sections` - Get all wall sections
-- `GET /api/grades` - Get all grades used
+{
+    "username": "string",
+    "email": "string",
+    "password": "string"
+}
 
-## Database
+Response (201):
+{
+    "message": "User registered successfully",
+    "access_token": "jwt_token",
+    "user": {
+        "id": 1,
+        "username": "username",
+        "email": "email@example.com",
+        "created_at": "2025-01-01T00:00:00",
+        "is_active": true
+    }
+}
+```
 
-Uses SQLite with the following models:
-- Route
-- Like
-- Comment
-- GradeProposal
-- Warning
+#### Login User
+```http
+POST /api/auth/login
+Content-Type: application/json
+
+{
+    "username": "string",
+    "password": "string"
+}
+
+Response (200):
+{
+    "message": "Login successful",
+    "access_token": "jwt_token",
+    "user": { ... }
+}
+```
+
+#### Get Current User
+```http
+GET /api/auth/me
+Authorization: Bearer <jwt_token>
+
+Response (200):
+{
+    "user": { ... }
+}
+```
+
+### Route Endpoints
+
+#### Get All Routes
+```http
+GET /api/routes
+Authorization: Bearer <jwt_token>
+
+# Optional query parameters:
+# ?wall_section=Overhang Wall
+# ?grade=V4
+# ?lane=2
+
+Response (200):
+[
+    {
+        "id": 1,
+        "name": "Crimpy Goodness",
+        "grade": "V4",
+        "route_setter": "Alice Johnson",
+        "wall_section": "Overhang Wall",
+        "lane": 1,
+        "color": "Red",
+        "description": "Technical crimps with a dynamic finish",
+        "created_at": "2025-01-01T00:00:00",
+        "likes_count": 5,
+        "comments_count": 3,
+        "grade_proposals_count": 1,
+        "warnings_count": 0,
+        "ticks_count": 8
+    }
+]
+```
+
+#### Get Specific Route
+```http
+GET /api/routes/{route_id}
+Authorization: Bearer <jwt_token>
+
+Response (200):
+{
+    "id": 1,
+    "name": "Crimpy Goodness",
+    # ... basic route info
+    "likes": [...],           # Array of like objects
+    "comments": [...],        # Array of comment objects
+    "grade_proposals": [...], # Array of grade proposal objects
+    "warnings": [...],        # Array of warning objects
+    "ticks": [...]           # Array of tick objects
+}
+```
+
+#### Create Route
+```http
+POST /api/routes
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+    "name": "New Route",
+    "grade": "V5",
+    "route_setter": "John Doe",
+    "wall_section": "Steep Wall",
+    "lane": 3,
+    "color": "Blue",
+    "description": "Optional description"
+}
+
+Response (201):
+{
+    # ... created route object
+}
+```
+
+### Route Interaction Endpoints
+
+#### Like/Unlike Route
+```http
+POST /api/routes/{route_id}/like
+Authorization: Bearer <jwt_token>
+
+DELETE /api/routes/{route_id}/unlike
+Authorization: Bearer <jwt_token>
+```
+
+#### Add Comment
+```http
+POST /api/routes/{route_id}/comments
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+    "content": "Great route! Really enjoyed the technical moves."
+}
+```
+
+#### Propose Grade
+```http
+POST /api/routes/{route_id}/grade-proposals
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+    "proposed_grade": "V5",
+    "reasoning": "Feels harder than V4 due to the dynamic move"
+}
+```
+
+#### Report Warning
+```http
+POST /api/routes/{route_id}/warnings
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+    "warning_type": "broken_hold",
+    "description": "The large red hold on move 3 is loose"
+}
+```
+
+#### Add/Remove Tick
+```http
+POST /api/routes/{route_id}/ticks
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+    "attempts": 3,
+    "flash": false,
+    "notes": "Took a few tries to figure out the sequence"
+}
+
+DELETE /api/routes/{route_id}/ticks
+Authorization: Bearer <jwt_token>
+```
+
+#### Check User Tick Status
+```http
+GET /api/routes/{route_id}/ticks/me
+Authorization: Bearer <jwt_token>
+
+Response (200):
+{
+    "ticked": true,
+    "tick": {
+        "id": 1,
+        "attempts": 3,
+        "flash": false,
+        "notes": "...",
+        "created_at": "2025-01-01T00:00:00"
+    }
+}
+```
+
+### User Profile Endpoints
+
+#### Get User's Ticks
+```http
+GET /api/user/ticks
+Authorization: Bearer <jwt_token>
+
+Response (200):
+[
+    {
+        "id": 1,
+        "route_id": 1,
+        "route_name": "Crimpy Goodness",
+        "route_grade": "V4",
+        "wall_section": "Overhang Wall",
+        "attempts": 3,
+        "flash": false,
+        "notes": "...",
+        "created_at": "2025-01-01T00:00:00"
+    }
+]
+```
+
+#### Get User's Likes
+```http
+GET /api/user/likes
+Authorization: Bearer <jwt_token>
+# Similar format to ticks
+```
+
+#### Get User Statistics
+```http
+GET /api/user/stats
+Authorization: Bearer <jwt_token>
+
+Response (200):
+{
+    "total_ticks": 15,
+    "total_likes": 8,
+    "total_comments": 12,
+    "total_flashes": 3,
+    "average_attempts": 2.5,
+    "hardest_grade": "V6",
+    "unique_wall_sections": 4,
+    "achieved_grades": ["V1", "V2", "V3", "V4", "V5", "V6"]
+}
+```
+
+### Utility Endpoints
+
+#### Get Wall Sections
+```http
+GET /api/wall-sections
+Authorization: Bearer <jwt_token>
+
+Response (200):
+["Overhang Wall", "Slab Wall", "Steep Wall", "Vertical Wall"]
+```
+
+#### Get Available Grades
+```http
+GET /api/grades
+Authorization: Bearer <jwt_token>
+
+Response (200):
+["V0", "V1", "V2", "V3", "V4", "V5", "V6", "V7"]
+```
+
+#### Get Lane Numbers
+```http
+GET /api/lanes
+Authorization: Bearer <jwt_token>
+
+Response (200):
+[1, 2, 3, 4, 5, 6]
+```
+
+## Error Handling
+
+The API returns consistent error responses:
+
+```json
+{
+    "error": "Error message description",
+    "details": "Additional error details (optional)"
+}
+```
+
+Common HTTP status codes:
+- `200`: Success
+- `201`: Created
+- `400`: Bad Request (validation errors)
+- `401`: Unauthorized (invalid/missing token)
+- `404`: Not Found
+- `422`: Unprocessable Entity (invalid token format)
+- `500`: Internal Server Error
+
+## Sample Data
+
+The application automatically initializes with sample data:
+
+### Sample Users
+- **admin** / **admin123** (Administrator)
+- **alice_johnson** / **password123**
+- **bob_smith** / **password123**
+- **charlie_brown** / **password123**
+
+### Sample Routes
+1. **Crimpy Goodness** (V4) - Overhang Wall, Lane 1, Red
+2. **Slab Master** (V2) - Slab Wall, Lane 3, Blue
+3. **Power House** (V6) - Steep Wall, Lane 2, Yellow
+4. **Finger Torture** (V5) - Overhang Wall, Lane 4, Green
+5. **Beginner's Delight** (V1) - Vertical Wall, Lane 1, Orange
+6. **The Gaston** (V3) - Vertical Wall, Lane 2, Purple
+
+## Configuration
+
+### Database Configuration
+- **Development**: SQLite database (`climbing_gym.db`)
+- **Production**: Configure `SQLALCHEMY_DATABASE_URI` environment variable
+
+### JWT Configuration
+- **Secret Key**: Set `JWT_SECRET_KEY` environment variable
+- **Token Expiration**: 24 hours (configurable)
+- **Algorithm**: HS256
+
+### CORS Configuration
+- **Allowed Origins**: `http://localhost:3000`, `http://127.0.0.1:3000`
+- **Allowed Methods**: GET, POST, PUT, DELETE, OPTIONS
+- **Allowed Headers**: Content-Type, Authorization
+
+## Development Features
+
+### Logging
+- Request/response logging with authorization header masking
+- Debug level logging in development mode
+- Error tracking and monitoring
+
+### Database Management
+- Automatic table creation on first run
+- Sample data initialization for testing
+- SQLAlchemy ORM with relationship management
+
+### Security Features
+- Password hashing with Bcrypt
+- JWT token validation with expiration
+- CORS protection
+- Input validation and sanitization
+
+## Testing
+
+Test the API using the sample authentication:
+
+```bash
+# Register or login to get token
+curl -X POST http://localhost:5000/api/auth/login 
+  -H "Content-Type: application/json" 
+  -d '{"username": "admin", "password": "admin123"}'
+
+# Use token for authenticated requests
+curl -X GET http://localhost:5000/api/routes 
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+## Performance Considerations
+
+- Database queries optimized with proper indexing
+- Relationship loading optimized to prevent N+1 queries
+- JSON responses include only necessary data
+- Pagination recommended for large datasets (future enhancement)
+
+## Deployment
+
+### Development
+```bash
+python app.py
+```
+
+### Production
+```bash
+export FLASK_ENV=production
+export JWT_SECRET_KEY=your-secure-secret-key
+gunicorn app:app
+```
+
+## Future Enhancements
+
+- Database migration system with Alembic
+- Advanced filtering with complex queries
+- File upload support for route photos
+- Email notifications for warnings
+- Admin dashboard endpoints
+- Rate limiting and API quotas
+- Database connection pooling
+- Caching layer (Redis)
+- API versioning
+- OpenAPI/Swagger documentation
+
+## Contributing
+
+1. Follow PEP 8 style guidelines
+2. Add type hints for new functions
+3. Include docstrings for all public methods
+4. Test all endpoints with various scenarios
+5. Update this README for any API changes
+
+## Dependencies
+
+- **Flask 2.3.3**: Web framework
+- **Flask-SQLAlchemy 3.0.5**: Database ORM
+- **Flask-JWT-Extended 4.5.3**: JWT authentication
+- **Flask-Bcrypt 1.0.1**: Password hashing
+- **Flask-CORS 4.0.0**: Cross-origin support
+- **python-dotenv 1.0.0**: Environment variable management
+- **Werkzeug 2.3.7**: WSGI utilities
+
+## License
+
+This project is licensed under the MIT License. See the LICENSE file for details.
+
+---
+
+**Current Version**: 0.3.0  
+**API Base URL**: `http://localhost:5000/api`  
+**Last Updated**: January 2025
