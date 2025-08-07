@@ -48,7 +48,7 @@ git add "$VERSION_FILE"
 if [ -f "frontend/pubspec.yaml" ]; then
     sed -i "s/^version: .*/version: $MAJOR_VERSION.$MINOR_VERSION.$PATCH_VERSION/" frontend/pubspec.yaml
     git add frontend/pubspec.yaml
-    git commit -m "Update version in pubspec.yaml to $MAJOR_VERSION.$MINOR_VERSION.$PATCH_VERSION"
+    git commit -m "$COMMIT_MESSAGE; Update version in pubspec.yaml to $MAJOR_VERSION.$MINOR_VERSION.$PATCH_VERSION"
 else
     echo "pubspec.yaml not found. Skipping version update in pubspec.yaml."
 fi
