@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from flask_bcrypt import Bcrypt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 import logging
 
@@ -82,7 +82,41 @@ def test_auth():
         'username': user.username if user else 'Unknown'
     })
 
+# Helper function to get current user ID as integer
+
 # Models
+class Grade(db.Model):
+    __tablename__ = 'grades'
+    id = db.Column(db.Integer, primary_key=True)
+    grade = db.Column(db.String(10), unique=True, nullable=False)
+    difficulty_order = db.Column(db.Integer, nullable=False)  # For sorting
+    color = db.Column(db.String(7), nullable=False)  # Hex color code
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'grade': self.grade,
+            'difficulty_order': self.difficulty_order,
+            'color': self.color,
+            'created_at': self.created_at.isoformat()
+        }
+
+class HoldColor(db.Model):
+    __tablename__ = 'hold_colors'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    hex_code = db.Column(db.String(7), nullable=True)  # Optional hex representation
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'hex_code': self.hex_code,
+            'created_at': self.created_at.isoformat()
+        }
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -108,45 +142,55 @@ class User(db.Model):
 class Route(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    grade = db.Column(db.String(10), nullable=False)
+    grade_id = db.Column(db.Integer, db.ForeignKey('grades.id'), nullable=False)
     route_setter = db.Column(db.String(100), nullable=False)
     wall_section = db.Column(db.String(50), nullable=False)
     lane = db.Column(db.Integer, nullable=False)
-    color = db.Column(db.String(20), nullable=True)
+    hold_color_id = db.Column(db.Integer, db.ForeignKey('hold_colors.id'), nullable=True)
     description = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
+    grade_rel = db.relationship('Grade', backref='routes')
+    hold_color_rel = db.relationship('HoldColor', backref='routes')
     likes = db.relationship('Like', backref='route', lazy=True, cascade='all, delete-orphan')
     comments = db.relationship('Comment', backref='route', lazy=True, cascade='all, delete-orphan')
     grade_proposals = db.relationship('GradeProposal', backref='route', lazy=True, cascade='all, delete-orphan')
     warnings = db.relationship('Warning', backref='route', lazy=True, cascade='all, delete-orphan')
     ticks = db.relationship('Tick', backref='route', lazy=True, cascade='all, delete-orphan')
-    ticks = db.relationship('Tick', backref='route', lazy=True, cascade='all, delete-orphan')
 
     def to_dict(self):
+        # Calculate counts using database queries for accuracy
+        from sqlalchemy import func
+        likes_count = db.session.query(func.count(Like.id)).filter(Like.route_id == self.id).scalar() or 0
+        comments_count = db.session.query(func.count(Comment.id)).filter(Comment.route_id == self.id).scalar() or 0
+        grade_proposals_count = db.session.query(func.count(GradeProposal.id)).filter(GradeProposal.route_id == self.id).scalar() or 0
+        warnings_count = db.session.query(func.count(Warning.id)).filter(Warning.route_id == self.id).scalar() or 0
+        ticks_count = db.session.query(func.count(Tick.id)).filter(Tick.route_id == self.id).scalar() or 0
+
         return {
             'id': self.id,
             'name': self.name,
-            'grade': self.grade,
+            'grade': self.grade_rel.grade if self.grade_rel else None,
+            'grade_color': self.grade_rel.color if self.grade_rel else '#888888',
             'route_setter': self.route_setter,
             'wall_section': self.wall_section,
             'lane': self.lane,
-            'color': self.color,
+            'color': self.hold_color_rel.name if self.hold_color_rel else None,
             'description': self.description,
             'created_at': self.created_at.isoformat(),
-            'likes_count': len(self.likes),
-            'comments_count': len(self.comments),
-            'grade_proposals_count': len(self.grade_proposals),
-            'warnings_count': len(self.warnings),
-            'ticks_count': len(self.ticks)
+            'likes_count': likes_count,
+            'comments_count': comments_count,
+            'grade_proposals_count': grade_proposals_count,
+            'warnings_count': warnings_count,
+            'ticks_count': ticks_count
         }
 
 class Like(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     route_id = db.Column(db.Integer, db.ForeignKey('route.id'), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.now(datetime.timezone.utc))
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     
     # Relationships
     user = db.relationship('User', backref='likes')
@@ -183,20 +227,21 @@ class Comment(db.Model):
 class GradeProposal(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    proposed_grade = db.Column(db.String(10), nullable=False)
+    proposed_grade_id = db.Column(db.Integer, db.ForeignKey('grades.id'), nullable=False)
     reasoning = db.Column(db.Text, nullable=True)
     route_id = db.Column(db.Integer, db.ForeignKey('route.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
     user = db.relationship('User', backref='grade_proposals')
+    proposed_grade_rel = db.relationship('Grade', backref='proposals')
 
     def to_dict(self):
         return {
             'id': self.id,
             'user_id': self.user_id,
             'user_name': self.user.username,
-            'proposed_grade': self.proposed_grade,
+            'proposed_grade': self.proposed_grade_rel.grade if self.proposed_grade_rel else None,
             'reasoning': self.reasoning,
             'route_id': self.route_id,
             'created_at': self.created_at.isoformat()
@@ -230,16 +275,38 @@ class Tick(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     route_id = db.Column(db.Integer, db.ForeignKey('route.id'), nullable=False)
-    attempts = db.Column(db.Integer, default=1)  # Number of attempts to complete
-    flash = db.Column(db.Boolean, default=False)  # True if completed on first try
+    
+    # Attempt tracking
+    attempts = db.Column(db.Integer, default=0)  # Total number of attempts
+    
+    # Send types (independent tracking)
+    top_rope_send = db.Column(db.Boolean, default=False)  # Successfully sent on top rope
+    lead_send = db.Column(db.Boolean, default=False)  # Successfully sent on lead
+    top_rope_flash = db.Column(db.Boolean, default=False)  # Top rope flash (first try)
+    lead_flash = db.Column(db.Boolean, default=False)  # Lead flash (first try)
+    
+    # Legacy field for backward compatibility
+    flash = db.Column(db.Boolean, default=False)  # True if completed on first try (any style)
+    
     notes = db.Column(db.Text, nullable=True)  # Optional notes about the ascent
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     user = db.relationship('User', backref='ticks')
 
     # Ensure one tick per user per route
     __table_args__ = (db.UniqueConstraint('user_id', 'route_id', name='unique_user_route_tick'),)
+
+    @property
+    def has_any_send(self):
+        """Check if user has sent the route in any style"""
+        return self.top_rope_send or self.lead_send
+
+    @property
+    def has_any_flash(self):
+        """Check if user has flashed the route in any style"""
+        return self.top_rope_flash or self.lead_flash
 
     def to_dict(self):
         return {
@@ -248,9 +315,16 @@ class Tick(db.Model):
             'user_name': self.user.username,
             'route_id': self.route_id,
             'attempts': self.attempts,
-            'flash': self.flash,
+            'top_rope_send': self.top_rope_send,
+            'lead_send': self.lead_send,
+            'top_rope_flash': self.top_rope_flash,
+            'lead_flash': self.lead_flash,
+            'flash': self.flash,  # Legacy field
+            'has_any_send': self.has_any_send,
+            'has_any_flash': self.has_any_flash,
             'notes': self.notes,
-            'created_at': self.created_at.isoformat()
+            'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat()
         }
 # API Routes
 
@@ -339,11 +413,12 @@ def get_routes():
     grade = request.args.get('grade')
     lane = request.args.get('lane')
     
-    query = Route.query
+    query = db.session.query(Route).join(Grade, Route.grade_id == Grade.id)
+    
     if wall_section:
         query = query.filter(Route.wall_section == wall_section)
     if grade:
-        query = query.filter(Route.grade == grade)
+        query = query.filter(Grade.grade == grade)
     if lane:
         query = query.filter(Route.lane == int(lane))
     
@@ -372,20 +447,50 @@ def create_route():
     """Create a new route"""
     data = request.get_json()
     
-    route = Route(
-        name=data['name'],
-        grade=data['grade'],
-        route_setter=data['route_setter'],
-        wall_section=data['wall_section'],
-        lane=data['lane'],
-        color=data.get('color'),
-        description=data.get('description')
-    )
+    # Validate required fields
+    required_fields = ['name', 'grade', 'route_setter', 'wall_section', 'lane']
+    for field in required_fields:
+        if not data.get(field):
+            return jsonify({'error': f'{field} is required'}), 400
     
-    db.session.add(route)
-    db.session.commit()
+    # Find grade in database
+    grade = Grade.query.filter_by(grade=data['grade']).first()
+    if not grade:
+        available_grades = [g.grade for g in Grade.query.order_by(Grade.difficulty_order).all()]
+        return jsonify({
+            'error': f"Invalid grade: {data['grade']}. Must be one of the available grades.",
+            'available_grades': available_grades
+        }), 400
     
-    return jsonify(route.to_dict()), 201
+    # Find hold color if provided
+    hold_color = None
+    if data.get('color'):
+        hold_color = HoldColor.query.filter_by(name=data['color']).first()
+        if not hold_color:
+            available_colors = [c.name for c in HoldColor.query.all()]
+            return jsonify({
+                'error': f"Invalid color: {data['color']}. Must be one of the available hold colors.",
+                'available_colors': available_colors
+            }), 400
+    
+    try:
+        route = Route(
+            name=data['name'],
+            grade_id=grade.id,
+            route_setter=data['route_setter'],
+            wall_section=data['wall_section'],
+            lane=data['lane'],
+            hold_color_id=hold_color.id if hold_color else None,
+            description=data.get('description')
+        )
+        
+        db.session.add(route)
+        db.session.commit()
+        
+        return jsonify(route.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to create route'}), 500
 
 @app.route('/api/routes/<int:route_id>/like', methods=['POST'])
 @jwt_required()
@@ -444,10 +549,24 @@ def propose_grade(route_id):
     data = request.get_json()
     user_id = get_jwt_identity()
     
+    # Validate proposed grade
+    proposed_grade_str = data.get('proposed_grade')
+    if not proposed_grade_str:
+        return jsonify({'error': 'proposed_grade is required'}), 400
+    
+    # Find grade in database
+    proposed_grade = Grade.query.filter_by(grade=proposed_grade_str).first()
+    if not proposed_grade:
+        available_grades = [g.grade for g in Grade.query.order_by(Grade.difficulty_order).all()]
+        return jsonify({
+            'error': f"Invalid proposed grade: {proposed_grade_str}. Must be one of the available grades.",
+            'available_grades': available_grades
+        }), 400
+    
     proposal = GradeProposal(
         route_id=route_id,
         user_id=user_id,
-        proposed_grade=data['proposed_grade'],
+        proposed_grade_id=proposed_grade.id,
         reasoning=data.get('reasoning')
     )
     
@@ -477,32 +596,150 @@ def add_warning(route_id):
 
 @app.route('/api/routes/<int:route_id>/ticks', methods=['POST'])
 @jwt_required()
-def add_tick(route_id):
-    """Add a tick (successful ascent) for a route"""
+def add_or_update_tick(route_id):
+    """Add or update a tick for a route with attempts and send types"""
     data = request.get_json()
     user_id = get_jwt_identity()
     
-    # Check if user already ticked this route
+    # Check if user already has a tick for this route
     existing_tick = Tick.query.filter_by(
         route_id=route_id,
         user_id=user_id
     ).first()
     
     if existing_tick:
-        return jsonify({'error': 'Route already ticked by this user'}), 400
+        # Update existing tick
+        tick = existing_tick
+        tick.updated_at = datetime.utcnow()
+    else:
+        # Create new tick
+        tick = Tick(
+            route_id=route_id,
+            user_id=user_id
+        )
     
-    tick = Tick(
-        route_id=route_id,
-        user_id=user_id,
-        attempts=data.get('attempts', 1),
-        flash=data.get('flash', False),
-        notes=data.get('notes')
-    )
+    # Update attempts (incremental or absolute)
+    if 'add_attempts' in data:
+        tick.attempts = (tick.attempts or 0) + data.get('add_attempts', 0)
+    elif 'attempts' in data:
+        tick.attempts = data.get('attempts', tick.attempts or 0)
     
-    db.session.add(tick)
+    # Update send types
+    if 'top_rope_send' in data:
+        tick.top_rope_send = data.get('top_rope_send', False)
+    if 'lead_send' in data:
+        tick.lead_send = data.get('lead_send', False)
+    if 'top_rope_flash' in data:
+        tick.top_rope_flash = data.get('top_rope_flash', False)
+    if 'lead_flash' in data:
+        tick.lead_flash = data.get('lead_flash', False)
+    
+    # Update legacy flash field (for backward compatibility)
+    if 'flash' in data:
+        tick.flash = data.get('flash', False)
+    
+    # Auto-set flash fields if sends are marked and attempts are 1
+    if tick.attempts == 1:
+        if tick.top_rope_send and not tick.top_rope_flash:
+            tick.top_rope_flash = True
+        if tick.lead_send and not tick.lead_flash:
+            tick.lead_flash = True
+    
+    # Update notes
+    if 'notes' in data:
+        tick.notes = data.get('notes')
+    
+    if not existing_tick:
+        db.session.add(tick)
+    
     db.session.commit()
     
-    return jsonify(tick.to_dict()), 201
+    return jsonify(tick.to_dict()), 201 if not existing_tick else 200
+
+@app.route('/api/routes/<int:route_id>/attempts', methods=['POST'])
+@jwt_required()
+def add_attempts(route_id):
+    """Add attempts to a route without marking as sent"""
+    data = request.get_json()
+    user_id = get_jwt_identity()
+    
+    attempts_to_add = data.get('attempts', 1)
+    if attempts_to_add < 1:
+        return jsonify({'error': 'Attempts must be at least 1'}), 400
+    
+    # Get or create tick record
+    tick = Tick.query.filter_by(
+        route_id=route_id,
+        user_id=user_id
+    ).first()
+    
+    if tick:
+        tick.attempts = (tick.attempts or 0) + attempts_to_add
+        tick.updated_at = datetime.utcnow()
+    else:
+        tick = Tick(
+            route_id=route_id,
+            user_id=user_id,
+            attempts=attempts_to_add
+        )
+        db.session.add(tick)
+    
+    # Update notes if provided
+    if 'notes' in data:
+        tick.notes = data.get('notes')
+    
+    db.session.commit()
+    
+    return jsonify(tick.to_dict()), 200
+
+@app.route('/api/routes/<int:route_id>/send', methods=['POST'])
+@jwt_required()
+def mark_send(route_id):
+    """Mark a route as sent in a specific style"""
+    data = request.get_json()
+    user_id = get_jwt_identity()
+    
+    send_type = data.get('send_type')  # 'top_rope' or 'lead'
+    if send_type not in ['top_rope', 'lead']:
+        return jsonify({'error': 'send_type must be "top_rope" or "lead"'}), 400
+    
+    # Get or create tick record
+    tick = Tick.query.filter_by(
+        route_id=route_id,
+        user_id=user_id
+    ).first()
+    
+    if not tick:
+        tick = Tick(
+            route_id=route_id,
+            user_id=user_id,
+            attempts=1  # Default to 1 attempt if this is the first record
+        )
+        db.session.add(tick)
+    
+    # Mark the appropriate send type
+    if send_type == 'top_rope':
+        tick.top_rope_send = True
+        # Check if it's a flash (first attempt)
+        if tick.attempts <= 1:
+            tick.top_rope_flash = True
+            tick.flash = True  # Legacy field
+    elif send_type == 'lead':
+        tick.lead_send = True
+        # Check if it's a flash (first attempt)
+        if tick.attempts <= 1:
+            tick.lead_flash = True
+            tick.flash = True  # Legacy field
+    
+    tick.updated_at = datetime.utcnow()
+    
+    # Update notes if provided
+    if 'notes' in data:
+        tick.notes = data.get('notes')
+    
+    db.session.commit()
+    
+    return jsonify(tick.to_dict()), 200
 
 @app.route('/api/routes/<int:route_id>/ticks', methods=['DELETE'])
 @jwt_required()
@@ -552,9 +789,9 @@ def get_wall_sections():
 @app.route('/api/grades', methods=['GET'])
 @jwt_required()
 def get_grades():
-    """Get all unique grades"""
-    grades = db.session.query(Route.grade).distinct().all()
-    return jsonify([grade[0] for grade in grades])
+    """Get all unique grades from the database"""
+    grades = Grade.query.order_by(Grade.difficulty_order).all()
+    return jsonify([grade.grade for grade in grades])
 
 @app.route('/api/lanes', methods=['GET'])
 @jwt_required()
@@ -563,6 +800,28 @@ def get_lanes():
     lanes = db.session.query(Route.lane).distinct().order_by(Route.lane).all()
     return jsonify([lane[0] for lane in lanes])
 
+@app.route('/api/grade-definitions', methods=['GET'])
+@jwt_required()
+def get_grade_definitions():
+    """Get all available climbing grades with colors from database"""
+    grades = Grade.query.order_by(Grade.difficulty_order).all()
+    return jsonify([grade.to_dict() for grade in grades])
+
+@app.route('/api/hold-colors', methods=['GET'])
+@jwt_required()
+def get_hold_colors():
+    """Get all available hold colors from database"""
+    hold_colors = HoldColor.query.all()
+    return jsonify([color.name for color in hold_colors])
+
+@app.route('/api/grade-colors', methods=['GET'])
+@jwt_required()
+def get_grade_colors():
+    """Get grade to color mapping from database"""
+    grades = Grade.query.all()
+    grade_colors = {grade.grade: grade.color for grade in grades}
+    return jsonify(grade_colors)
+
 # User Profile Routes
 @app.route('/api/user/ticks', methods=['GET'])
 @jwt_required()
@@ -570,16 +829,16 @@ def get_user_ticks():
     """Get all ticks for the current user with route details"""
     user_id = get_current_user_id()
     
-    # Join ticks with routes to get route details
-    ticks_with_routes = db.session.query(Tick, Route).join(Route).filter(
+    # Join ticks with routes and grades to get route details
+    ticks_with_routes = db.session.query(Tick, Route, Grade).join(Route).join(Grade, Route.grade_id == Grade.id).filter(
         Tick.user_id == user_id
     ).order_by(Tick.created_at.desc()).all()
     
     result = []
-    for tick, route in ticks_with_routes:
+    for tick, route, grade in ticks_with_routes:
         tick_data = tick.to_dict()
         tick_data['route_name'] = route.name
-        tick_data['route_grade'] = route.grade
+        tick_data['route_grade'] = grade.grade
         tick_data['wall_section'] = route.wall_section
         result.append(tick_data)
     
@@ -591,16 +850,16 @@ def get_user_likes():
     """Get all likes for the current user with route details"""
     user_id = get_current_user_id()
     
-    # Join likes with routes to get route details
-    likes_with_routes = db.session.query(Like, Route).join(Route).filter(
+    # Join likes with routes and grades to get route details
+    likes_with_routes = db.session.query(Like, Route, Grade).join(Route).join(Grade, Route.grade_id == Grade.id).filter(
         Like.user_id == user_id
     ).order_by(Like.created_at.desc()).all()
     
     result = []
-    for like, route in likes_with_routes:
+    for like, route, grade in likes_with_routes:
         like_data = like.to_dict()
         like_data['route_name'] = route.name
-        like_data['route_grade'] = route.grade
+        like_data['route_grade'] = grade.grade
         like_data['wall_section'] = route.wall_section
         result.append(like_data)
     
@@ -617,92 +876,106 @@ def get_user_stats():
     likes = Like.query.filter_by(user_id=user_id).all()
     comments = Comment.query.filter_by(user_id=user_id).all()
     
-    # Calculate statistics
+    # Calculate basic statistics
     total_ticks = len(ticks)
     total_likes = len(likes)
     total_comments = len(comments)
-    total_flashes = sum(1 for tick in ticks if tick.flash)
-    total_attempts = sum(tick.attempts for tick in ticks)
+    total_attempts = sum(tick.attempts or 0 for tick in ticks)
     average_attempts = total_attempts / total_ticks if total_ticks > 0 else 0
     
-    # Get achieved grades (from ticks)
-    achieved_grades = list(set([
-        Route.query.get(tick.route_id).grade for tick in ticks
-    ]))
+    # Calculate send statistics
+    top_rope_sends = sum(1 for tick in ticks if tick.top_rope_send)
+    lead_sends = sum(1 for tick in ticks if tick.lead_send)
+    total_sends = len([tick for tick in ticks if tick.has_any_send])
     
-    # Find hardest grade (simple V-scale logic)
+    # Calculate flash statistics
+    top_rope_flashes = sum(1 for tick in ticks if tick.top_rope_flash)
+    lead_flashes = sum(1 for tick in ticks if tick.lead_flash)
+    total_flashes = sum(1 for tick in ticks if tick.has_any_flash)
+    legacy_flashes = sum(1 for tick in ticks if tick.flash)  # For backward compatibility
+    
+    # Get sent routes for grade analysis
+    sent_route_ids = [tick.route_id for tick in ticks if tick.has_any_send]
+    top_rope_route_ids = [tick.route_id for tick in ticks if tick.top_rope_send]
+    lead_route_ids = [tick.route_id for tick in ticks if tick.lead_send]
+    
+    # Get achieved grades
+    achieved_grades = []
     hardest_grade = None
-    if achieved_grades:
-        v_grades = [grade for grade in achieved_grades if grade.startswith('V')]
-        if v_grades:
-            v_numbers = [int(grade[1:]) for grade in v_grades if grade[1:].isdigit()]
-            if v_numbers:
-                hardest_number = max(v_numbers)
-                hardest_grade = f'V{hardest_number}'
+    hardest_top_rope_grade = None
+    hardest_lead_grade = None
     
-    # Get unique wall sections
-    unique_wall_sections = len(set([
-        Route.query.get(tick.route_id).wall_section for tick in ticks
-    ]))
+    if sent_route_ids:
+        sent_routes = Route.query.filter(Route.id.in_(sent_route_ids)).all()
+        achieved_grade_objects = [route.grade_rel for route in sent_routes if route.grade_rel]
+        if achieved_grade_objects:
+            # Remove duplicates and sort
+            unique_grades = list(set(achieved_grade_objects))
+            unique_grades.sort(key=lambda g: g.difficulty_order)
+            achieved_grades = [grade.grade for grade in unique_grades]
+            hardest_grade = max(unique_grades, key=lambda g: g.difficulty_order).grade
+    
+    if top_rope_route_ids:
+        tr_routes = Route.query.filter(Route.id.in_(top_rope_route_ids)).all()
+        tr_grades = [route.grade_rel for route in tr_routes if route.grade_rel]
+        if tr_grades:
+            hardest_top_rope_grade = max(tr_grades, key=lambda g: g.difficulty_order).grade
+    
+    if lead_route_ids:
+        lead_routes = Route.query.filter(Route.id.in_(lead_route_ids)).all()
+        lead_grades = [route.grade_rel for route in lead_routes if route.grade_rel]
+        if lead_grades:
+            hardest_lead_grade = max(lead_grades, key=lambda g: g.difficulty_order).grade
+    
+    # Get unique wall sections from sent routes
+    unique_wall_sections = 0
+    if sent_route_ids:
+        sent_routes = Route.query.filter(Route.id.in_(sent_route_ids)).all()
+        unique_wall_sections = len(set(route.wall_section for route in sent_routes))
     
     return jsonify({
+        # Basic stats
         'total_ticks': total_ticks,
         'total_likes': total_likes,
         'total_comments': total_comments,
-        'total_flashes': total_flashes,
+        'total_attempts': total_attempts,
         'average_attempts': round(average_attempts, 2),
+        
+        # Send stats
+        'total_sends': total_sends,
+        'top_rope_sends': top_rope_sends,
+        'lead_sends': lead_sends,
+        
+        # Flash stats
+        'total_flashes': total_flashes,
+        'top_rope_flashes': top_rope_flashes,
+        'lead_flashes': lead_flashes,
+        'legacy_flashes': legacy_flashes,  # For backward compatibility
+        
+        # Grade achievements
         'hardest_grade': hardest_grade,
-        'unique_wall_sections': unique_wall_sections,
-        'achieved_grades': sorted(achieved_grades, key=lambda x: int(x[1:]) if x.startswith('V') and x[1:].isdigit() else 0)
+        'hardest_top_rope_grade': hardest_top_rope_grade,
+        'hardest_lead_grade': hardest_lead_grade,
+        'achieved_grades': achieved_grades,
+        
+        # Other stats
+        'unique_wall_sections': unique_wall_sections
     })
 
-# Initialize database
-def init_db():
-    """Initialize database with sample data"""
+# Simple database initialization check
+def ensure_database_initialized():
+    """Ensure database is initialized, create tables if they don't exist"""
     db.create_all()
     
-    # Check if we already have data
-    if User.query.first():
-        return
+    # Check if we have essential data
+    if not Grade.query.first() or not HoldColor.query.first():
+        print("⚠️  Database appears to be empty!")
+        print("Please run 'python init_db.py' to initialize the database with grades, colors, and sample data.")
+        return False
     
-    # Create sample users
-    admin_user = User(username='admin', email='admin@climbing-gym.com')
-    admin_user.set_password('admin123')
-    
-    alice = User(username='alice_johnson', email='alice@example.com')
-    alice.set_password('password123')
-    
-    bob = User(username='bob_smith', email='bob@example.com')
-    bob.set_password('password123')
-    
-    charlie = User(username='charlie_brown', email='charlie@example.com')
-    charlie.set_password('password123')
-    
-    db.session.add_all([admin_user, alice, bob, charlie])
-    db.session.commit()
-    
-    # Sample routes
-    sample_routes = [
-        Route(name="Crimpy Goodness", grade="V4", route_setter="Alice Johnson", wall_section="Overhang Wall", lane=1, color="Red", description="Technical crimps with a dynamic finish"),
-        Route(name="Slab Master", grade="V2", route_setter="Bob Smith", wall_section="Slab Wall", lane=3, color="Blue", description="Balance and footwork focused"),
-        Route(name="Power House", grade="V6", route_setter="Charlie Brown", wall_section="Steep Wall", lane=2, color="Yellow", description="Raw power moves with big holds"),
-        Route(name="Finger Torture", grade="V5", route_setter="Diana Prince", wall_section="Overhang Wall", lane=4, color="Green", description="Tiny crimps and pinches"),
-        Route(name="Beginner's Delight", grade="V1", route_setter="Eve Wilson", wall_section="Vertical Wall", lane=1, color="Orange", description="Perfect for new climbers"),
-        Route(name="The Gaston", grade="V3", route_setter="Frank Miller", wall_section="Vertical Wall", lane=2, color="Purple", description="Lots of gaston moves"),
-    ]
-    
-    for route in sample_routes:
-        db.session.add(route)
-    
-    db.session.commit()
-    print("Database initialized with sample data!")
-    print("Sample users created:")
-    print("- admin / admin123")
-    print("- alice_johnson / password123")
-    print("- bob_smith / password123")
-    print("- charlie_brown / password123")
+    return True
 
 if __name__ == '__main__':
     with app.app_context():
-        init_db()
+        ensure_database_initialized()
     app.run(debug=True, host='0.0.0.0', port=5000)

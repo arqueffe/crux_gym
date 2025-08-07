@@ -2,6 +2,7 @@ class Route {
   final int id;
   final String name;
   final String grade;
+  final String? gradeColor;
   final String routeSetter;
   final String wallSection;
   final int lane;
@@ -23,6 +24,7 @@ class Route {
     required this.id,
     required this.name,
     required this.grade,
+    this.gradeColor,
     required this.routeSetter,
     required this.wallSection,
     required this.lane,
@@ -46,6 +48,7 @@ class Route {
       id: json['id'],
       name: json['name'],
       grade: json['grade'],
+      gradeColor: json['grade_color'],
       routeSetter: json['route_setter'],
       wallSection: json['wall_section'],
       lane: json['lane'],
@@ -299,9 +302,16 @@ class Tick {
   final String userName;
   final int routeId;
   final int attempts;
-  final bool flash;
+  final bool topRopeSend;
+  final bool leadSend;
+  final bool topRopeFlash;
+  final bool leadFlash;
+  final bool flash; // Legacy field for backward compatibility
+  final bool hasAnySend;
+  final bool hasAnyFlash;
   final String? notes;
   final DateTime createdAt;
+  final DateTime updatedAt;
 
   Tick({
     required this.id,
@@ -309,9 +319,16 @@ class Tick {
     required this.userName,
     required this.routeId,
     required this.attempts,
+    required this.topRopeSend,
+    required this.leadSend,
+    required this.topRopeFlash,
+    required this.leadFlash,
     required this.flash,
+    required this.hasAnySend,
+    required this.hasAnyFlash,
     this.notes,
     required this.createdAt,
+    required this.updatedAt,
   });
 
   factory Tick.fromJson(Map<String, dynamic> json) {
@@ -320,16 +337,27 @@ class Tick {
       userId: json['user_id'],
       userName: json['user_name'],
       routeId: json['route_id'],
-      attempts: json['attempts'],
-      flash: json['flash'],
+      attempts: json['attempts'] ?? 0,
+      topRopeSend: json['top_rope_send'] ?? false,
+      leadSend: json['lead_send'] ?? false,
+      topRopeFlash: json['top_rope_flash'] ?? false,
+      leadFlash: json['lead_flash'] ?? false,
+      flash: json['flash'] ?? false,
+      hasAnySend: json['has_any_send'] ?? false,
+      hasAnyFlash: json['has_any_flash'] ?? false,
       notes: json['notes'],
       createdAt: DateTime.parse(json['created_at']),
+      updatedAt: DateTime.parse(json['updated_at']),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'attempts': attempts,
+      'top_rope_send': topRopeSend,
+      'lead_send': leadSend,
+      'top_rope_flash': topRopeFlash,
+      'lead_flash': leadFlash,
       'flash': flash,
       'notes': notes,
     };

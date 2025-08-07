@@ -26,14 +26,25 @@ class PerformanceSummaryCard extends StatelessWidget {
       );
     }
 
-    final filteredFlashes = filteredTicks.where((tick) => tick.flash).length;
+    final filteredFlashes =
+        filteredTicks.where((tick) => tick.hasAnyFlash).length;
+    final filteredTopRopeFlashes =
+        filteredTicks.where((tick) => tick.topRopeFlash).length;
+    final filteredLeadFlashes =
+        filteredTicks.where((tick) => tick.leadFlash).length;
+    final filteredTopRopeSends =
+        filteredTicks.where((tick) => tick.topRopeSend).length;
+    final filteredLeadSends =
+        filteredTicks.where((tick) => tick.leadSend).length;
+    final filteredTotalSends =
+        filteredTicks.where((tick) => tick.hasAnySend).length;
     final filteredTotalAttempts =
         filteredTicks.fold<int>(0, (sum, tick) => sum + tick.attempts);
-    final filteredAverageAttempts = filteredTicks.isNotEmpty
-        ? filteredTotalAttempts / filteredTicks.length
+    final filteredAverageAttempts = filteredTotalSends > 0
+        ? filteredTotalAttempts / filteredTotalSends
         : 0.0;
     final filteredFlashRate =
-        filteredTicks.isNotEmpty ? filteredFlashes / filteredTicks.length : 0.0;
+        filteredTotalSends > 0 ? filteredFlashes / filteredTotalSends : 0.0;
 
     // Get hardest grade from filtered ticks
     String? filteredHardestGrade;
@@ -87,15 +98,29 @@ class PerformanceSummaryCard extends StatelessWidget {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               crossAxisCount: 2,
-              childAspectRatio: 2.5,
+              childAspectRatio: 2.2,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
               children: [
                 _buildStatCard(
                   context,
-                  'Routes Completed',
-                  '${filteredTicks.length}',
+                  'Total Sends',
+                  '${filteredTotalSends}',
                   Icons.check_circle,
+                  Colors.green,
+                ),
+                _buildStatCard(
+                  context,
+                  'Top Rope',
+                  '${filteredTopRopeSends}',
+                  Icons.arrow_upward,
+                  Colors.blue,
+                ),
+                _buildStatCard(
+                  context,
+                  'Lead',
+                  '${filteredLeadSends}',
+                  Icons.trending_up,
                   Colors.green,
                 ),
                 _buildStatCard(
@@ -118,6 +143,35 @@ class PerformanceSummaryCard extends StatelessWidget {
                   filteredHardestGrade ?? stats!.hardestGrade ?? 'N/A',
                   Icons.emoji_events,
                   Colors.purple,
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            // Send Type Breakdown
+            Row(
+              children: [
+                Expanded(
+                  child: _buildSendTypeCard(
+                    context,
+                    'TR Flash',
+                    filteredTopRopeFlashes,
+                    filteredTopRopeSends,
+                    Icons.arrow_upward,
+                    Colors.blue,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildSendTypeCard(
+                    context,
+                    'Lead Flash',
+                    filteredLeadFlashes,
+                    filteredLeadSends,
+                    Icons.trending_up,
+                    Colors.green,
+                  ),
                 ),
               ],
             ),
@@ -270,5 +324,60 @@ class PerformanceSummaryCard extends StatelessWidget {
       return number ?? 0;
     }
     return 0;
+  }
+
+  Widget _buildSendTypeCard(
+    BuildContext context,
+    String title,
+    int flashCount,
+    int totalCount,
+    IconData icon,
+    Color color,
+  ) {
+    final percentage = totalCount > 0 ? (flashCount / totalCount * 100) : 0.0;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: color,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '$flashCount / $totalCount',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          Text(
+            '${percentage.toStringAsFixed(1)}%',
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey.shade600,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

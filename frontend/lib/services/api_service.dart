@@ -210,6 +210,48 @@ class ApiService {
     }
   }
 
+  // Add attempts to a route
+  Future<Map<String, dynamic>> addAttempts(int routeId, int attempts,
+      {String? notes}) async {
+    final body = {
+      'attempts': attempts,
+      if (notes != null && notes.trim().isNotEmpty) 'notes': notes.trim(),
+    };
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/routes/$routeId/attempts'),
+      headers: _headers,
+      body: json.encode(body),
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Failed to add attempts');
+    }
+  }
+
+  // Mark a route as sent in a specific style
+  Future<Map<String, dynamic>> markSend(int routeId, String sendType,
+      {String? notes}) async {
+    final body = {
+      'send_type': sendType,
+      if (notes != null && notes.trim().isNotEmpty) 'notes': notes.trim(),
+    };
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/routes/$routeId/send'),
+      headers: _headers,
+      body: json.encode(body),
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Failed to mark send');
+    }
+  }
+
   // Utility
   Future<List<String>> getWallSections() async {
     final response = await http.get(
@@ -247,6 +289,46 @@ class ApiService {
       return data.cast<int>();
     } else {
       throw Exception('Failed to load lanes');
+    }
+  }
+
+  // Grade and Color utilities
+  Future<List<Map<String, dynamic>>> getGradeDefinitions() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/grade-definitions'),
+      headers: _headers,
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      return data.cast<Map<String, dynamic>>();
+    } else {
+      throw Exception('Failed to load grade definitions');
+    }
+  }
+
+  Future<List<String>> getHoldColors() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/hold-colors'),
+      headers: _headers,
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      return data.cast<String>();
+    } else {
+      throw Exception('Failed to load hold colors');
+    }
+  }
+
+  Future<Map<String, String>> getGradeColors() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/grade-colors'),
+      headers: _headers,
+    );
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = json.decode(response.body);
+      return data.cast<String, String>();
+    } else {
+      throw Exception('Failed to load grade colors');
     }
   }
 }

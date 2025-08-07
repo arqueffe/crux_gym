@@ -11,7 +11,9 @@ The Crux backend provides a complete API for managing climbing gym routes, user 
 ### Core Functionality
 - **JWT Authentication**: Secure user registration, login, and session management
 - **Route Management**: Complete CRUD operations with detailed route information
-- **User Interactions**: Comprehensive tracking of likes, comments, grade proposals, warnings, and ticks
+- **French Grading System**: Uses the French rope climbing grade system (3a through 9c with + variants)
+- **Database-Defined Colors**: Hold colors and grade colors are defined and managed in the database
+- **User Interactions**: Comprehensive tracking of likes, comments, grade proposals, warnings, and advanced tick system with independent top rope/lead send tracking
 - **Statistics & Analytics**: User performance tracking and climbing statistics
 - **Data Filtering**: Advanced filtering and sorting capabilities
 - **Sample Data**: Automatic initialization with realistic test data
@@ -49,6 +51,20 @@ The Crux backend provides a complete API for managing climbing gym routes, user 
 
 The API will be available at `http://localhost:5000` with automatic database initialization and sample data.
 
+### Database Migration (For Existing Installations)
+
+If you have an existing database and want to upgrade to the new tick system with independent top rope/lead tracking:
+
+```bash
+# Run the migration script
+python migrate_db.py
+```
+
+This migration will:
+- Add new columns for `top_rope_send`, `lead_send`, `top_rope_flash`, `lead_flash`, and `updated_at`
+- Migrate existing tick data to the new format
+- Preserve all existing user progress
+
 ### Environment Variables (Optional)
 ```bash
 export JWT_SECRET_KEY="your-production-secret-key"
@@ -73,11 +89,12 @@ class User:
 class Route:
     id: Integer (Primary Key)
     name: String (Required)
-    grade: String (Required)           # e.g., "V4", "V7"
+    grade: String (Required)           # French climbing grades: "3a", "5c", "6a+", "7b", etc.
+    grade_color: String                # Color associated with the grade (auto-assigned)
     route_setter: String (Required)
     wall_section: String (Required)    # e.g., "Overhang Wall"
     lane: Integer (Required)
-    color: String (Optional)           # e.g., "Red", "Blue"
+    color: String (Optional)           # Hold color from predefined list
     description: Text (Optional)
     created_at: DateTime
     
@@ -125,10 +142,15 @@ class Tick:
     id: Integer (Primary Key)
     user_id: Integer (Foreign Key)
     route_id: Integer (Foreign Key)
-    attempts: Integer                  # Number of attempts to complete
-    flash: Boolean                     # True if completed on first try
+    attempts: Integer                  # Total number of attempts
+    top_rope_send: Boolean             # Successfully sent on top rope
+    lead_send: Boolean                 # Successfully sent on lead
+    top_rope_flash: Boolean            # Top rope flash (first try)
+    lead_flash: Boolean                # Lead flash (first try)
+    flash: Boolean                     # Legacy field (for backward compatibility)
     notes: Text (Optional)
     created_at: DateTime
+    updated_at: DateTime
 ```
 
 ## API Endpoints
@@ -248,7 +270,7 @@ Content-Type: application/json
 
 {
     "name": "New Route",
-    "grade": "V5",
+    "grade": "6a+",
     "route_setter": "John Doe",
     "wall_section": "Steep Wall",
     "lane": 3,
@@ -291,8 +313,8 @@ Authorization: Bearer <jwt_token>
 Content-Type: application/json
 
 {
-    "proposed_grade": "V5",
-    "reasoning": "Feels harder than V4 due to the dynamic move"
+    "proposed_grade": "6b",
+    "reasoning": "Feels harder than 6a+ due to the dynamic move"
 }
 ```
 
@@ -308,23 +330,49 @@ Content-Type: application/json
 }
 ```
 
-#### Add/Remove Tick
+#### Track Progress & Sends
 ```http
+# Add/Update tick record with attempts and sends
 POST /api/routes/{route_id}/ticks
 Authorization: Bearer <jwt_token>
 Content-Type: application/json
 
 {
-    "attempts": 3,
-    "flash": false,
-    "notes": "Took a few tries to figure out the sequence"
+    "attempts": 3,                    # Total attempts (optional)
+    "add_attempts": 2,                # Add attempts to existing count (optional)
+    "top_rope_send": true,            # Mark top rope send (optional)
+    "lead_send": false,               # Mark lead send (optional)
+    "top_rope_flash": false,          # Mark top rope flash (optional)
+    "lead_flash": false,              # Mark lead flash (optional)
+    "notes": "Great route, tricky sequence"
 }
 
+# Add attempts only (without marking sends)
+POST /api/routes/{route_id}/attempts
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+    "attempts": 2,                    # Number of attempts to add
+    "notes": "Working on the crux move"
+}
+
+# Mark a specific send type
+POST /api/routes/{route_id}/send
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+    "send_type": "top_rope",          # "top_rope" or "lead"
+    "notes": "Finally got it!"
+}
+
+# Remove all progress
 DELETE /api/routes/{route_id}/ticks
 Authorization: Bearer <jwt_token>
 ```
 
-#### Check User Tick Status
+#### Check User Progress Status
 ```http
 GET /api/routes/{route_id}/ticks/me
 Authorization: Bearer <jwt_token>
@@ -334,11 +382,98 @@ Response (200):
     "ticked": true,
     "tick": {
         "id": 1,
-        "attempts": 3,
+        "user_id": 2,
+        "user_name": "alice_johnson",
+        "route_id": 1,
+        "attempts": 5,
+        "top_rope_send": true,
+        "lead_send": false,
+        "top_rope_flash": false,
+        "lead_flash": false,
         "flash": false,
-        "notes": "...",
-        "created_at": "2025-01-01T00:00:00"
+        "has_any_send": true,
+        "has_any_flash": false,
+        "notes": "Great route! Took several attempts to get the sequence",
+        "created_at": "2025-01-01T00:00:00",
+        "updated_at": "2025-01-01T12:30:00"
     }
+}
+```
+
+### Configuration Endpoints
+
+#### Get Grade Definitions
+```http
+GET /api/grade-definitions
+
+Response (200):
+[
+    {
+        "grade": "3a",
+        "color": "green"
+    },
+    {
+        "grade": "5c", 
+        "color": "yellow"
+    },
+    {
+        "grade": "6a+",
+        "color": "orange"
+    }
+    // ... all French climbing grades with their colors
+]
+```
+
+#### Get Hold Colors
+```http
+GET /api/hold-colors
+
+Response (200):
+[
+    "Red", "Blue", "Green", "Yellow", "Orange", "Purple", 
+    "Pink", "Black", "White", "Cyan", "Teal", "Lime", 
+    "Indigo", "Brown", "Amber", "DeepOrange", "LightBlue", "LightGreen"
+]
+```
+
+#### Get Grade Colors
+```http
+GET /api/grade-colors
+
+Response (200):
+{
+    "3a": "green",
+    "3b": "green", 
+    "3c": "green",
+    "4a": "green",
+    "4b": "green",
+    "4c": "green",
+    "5a": "yellow",
+    "5b": "yellow",
+    "5c": "yellow",
+    "6a": "orange",
+    "6a+": "orange",
+    "6b": "orange",
+    "6b+": "orange",
+    "6c": "orange",
+    "6c+": "orange",
+    "7a": "red",
+    "7a+": "red",
+    "7b": "red",
+    "7b+": "red",
+    "7c": "red",
+    "7c+": "red",
+    "8a": "purple",
+    "8a+": "purple",
+    "8b": "purple",
+    "8b+": "purple",
+    "8c": "purple",
+    "8c+": "purple",
+    "9a": "purple",
+    "9a+": "purple",
+    "9b": "purple",
+    "9b+": "purple",
+    "9c": "purple"
 }
 ```
 
@@ -382,11 +517,23 @@ Response (200):
     "total_ticks": 15,
     "total_likes": 8,
     "total_comments": 12,
+    "total_attempts": 45,
+    "average_attempts": 3.0,
+    
+    "total_sends": 12,
+    "top_rope_sends": 10,
+    "lead_sends": 4,
+    
     "total_flashes": 3,
-    "average_attempts": 2.5,
-    "hardest_grade": "V6",
-    "unique_wall_sections": 4,
-    "achieved_grades": ["V1", "V2", "V3", "V4", "V5", "V6"]
+    "top_rope_flashes": 2,
+    "lead_flashes": 1,
+    "legacy_flashes": 3,
+    
+    "hardest_grade": "6c",
+    "hardest_top_rope_grade": "6c",
+    "hardest_lead_grade": "6a+",
+    "achieved_grades": ["5a", "5b", "5c", "6a", "6a+", "6b", "6b+", "6c"],
+    "unique_wall_sections": 4
 }
 ```
 

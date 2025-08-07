@@ -26,6 +26,9 @@ class RouteProvider extends ChangeNotifier {
   List<String> _grades = [];
   List<int> _lanes = [];
   List<String> _routeSetters = [];
+  List<Map<String, dynamic>> _gradeDefinitions = [];
+  List<String> _holdColors = [];
+  Map<String, String> _gradeColors = {};
   SortOption _selectedSort = SortOption.newest;
   FilterState _tickedFilter = FilterState.all;
   FilterState _likedFilter = FilterState.all;
@@ -44,6 +47,9 @@ class RouteProvider extends ChangeNotifier {
   List<String> get grades => _grades;
   List<int> get lanes => _lanes;
   List<String> get routeSetters => _routeSetters;
+  List<Map<String, dynamic>> get gradeDefinitions => _gradeDefinitions;
+  List<String> get holdColors => _holdColors;
+  Map<String, String> get gradeColors => _gradeColors;
   SortOption get selectedSort => _selectedSort;
   FilterState get tickedFilter => _tickedFilter;
   FilterState get likedFilter => _likedFilter;
@@ -66,6 +72,9 @@ class RouteProvider extends ChangeNotifier {
       loadGrades(),
       loadLanes(),
       loadRouteSetters(),
+      loadGradeDefinitions(),
+      loadHoldColors(),
+      loadGradeColors(),
     ]);
   }
 
@@ -271,6 +280,44 @@ class RouteProvider extends ChangeNotifier {
     }
   }
 
+  // Add attempts to a route
+  Future<bool> addAttempts(int routeId, int attempts, {String? notes}) async {
+    try {
+      await _apiService.addAttempts(routeId, attempts, notes: notes);
+
+      // Refresh the specific route to get updated data
+      if (_selectedRoute?.id == routeId) {
+        await loadRoute(routeId);
+      }
+      // Also refresh the routes list
+      await loadRoutes();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Mark a route as sent in a specific style
+  Future<bool> markSend(int routeId, String sendType, {String? notes}) async {
+    try {
+      await _apiService.markSend(routeId, sendType, notes: notes);
+
+      // Refresh the specific route to get updated data
+      if (_selectedRoute?.id == routeId) {
+        await loadRoute(routeId);
+      }
+      // Also refresh the routes list
+      await loadRoutes();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
   // Check if user has ticked a route
   Future<Map<String, dynamic>?> getUserTickStatus(int routeId) async {
     try {
@@ -368,6 +415,36 @@ class RouteProvider extends ChangeNotifier {
           _routes.map((route) => route.routeSetter).toSet().toList();
       setters.sort();
       _routeSetters = setters;
+    } catch (e) {
+      _error = e.toString();
+    }
+    notifyListeners();
+  }
+
+  // Load grade definitions with colors
+  Future<void> loadGradeDefinitions() async {
+    try {
+      _gradeDefinitions = await _apiService.getGradeDefinitions();
+    } catch (e) {
+      _error = e.toString();
+    }
+    notifyListeners();
+  }
+
+  // Load hold colors
+  Future<void> loadHoldColors() async {
+    try {
+      _holdColors = await _apiService.getHoldColors();
+    } catch (e) {
+      _error = e.toString();
+    }
+    notifyListeners();
+  }
+
+  // Load grade colors mapping
+  Future<void> loadGradeColors() async {
+    try {
+      _gradeColors = await _apiService.getGradeColors();
     } catch (e) {
       _error = e.toString();
     }
@@ -494,5 +571,10 @@ class RouteProvider extends ChangeNotifier {
         _currentRoutes.sort((a, b) => a.ticksCount.compareTo(b.ticksCount));
         break;
     }
+  }
+
+  // Helper method to get color for a specific grade
+  String? getGradeColor(String grade) {
+    return _gradeColors[grade];
   }
 }

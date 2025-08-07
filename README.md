@@ -10,7 +10,11 @@ Crux is a full-stack application consisting of:
 
 The system helps climbing gym members:
 - Browse available routes with detailed information and advanced filtering
-- Track their climbing progress with detailed statistics and achievements
+- Track their climbing progress with advanced tick system supporting:
+  - Independent top rope and lead send tracking
+  - Attempt logging without marking sends
+  - Automatic flash detection and tracking
+  - Style-specific statistics and personal bests
 - Share feedback through likes, comments, grade proposals, and warnings
 - Report route issues and maintenance needs
 - View personal climbing profiles with performance analytics

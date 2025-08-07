@@ -20,7 +20,9 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<RouteProvider>().loadInitialData();
+      final routeProvider = context.read<RouteProvider>();
+      routeProvider.loadInitialData();
+      routeProvider.loadGradeColors();
     });
   }
 

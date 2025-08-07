@@ -101,39 +101,84 @@ class TicksList extends StatelessWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
+                          // Send type indicators
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              if (tick.flash) ...[
-                                const Icon(
-                                  Icons.flash_on,
-                                  size: 16,
-                                  color: Colors.orange,
-                                ),
-                                const SizedBox(width: 4),
-                                const Text(
-                                  'Flash',
-                                  style: TextStyle(
-                                    color: Colors.orange,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
+                              if (tick.topRopeSend) ...[
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.shade100,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.arrow_upward,
+                                          size: 12, color: Colors.blue),
+                                      const SizedBox(width: 2),
+                                      Text(
+                                        'TR${tick.topRopeFlash ? ' ⚡' : ''}',
+                                        style: const TextStyle(
+                                          color: Colors.blue,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ] else ...[
-                                Icon(
-                                  Icons.repeat,
-                                  size: 16,
-                                  color: Colors.grey.shade600,
-                                ),
                                 const SizedBox(width: 4),
-                                Text(
-                                  '${tick.attempts} ${tick.attempts == 1 ? 'attempt' : 'attempts'}',
-                                  style: TextStyle(
-                                    color: Colors.grey.shade600,
-                                    fontSize: 12,
-                                  ),
-                                ),
                               ],
+                              if (tick.leadSend) ...[
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.shade100,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.trending_up,
+                                          size: 12, color: Colors.green),
+                                      const SizedBox(width: 2),
+                                      Text(
+                                        'Lead${tick.leadFlash ? ' ⚡' : ''}',
+                                        style: const TextStyle(
+                                          color: Colors.green,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          // Attempts indicator
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.repeat,
+                                size: 16,
+                                color: Colors.grey.shade600,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${tick.attempts} ${tick.attempts == 1 ? 'attempt' : 'attempts'}',
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 12,
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 4),
@@ -200,14 +245,14 @@ class TicksList extends StatelessWidget {
   }
 
   Color _getGradeColor(String grade) {
-    // Simple color coding based on grade difficulty
-    if (grade.contains('V0') || grade.contains('V1')) return Colors.green;
-    if (grade.contains('V2') || grade.contains('V3')) {
-      return Colors.yellow.shade700;
-    }
-    if (grade.contains('V4') || grade.contains('V5')) return Colors.orange;
-    if (grade.contains('V6') || grade.contains('V7')) return Colors.red;
-    return Colors.purple;
+    // Default colors for French grades - ideally this would come from the backend
+    // This is a fallback until we can pass the actual grade colors
+    if (grade.startsWith('3') || grade.startsWith('4')) return Colors.green;
+    if (grade.startsWith('5')) return Colors.yellow.shade700;
+    if (grade.startsWith('6')) return Colors.orange;
+    if (grade.startsWith('7')) return Colors.red;
+    if (grade.startsWith('8') || grade.startsWith('9')) return Colors.purple;
+    return Colors.grey;
   }
 
   String _formatDate(DateTime date) {

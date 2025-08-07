@@ -11,14 +11,6 @@ class RouteCard extends StatelessWidget {
     required this.onTap,
   });
 
-  Color _getGradeColor(String grade) {
-    if (grade.contains('V0') || grade.contains('V1')) return Colors.green;
-    if (grade.contains('V2') || grade.contains('V3')) return Colors.yellow;
-    if (grade.contains('V4') || grade.contains('V5')) return Colors.orange;
-    if (grade.contains('V6') || grade.contains('V7')) return Colors.red;
-    return Colors.purple;
-  }
-
   Color _parseColor(String colorName) {
     switch (colorName.toLowerCase()) {
       case 'red':
@@ -39,8 +31,40 @@ class RouteCard extends StatelessWidget {
         return Colors.black;
       case 'white':
         return Colors.white;
+      case 'cyan':
+        return Colors.cyan;
+      case 'teal':
+        return Colors.teal;
+      case 'lime':
+        return Colors.lime;
+      case 'indigo':
+        return Colors.indigo;
+      case 'brown':
+        return Colors.brown;
+      case 'amber':
+        return Colors.amber;
+      case 'deeporange':
+        return Colors.deepOrange;
+      case 'lightblue':
+        return Colors.lightBlue;
+      case 'lightgreen':
+        return Colors.lightGreen;
       default:
         return Colors.grey;
+    }
+  }
+
+  Color _parseHexColor(String hexColor) {
+    try {
+      // Remove the # if present
+      final hex = hexColor.replaceAll('#', '');
+      // Parse the hex string to integer
+      final int colorValue = int.parse(hex, radix: 16);
+      // Create Color with full opacity (0xFF prefix)
+      return Color(0xFF000000 | colorValue);
+    } catch (e) {
+      // Return grey if parsing fails
+      return Colors.grey;
     }
   }
 
@@ -76,7 +100,9 @@ class RouteCard extends StatelessWidget {
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: _getGradeColor(route.grade),
+                                color: route.gradeColor != null
+                                    ? _parseHexColor(route.gradeColor!)
+                                    : Colors.grey,
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: Text(

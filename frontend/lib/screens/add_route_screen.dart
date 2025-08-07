@@ -21,19 +21,8 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
   int? _selectedLane;
   String? _selectedColor;
 
-  final _grades = [
-    'V0',
-    'V1',
-    'V2',
-    'V3',
-    'V4',
-    'V5',
-    'V6',
-    'V7',
-    'V8',
-    'V9',
-    'V10'
-  ];
+  List<String> _grades = [];
+  List<String> _holdColors = [];
   final _wallSections = [
     'Overhang Wall',
     'Slab Wall',
@@ -42,17 +31,29 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
     'Cave Section',
     'Roof Section'
   ];
-  final _colors = [
-    'Red',
-    'Blue',
-    'Green',
-    'Yellow',
-    'Orange',
-    'Purple',
-    'Pink',
-    'Black',
-    'White'
-  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadGradesAndColors();
+  }
+
+  Future<void> _loadGradesAndColors() async {
+    final routeProvider = context.read<RouteProvider>();
+    try {
+      await routeProvider.loadGradeDefinitions();
+      await routeProvider.loadHoldColors();
+      setState(() {
+        _grades = routeProvider.gradeDefinitions
+            .map((g) => g['grade'] as String)
+            .toList();
+        _holdColors = routeProvider.holdColors;
+      });
+    } catch (e) {
+      // Handle error - will use empty lists and show error
+      print('Error loading grades and colors: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -206,7 +207,7 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
                                 value: null,
                                 child: Text('No specific color'),
                               ),
-                              ..._colors.map((color) => DropdownMenuItem(
+                              ..._holdColors.map((color) => DropdownMenuItem(
                                     value: color,
                                     child: Row(
                                       children: [

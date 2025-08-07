@@ -15,6 +15,8 @@ The Crux frontend is a feature-rich Flutter application that provides climbers w
 
 ### Route Discovery & Management
 - **Advanced Browsing**: Browse all climbing routes with detailed information
+- **French Grading System**: Full support for French rope climbing grades (3a through 9c with + variants)
+- **Dynamic Color System**: Grade and hold colors loaded from backend for consistent display
 - **Smart Filtering**: Filter by wall section, grade, lane, route setter, and interaction status
 - **Multi-Sort Options**: Sort by date, difficulty, popularity, and more
 - **Route Creation**: Add new routes with complete details and validation
@@ -25,16 +27,24 @@ The Crux frontend is a feature-rich Flutter application that provides climbers w
 - **Comments**: Share detailed feedback, beta, and experiences
 - **Grade Proposals**: Suggest alternative difficulty ratings with reasoning
 - **Warnings & Reports**: Report safety issues, broken holds, or maintenance needs
-- **Tick Tracking**: Record successful ascents with attempt counts and notes
-- **Flash Recognition**: Special tracking for first-try completions
+- **Advanced Tick Tracking**: Comprehensive progress tracking system
+  - **Independent Send Types**: Track top rope and lead sends separately
+  - **Attempt Logging**: Record attempts without marking sends
+  - **Flash Recognition**: Automatic detection and tracking of first-try completions
+  - **Progress Management**: View and update climbing progress over time
+  - **Style-Specific Statistics**: Separate statistics for top rope vs lead climbing
 
 ### Profile & Analytics
-- **Performance Statistics**: Comprehensive climbing analytics and progress tracking
-- **Grade Analysis**: Detailed statistics by difficulty level with success rates
-- **Time-based Filtering**: View progress over different time periods
-- **Achievement Tracking**: Monitor personal bests and climbing milestones
-- **Visual Charts**: Interactive charts showing grade distribution and progress
-- **History Views**: Complete history of ticks, likes, and interactions
+- **Comprehensive Performance Statistics**: Advanced climbing analytics with detailed progress tracking
+  - **Send Type Breakdown**: Separate statistics for top rope vs lead climbing
+  - **Flash Rate Analysis**: Track and analyze flash percentages by climbing style
+  - **Attempt Tracking**: Monitor average attempts per send for different styles
+  - **Grade Progression**: Visualize climbing progression across different grades
+- **Enhanced Grade Analysis**: Detailed statistics by difficulty level with style-specific success rates
+- **Time-based Filtering**: View progress over different time periods (all-time, monthly, weekly)
+- **Achievement Tracking**: Monitor personal bests including hardest sends by style
+- **Visual Charts**: Interactive charts showing grade distribution and climbing style progress
+- **Detailed History Views**: Complete history of ticks with send type information, likes, and interactions
 
 ### Advanced Features
 - **3D Wall Visualization**: Interactive climbing wall topology viewer
@@ -208,10 +218,13 @@ class HomeScreen extends StatefulWidget {
 class RouteProvider with ChangeNotifier {
   // Features:
   // - Route CRUD operations
+  // - French grading system support (3a-9c)
+  // - Dynamic grade and hold color loading from backend
   // - Multi-criteria filtering
   // - Client-side and server-side filtering
   // - Sorting options (date, grade, popularity)
   // - Interaction state management
+  // - Grade color mapping for UI consistency
 }
 ```
 
@@ -276,15 +289,25 @@ class ApiService {
 - `GET /routes/{id}` - Detailed route information
 - `POST /routes` - Route creation
 
-#### Interaction Endpoints
-- `POST /routes/{id}/like` - Like route
-- `POST /routes/{id}/ticks` - Record ascent
-- `POST /routes/{id}/comments` - Add comment
-- `POST /routes/{id}/grade-proposals` - Propose grade
-- `POST /routes/{id}/warnings` - Report issue
+#### Configuration Endpoints
+- `GET /grade-definitions` - French climbing grades with color mappings
+- `GET /hold-colors` - Available hold colors for route creation
+- `GET /grade-colors` - Grade-to-color mapping for UI consistency
+
+#### Enhanced Tick Endpoints
+- `POST /routes/{id}/ticks` - Record or update comprehensive tick data
+- `POST /routes/{id}/attempts` - Add attempts without marking sends
+- `POST /routes/{id}/send` - Mark specific send type (top_rope or lead)
+- `GET /routes/{id}/ticks/me` - Get current user's tick status
+- `DELETE /routes/{id}/ticks` - Remove tick data
 
 #### Profile Endpoints
-- `GET /user/ticks` - User's completed routes
+- `GET /user/ticks` - User's completed routes with send type details
+- `GET /user/stats` - Comprehensive climbing statistics including:
+  - Total sends by type (top rope, lead)
+  - Flash rates by climbing style
+  - Hardest grades achieved per style
+  - Average attempts per send
 - `GET /user/likes` - User's liked routes
 - `GET /user/stats` - Comprehensive statistics
 
@@ -347,25 +370,68 @@ class User {
   final bool isActive;
 }
 
+### Enhanced Tick Models
+```dart
+class Tick {
+  final int id;
+  final int userId;
+  final String userName;
+  final int routeId;
+  final int attempts;               // Total attempts
+  final bool topRopeSend;          // Top rope successful send
+  final bool leadSend;             // Lead successful send
+  final bool topRopeFlash;         // Top rope flash (first try)
+  final bool leadFlash;            // Lead flash (first try)
+  final bool flash;                // Legacy field for backward compatibility
+  final bool hasAnySend;           // True if any send type completed
+  final bool hasAnyFlash;          // True if any flash type completed
+  final String? notes;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+}
+
 class UserTick {
   final int id;
   final int routeId;
   final String routeName;
   final String routeGrade;
   final String wallSection;
-  final int attempts;
-  final bool flash;
+  final int attempts;               // Total attempts
+  final bool topRopeSend;          // Top rope successful send
+  final bool leadSend;             // Lead successful send
+  final bool topRopeFlash;         // Top rope flash
+  final bool leadFlash;            // Lead flash
+  final bool flash;                // Legacy compatibility
+  final bool hasAnySend;           // Any style completion
+  final bool hasAnyFlash;          // Any style flash
   final String? notes;
   final DateTime createdAt;
+  final DateTime updatedAt;
 }
 
 class ProfileStats {
-  final int totalTicks;
+  final int totalTicks;            // Total tick records
   final int totalLikes;
   final int totalComments;
-  final int totalFlashes;
-  final double averageAttempts;
-  final String? hardestGrade;
+  final int totalAttempts;         // Total attempts across all routes
+  final double averageAttempts;    // Average attempts per send
+  
+  // Send statistics by type
+  final int totalSends;            // Total successful sends
+  final int topRopeSends;          // Top rope sends
+  final int leadSends;             // Lead sends
+  
+  // Flash statistics by type
+  final int totalFlashes;          // Total flashes (any style)
+  final int topRopeFlashes;        // Top rope flashes
+  final int leadFlashes;           // Lead flashes
+  final int legacyFlashes;         // Legacy flash field
+  
+  // Grade achievements by style
+  final String? hardestGrade;       // Hardest grade (any style)
+  final String? hardestTopRopeGrade;  // Hardest top rope grade
+  final String? hardestLeadGrade;     // Hardest lead grade
+  
   final int uniqueWallSections;
   final List<String> achievedGrades;
 }

@@ -6,9 +6,16 @@ class UserTick {
   final String routeGrade;
   final String wallSection;
   final int attempts;
-  final bool flash;
+  final bool topRopeSend;
+  final bool leadSend;
+  final bool topRopeFlash;
+  final bool leadFlash;
+  final bool flash; // Legacy field for backward compatibility
+  final bool hasAnySend;
+  final bool hasAnyFlash;
   final String? notes;
   final DateTime createdAt;
+  final DateTime updatedAt;
 
   UserTick({
     required this.id,
@@ -18,9 +25,16 @@ class UserTick {
     required this.routeGrade,
     required this.wallSection,
     required this.attempts,
+    required this.topRopeSend,
+    required this.leadSend,
+    required this.topRopeFlash,
+    required this.leadFlash,
     required this.flash,
+    required this.hasAnySend,
+    required this.hasAnyFlash,
     this.notes,
     required this.createdAt,
+    required this.updatedAt,
   });
 
   factory UserTick.fromJson(Map<String, dynamic> json) {
@@ -31,10 +45,17 @@ class UserTick {
       routeName: json['route_name'],
       routeGrade: json['route_grade'],
       wallSection: json['wall_section'],
-      attempts: json['attempts'],
+      attempts: json['attempts'] ?? 0,
+      topRopeSend: json['top_rope_send'] ?? false,
+      leadSend: json['lead_send'] ?? false,
+      topRopeFlash: json['top_rope_flash'] ?? false,
+      leadFlash: json['lead_flash'] ?? false,
       flash: json['flash'] ?? false,
+      hasAnySend: json['has_any_send'] ?? false,
+      hasAnyFlash: json['has_any_flash'] ?? false,
       notes: json['notes'],
       createdAt: DateTime.parse(json['created_at']),
+      updatedAt: DateTime.parse(json['updated_at']),
     );
   }
 }
@@ -104,9 +125,24 @@ class ProfileStats {
   final int totalTicks;
   final int totalLikes;
   final int totalComments;
-  final int totalFlashes;
+  final int totalAttempts;
   final double averageAttempts;
+
+  // Send statistics
+  final int totalSends;
+  final int topRopeSends;
+  final int leadSends;
+
+  // Flash statistics
+  final int totalFlashes;
+  final int topRopeFlashes;
+  final int leadFlashes;
+  final int legacyFlashes; // For backward compatibility
+
+  // Grade achievements
   final String? hardestGrade;
+  final String? hardestTopRopeGrade;
+  final String? hardestLeadGrade;
   final int uniqueWallSections;
   final List<String> achievedGrades;
 
@@ -114,23 +150,41 @@ class ProfileStats {
     required this.totalTicks,
     required this.totalLikes,
     required this.totalComments,
-    required this.totalFlashes,
+    required this.totalAttempts,
     required this.averageAttempts,
+    required this.totalSends,
+    required this.topRopeSends,
+    required this.leadSends,
+    required this.totalFlashes,
+    required this.topRopeFlashes,
+    required this.leadFlashes,
+    required this.legacyFlashes,
     this.hardestGrade,
+    this.hardestTopRopeGrade,
+    this.hardestLeadGrade,
     required this.uniqueWallSections,
     required this.achievedGrades,
   });
 
   factory ProfileStats.fromJson(Map<String, dynamic> json) {
     return ProfileStats(
-      totalTicks: json['total_ticks'],
-      totalLikes: json['total_likes'],
-      totalComments: json['total_comments'],
-      totalFlashes: json['total_flashes'],
-      averageAttempts: (json['average_attempts'] as num).toDouble(),
+      totalTicks: json['total_ticks'] ?? 0,
+      totalLikes: json['total_likes'] ?? 0,
+      totalComments: json['total_comments'] ?? 0,
+      totalAttempts: json['total_attempts'] ?? 0,
+      averageAttempts: (json['average_attempts'] as num?)?.toDouble() ?? 0.0,
+      totalSends: json['total_sends'] ?? 0,
+      topRopeSends: json['top_rope_sends'] ?? 0,
+      leadSends: json['lead_sends'] ?? 0,
+      totalFlashes: json['total_flashes'] ?? 0,
+      topRopeFlashes: json['top_rope_flashes'] ?? 0,
+      leadFlashes: json['lead_flashes'] ?? 0,
+      legacyFlashes: json['legacy_flashes'] ?? 0,
       hardestGrade: json['hardest_grade'],
-      uniqueWallSections: json['unique_wall_sections'],
-      achievedGrades: List<String>.from(json['achieved_grades']),
+      hardestTopRopeGrade: json['hardest_top_rope_grade'],
+      hardestLeadGrade: json['hardest_lead_grade'],
+      uniqueWallSections: json['unique_wall_sections'] ?? 0,
+      achievedGrades: List<String>.from(json['achieved_grades'] ?? []),
     );
   }
 }

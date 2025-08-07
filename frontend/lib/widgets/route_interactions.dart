@@ -47,8 +47,12 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     final tickStatus = await routeProvider.getUserTickStatus(widget.route.id);
     if (mounted) {
       setState(() {
-        _isTicked = tickStatus?['ticked'] ?? false;
         _tickData = tickStatus?['tick'];
+        // Consider as "ticked" if there are any attempts or sends
+        _isTicked = _tickData != null &&
+            ((_tickData!['attempts'] ?? 0) > 0 ||
+                (_tickData!['top_rope_send'] ?? false) ||
+                (_tickData!['lead_send'] ?? false));
       });
     }
   }
@@ -152,7 +156,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                     _isTicked ? Icons.check_circle : Icons.check_circle_outline,
                     color: _isTicked ? Colors.green : null,
                   ),
-                  label: Text(_isTicked ? 'Ticked' : 'Tick'),
+                  label: Text(_isTicked ? 'Progress' : 'Track'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _isTicked
                         ? Colors.green.shade50
@@ -182,27 +186,86 @@ class _RouteInteractionsState extends State<RouteInteractions> {
             ),
             const SizedBox(height: 16),
 
-            // Tick information if route is ticked
-            // if (_isTicked && _tickData != null)
-            //   Container(
-            //     padding: const EdgeInsets.all(12),
-            //     decoration: BoxDecoration(
-            //       color: Colors.green.shade50,
-            //       border: Border.all(color: Colors.green.shade300),
-            //       borderRadius: BorderRadius.circular(8),
-            //     ),
-            //     child: Column(
-            //       crossAxisAlignment: CrossAxisAlignment.start,
-            //       children: [
-            //         Row(
-            //           children: [
-            //             Icon(Icons.check_circle, color: Colors.green.shade600),
-            //             const SizedBox(width: 8),
-            //             Text(
-            //               'You completed this route!',
-            //               style: TextStyle(
-            //                 fontWeight: FontWeight.bold,
-            //                 color: Colors.green.shade700,
+            // Tick information if route has progress
+            if (_isTicked && _tickData != null)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  border: Border.all(color: Colors.blue.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.trending_up, color: Colors.blue.shade600),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Your Progress',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text('Attempts: ${_tickData!['attempts'] ?? 0}'),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(
+                          _tickData!['top_rope_send'] == true
+                              ? Icons.check
+                              : Icons.close,
+                          color: _tickData!['top_rope_send'] == true
+                              ? Colors.green
+                              : Colors.grey,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        const Text('Top Rope'),
+                        if (_tickData!['top_rope_flash'] == true)
+                          const Text(' (Flash)',
+                              style: TextStyle(
+                                  color: Colors.orange,
+                                  fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(
+                          _tickData!['lead_send'] == true
+                              ? Icons.check
+                              : Icons.close,
+                          color: _tickData!['lead_send'] == true
+                              ? Colors.green
+                              : Colors.grey,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        const Text('Lead'),
+                        if (_tickData!['lead_flash'] == true)
+                          const Text(' (Flash)',
+                              style: TextStyle(
+                                  color: Colors.orange,
+                                  fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    if (_tickData!['notes'] != null &&
+                        _tickData!['notes'].toString().isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Notes: ${_tickData!['notes']}',
+                        style: const TextStyle(fontStyle: FontStyle.italic),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             //               ),
             //             ),
             //           ],
@@ -280,13 +343,182 @@ class _RouteInteractionsState extends State<RouteInteractions> {
 
   void _showTickDialog() {
     if (_isTicked) {
-      // Show untick confirmation
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Remove Tick'),
-          content: const Text(
-              'Are you sure you want to remove your tick for this route?'),
+      // Show detailed tick information and options
+      _showTickManagementDialog();
+    } else {
+      // Show new tick dialog with multiple options
+      _showNewTickDialog();
+    }
+  }
+
+  void _showTickManagementDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Manage Tick'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Current tick information
+                if (_tickData != null) ...[
+                  const Text('Current Progress:',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Text('Attempts: ${_tickData!['attempts'] ?? 0}'),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                          _tickData!['top_rope_send'] == true
+                              ? Icons.check
+                              : Icons.close,
+                          color: _tickData!['top_rope_send'] == true
+                              ? Colors.green
+                              : Colors.red,
+                          size: 16),
+                      const SizedBox(width: 4),
+                      const Text('Top Rope Send'),
+                      if (_tickData!['top_rope_flash'] == true)
+                        const Text(' (Flash)',
+                            style: TextStyle(
+                                color: Colors.orange,
+                                fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                          _tickData!['lead_send'] == true
+                              ? Icons.check
+                              : Icons.close,
+                          color: _tickData!['lead_send'] == true
+                              ? Colors.green
+                              : Colors.red,
+                          size: 16),
+                      const SizedBox(width: 4),
+                      const Text('Lead Send'),
+                      if (_tickData!['lead_flash'] == true)
+                        const Text(' (Flash)',
+                            style: TextStyle(
+                                color: Colors.orange,
+                                fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  if (_tickData!['notes'] != null &&
+                      _tickData!['notes'].isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    const Text('Notes:',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text(_tickData!['notes']),
+                  ],
+                  const SizedBox(height: 16),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _showAddProgressDialog();
+              },
+              child: const Text('Add Progress'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _showRemoveTickDialog();
+              },
+              child: const Text('Remove Tick',
+                  style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showNewTickDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Track Progress'),
+        content: const Text('What would you like to track for this route?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _showAddAttemptsDialog();
+            },
+            child: const Text('Add Attempts'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _showMarkSendDialog();
+            },
+            child: const Text('Mark Send'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddAttemptsDialog() {
+    int attempts = 1;
+    String notes = '';
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Add Attempts'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  const Text('Attempts: '),
+                  Expanded(
+                    child: Slider(
+                      value: attempts.toDouble(),
+                      min: 1,
+                      max: 20,
+                      divisions: 19,
+                      label: attempts.toString(),
+                      onChanged: (value) {
+                        setState(() {
+                          attempts = value.round();
+                        });
+                      },
+                    ),
+                  ),
+                  Text(attempts.toString()),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                decoration: const InputDecoration(
+                  labelText: 'Notes (optional)',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+                onChanged: (value) => notes = value,
+              ),
+            ],
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -295,113 +527,166 @@ class _RouteInteractionsState extends State<RouteInteractions> {
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
-                _untickRoute();
+                _addAttempts(attempts: attempts, notes: notes);
               },
-              child: const Text('Remove'),
+              child: const Text('Add'),
             ),
           ],
         ),
-      );
-    } else {
-      // Show tick dialog
-      int attempts = 1;
-      bool flash = false;
-      String notes = '';
+      ),
+    );
+  }
 
-      showDialog(
-        context: context,
-        builder: (context) => StatefulBuilder(
-          builder: (context, setState) => AlertDialog(
-            title: const Text('Tick Route'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    const Text('Attempts: '),
-                    Expanded(
-                      child: Slider(
-                        value: attempts.toDouble(),
-                        min: 1,
-                        max: 20,
-                        divisions: 19,
-                        label: attempts.toString(),
-                        onChanged: (value) {
-                          setState(() {
-                            attempts = value.round();
-                          });
-                        },
-                      ),
-                    ),
-                    Text(attempts.toString()),
-                  ],
+  void _showMarkSendDialog() {
+    String sendType = 'top_rope';
+    String notes = '';
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Mark Send'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Send Type:'),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: sendType,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
                 ),
-                CheckboxListTile(
-                  title: const Text('Flash (first try)'),
-                  value: flash,
-                  onChanged: (value) {
-                    setState(() {
-                      flash = value ?? false;
-                      if (flash) attempts = 1;
-                    });
-                  },
-                ),
-                TextField(
-                  decoration: const InputDecoration(
-                    labelText: 'Notes (optional)',
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 3,
-                  onChanged: (value) => notes = value,
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _tickRoute(attempts: attempts, flash: flash, notes: notes);
+                items: const [
+                  DropdownMenuItem(value: 'top_rope', child: Text('Top Rope')),
+                  DropdownMenuItem(value: 'lead', child: Text('Lead')),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    sendType = value ?? 'top_rope';
+                  });
                 },
-                child: const Text('Tick'),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                decoration: const InputDecoration(
+                  labelText: 'Notes (optional)',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+                onChanged: (value) => notes = value,
               ),
             ],
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _markSend(sendType: sendType, notes: notes);
+              },
+              child: const Text('Mark Send'),
+            ),
+          ],
         ),
-      );
+      ),
+    );
+  }
+
+  void _showAddProgressDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add Progress'),
+        content: const Text('What would you like to add?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _showAddAttemptsDialog();
+            },
+            child: const Text('Add Attempts'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _showMarkSendDialog();
+            },
+            child: const Text('Mark Send'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showRemoveTickDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove Tick'),
+        content: const Text(
+            'Are you sure you want to remove all progress for this route?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _untickRoute();
+            },
+            child: const Text('Remove', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _addAttempts({int attempts = 1, String? notes}) async {
+    final routeProvider = context.read<RouteProvider>();
+    try {
+      await routeProvider.addAttempts(widget.route.id, attempts, notes: notes);
+      _checkIfTicked();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content:
+                  Text('Added $attempts attempt${attempts == 1 ? '' : 's'}')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to add attempts: $e')),
+        );
+      }
     }
   }
 
-  Future<void> _tickRoute(
-      {int attempts = 1, bool flash = false, String? notes}) async {
+  Future<void> _markSend({required String sendType, String? notes}) async {
     final routeProvider = context.read<RouteProvider>();
-    final success = await routeProvider.toggleTick(
-      widget.route.id,
-      attempts: attempts,
-      flash: flash,
-      notes: notes?.trim().isEmpty == true ? null : notes?.trim(),
-    );
-
-    if (!mounted) return; // Check if widget is still mounted
-
-    if (success) {
+    try {
+      await routeProvider.markSend(widget.route.id, sendType, notes: notes);
       _checkIfTicked();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Route ticked! 🎉'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: ${routeProvider.error}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Marked ${sendType.replaceAll('_', ' ')} send!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to mark send: $e')),
+        );
+      }
     }
   }
 
@@ -492,19 +777,38 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     final reasoningController = TextEditingController();
 
     final grades = [
-      'V0',
-      'V1',
-      'V2',
-      'V3',
-      'V4',
-      'V5',
-      'V6',
-      'V7',
-      'V8',
-      'V9',
-      'V10',
-      'V11',
-      'V12'
+      '3a',
+      '3b',
+      '3c',
+      '4a',
+      '4b',
+      '4c',
+      '5a',
+      '5b',
+      '5c',
+      '6a',
+      '6a+',
+      '6b',
+      '6b+',
+      '6c',
+      '6c+',
+      '7a',
+      '7a+',
+      '7b',
+      '7b+',
+      '7c',
+      '7c+',
+      '8a',
+      '8a+',
+      '8b',
+      '8b+',
+      '8c',
+      '8c+',
+      '9a',
+      '9a+',
+      '9b',
+      '9b+',
+      '9c'
     ];
 
     showDialog(
