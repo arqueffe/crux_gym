@@ -121,21 +121,31 @@ def init_sample_users():
     """Initialize sample users"""
     print("Initializing sample users...")
     
-    # Check if we already have users
-    if User.query.first():
-        print("✓ Users already exist, skipping...")
+    # If users exist but missing nickname column values, backfill nickname = username
+    existing_users = User.query.all()
+    if existing_users:
+        updated = 0
+        for u in existing_users:
+            if getattr(u, 'nickname', None) in (None, ''):
+                u.nickname = u.username
+                updated += 1
+        if updated:
+            db.session.commit()
+            print(f"✓ Backfilled nickname for {updated} existing users")
+        else:
+            print("✓ Users already exist, skipping seed...")
         return
     
     # Create sample users
     users_data = [
-        {'username': 'admin', 'email': 'admin@climbing-gym.com', 'password': 'admin123'},
-        {'username': 'alice_johnson', 'email': 'alice@example.com', 'password': 'password123'},
-        {'username': 'bob_smith', 'email': 'bob@example.com', 'password': 'password123'},
-        {'username': 'charlie_brown', 'email': 'charlie@example.com', 'password': 'password123'},
+        {'username': 'admin', 'nickname': 'Admin', 'email': 'admin@climbing-gym.com', 'password': 'admin123'},
+        {'username': 'alice_johnson', 'nickname': 'Alice', 'email': 'alice@example.com', 'password': 'password123'},
+        {'username': 'bob_smith', 'nickname': 'Bob', 'email': 'bob@example.com', 'password': 'password123'},
+        {'username': 'charlie_brown', 'nickname': 'Charlie', 'email': 'charlie@example.com', 'password': 'password123'},
     ]
     
     for user_data in users_data:
-        user = User(username=user_data['username'], email=user_data['email'])
+        user = User(username=user_data['username'], nickname=user_data['nickname'], email=user_data['email'])
         user.set_password(user_data['password'])
         db.session.add(user)
     

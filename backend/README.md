@@ -10,6 +10,7 @@ The Crux backend provides a complete API for managing climbing gym routes, user 
 
 ### Core Functionality
 - **JWT Authentication**: Secure user registration, login, and session management
+- **User Nicknames**: Public display name chosen at registration; usernames remain private for login. All interaction payloads expose `user_name` populated with the nickname.
 - **Route Management**: Complete CRUD operations with detailed route information
 - **French Grading System**: Uses the French rope climbing grade system (3a through 9c with + variants)
 - **Database-Defined Colors**: Hold colors and grade colors are defined and managed in the database with hex codes
@@ -53,19 +54,67 @@ The Crux backend provides a complete API for managing climbing gym routes, user 
 
 The API will be available at `http://localhost:5000` with automatic database initialization and sample data.
 
+### Backend CLI (Database management)
+A simple CLI is available to add, remove and modify data in the database without writing ad-hoc scripts.
+
+- Location: `backend/cli.py`
+- Run from the `backend` folder
+- Windows PowerShell examples:
+  ```powershell
+  # Show help
+  python .\cli.py --help
+  python .\cli.py users --help
+
+  # Users
+  python .\cli.py users list
+  python .\cli.py users add --username john --nickname Johnny --email john@example.com --password Secret123!
+  python .\cli.py users set-password --username john --password NewP@ssw0rd
+  python .\cli.py users set-nickname --username john --nickname J_Doe
+  python .\cli.py users activate --username john
+  python .\cli.py users deactivate --username john
+  python .\cli.py users delete --username john
+
+  # Routes
+  python .\cli.py routes list --grade 6a+
+  python .\cli.py routes add --name "New Route" --grade 6a+ --setter "John Doe" --wall "Steep Wall" --lane 3 --color Red --description "Fun route"
+  python .\cli.py routes update --id 5 --name "Renamed" --grade 6b --lane 4 --color Blue
+  python .\cli.py routes delete --id 5
+
+  # Reference data
+  python .\cli.py grades list
+  python .\cli.py colors list
+
+  # DB utilities
+  python .\cli.py db init               # Seed grades/colors/sample users/routes
+  python .\cli.py db migrate-nickname   # Add/backfill nickname column if missing
+  python .\cli.py db create-tables      # Ensure tables exist
+  ```
+
+Notes:
+- Nickname validation matches the API (3–20 chars, [A-Za-z0-9_], case-insensitive uniqueness).
+- The CLI uses the same SQLite database configured in `app.py`.
+- Deleting users may fail if related records exist; use `--force` only after reviewing related data.
+
 ### Database Migration (For Existing Installations)
 
-If you have an existing database and want to upgrade to the new tick system with independent top rope/lead tracking:
+If you have an existing database and want to upgrade to include user nicknames and the advanced tick system:
 
 ```bash
-# Run the migration script
+# Run the migration scripts
+python migrate_add_nickname.py
 python migrate_db.py
 ```
 
 This migration will:
+- Add new column `nickname` to the `user` table and backfill it with `username` for existing users
 - Add new columns for `top_rope_send`, `lead_send`, `top_rope_flash`, `lead_flash`, and `updated_at`
 - Migrate existing tick data to the new format
 - Preserve all existing user progress
+
+You can also run the nickname migration via the CLI:
+```powershell
+python .\cli.py db migrate-nickname
+```
 
 ### Environment Variables (Optional)
 ```bash
@@ -79,7 +128,8 @@ export FLASK_ENV="development"  # or "production"
 ```python
 class User:
     id: Integer (Primary Key)
-    username: String (Unique, Required)
+    username: String (Unique, Required)     # Private login identifier
+    nickname: String (Required)             # Public display name
     email: String (Unique, Required)
     password_hash: String (Required)
     created_at: DateTime
@@ -186,7 +236,8 @@ POST /api/auth/register
 Content-Type: application/json
 
 {
-    "username": "string",
+    "username": "string",          // private login
+    "nickname": "string",          // public display name (3-20 chars, [A-Za-z0-9_])
     "email": "string",
     "password": "string"
 }
@@ -198,6 +249,7 @@ Response (201):
     "user": {
         "id": 1,
         "username": "username",
+        "nickname": "DisplayName",
         "email": "email@example.com",
         "created_at": "2025-01-01T00:00:00",
         "is_active": true
@@ -308,6 +360,8 @@ Response (201):
 ```
 
 ### Route Interaction Endpoints
+
+Note: In all interaction payloads, the JSON field `user_name` contains the user's public nickname for display. This is not a unique identifier; use `user_id` for identity.
 
 #### Like/Unlike Route
 ```http
@@ -655,6 +709,36 @@ Response (200):
 }
 ```
 
+#### Update Nickname
+```http
+PUT /api/user/nickname
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+  "nickname": "NewDisplayName"
+}
+
+Response (200):
+{
+  "message": "Nickname updated",
+  "user": {
+    "id": 1,
+    "username": "username",
+    "nickname": "NewDisplayName",
+    "email": "email@example.com",
+    "created_at": "2025-01-01T00:00:00",
+    "is_active": true
+  }
+}
+
+Errors (400):
+- "Nickname is required"
+- "Nickname must be between 3 and 20 characters"
+- "Nickname can contain only letters, numbers, and underscores"
+- "Nickname already taken"
+```
+
 ### Utility Endpoints
 
 #### Get Wall Sections
@@ -893,6 +977,6 @@ This project is licensed under the MIT License. See the LICENSE file for details
 
 ---
 
-**Current Version**: 0.3.0  
+**Current Version**: 0.3.1  
 **API Base URL**: `http://localhost:5000/api`  
-**Last Updated**: January 2025
+**Last Updated**: August 2025

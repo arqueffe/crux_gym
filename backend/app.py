@@ -6,6 +6,8 @@ from flask_bcrypt import Bcrypt
 from datetime import datetime, timedelta, timezone
 import os
 import logging
+# Add sqlalchemy func import for case-insensitive checks
+from sqlalchemy import func
 
 app = Flask(__name__)
 
@@ -79,7 +81,8 @@ def test_auth():
     return jsonify({
         'message': 'Authentication successful',
         'user_id': user_id,
-        'username': user.username if user else 'Unknown'
+        'username': user.username if user else 'Unknown',
+        'nickname': user.nickname if user else 'Unknown'
     })
 
 # Helper function to get current user ID as integer
@@ -120,6 +123,8 @@ class HoldColor(db.Model):
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
+    # Public display name
+    nickname = db.Column(db.String(80), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -135,6 +140,7 @@ class User(db.Model):
         return {
             'id': self.id,
             'username': self.username,
+            'nickname': self.nickname,
             'email': self.email,
             'created_at': self.created_at.isoformat(),
             'is_active': self.is_active
@@ -203,7 +209,7 @@ class Like(db.Model):
         return {
             'id': self.id,
             'user_id': self.user_id,
-            'user_name': self.user.username,
+            'user_name': self.user.nickname or self.user.username,
             'route_id': self.route_id,
             'created_at': self.created_at.isoformat()
         }
@@ -222,7 +228,7 @@ class Comment(db.Model):
         return {
             'id': self.id,
             'user_id': self.user_id,
-            'user_name': self.user.username,
+            'user_name': self.user.nickname or self.user.username,
             'content': self.content,
             'route_id': self.route_id,
             'created_at': self.created_at.isoformat()
@@ -244,7 +250,7 @@ class GradeProposal(db.Model):
         return {
             'id': self.id,
             'user_id': self.user_id,
-            'user_name': self.user.username,
+            'user_name': self.user.nickname or self.user.username,
             'proposed_grade': self.proposed_grade_rel.grade if self.proposed_grade_rel else None,
             'reasoning': self.reasoning,
             'route_id': self.route_id,
@@ -267,7 +273,7 @@ class Warning(db.Model):
         return {
             'id': self.id,
             'user_id': self.user_id,
-            'user_name': self.user.username,
+            'user_name': self.user.nickname or self.user.username,
             'warning_type': self.warning_type,
             'description': self.description,
             'route_id': self.route_id,
@@ -316,7 +322,7 @@ class Tick(db.Model):
         return {
             'id': self.id,
             'user_id': self.user_id,
-            'user_name': self.user.username,
+            'user_name': self.user.nickname or self.user.username,
             'route_id': self.route_id,
             'attempts': self.attempts,
             'top_rope_send': self.top_rope_send,
@@ -350,7 +356,7 @@ class Project(db.Model):
         return {
             'id': self.id,
             'user_id': self.user_id,
-            'user_name': self.user.username,
+            'user_name': self.user.nickname or self.user.username,
             'route_id': self.route_id,
             'route_name': self.route.name if self.route else None,
             'route_grade': self.route.grade_rel.grade if self.route and self.route.grade_rel else None,
@@ -369,8 +375,16 @@ def register():
     data = request.get_json()
     
     # Validate required fields
-    if not data.get('username') or not data.get('email') or not data.get('password'):
-        return jsonify({'error': 'Username, email, and password are required'}), 400
+    if not data.get('username') or not data.get('email') or not data.get('password') or not data.get('nickname'):
+        return jsonify({'error': 'Username, nickname, email, and password are required'}), 400
+
+    # Validate nickname constraints (3-20 chars, alphanumeric + underscore)
+    nickname = data['nickname']
+    if not (3 <= len(nickname) <= 20):
+        return jsonify({'error': 'Nickname must be between 3 and 20 characters'}), 400
+    import re
+    if not re.match(r'^[A-Za-z0-9_]+$', nickname):
+        return jsonify({'error': 'Nickname can contain only letters, numbers, and underscores'}), 400
     
     # Check if user already exists
     if User.query.filter_by(username=data['username']).first():
@@ -378,10 +392,15 @@ def register():
     
     if User.query.filter_by(email=data['email']).first():
         return jsonify({'error': 'Email already exists'}), 400
+
+    # Case-insensitive nickname uniqueness
+    if db.session.query(User.id).filter(func.lower(User.nickname) == nickname.lower()).first():
+        return jsonify({'error': 'Nickname already taken'}), 400
     
     # Create new user
     user = User(
         username=data['username'],
+        nickname=nickname,
         email=data['email']
     )
     user.set_password(data['password'])
@@ -1118,6 +1137,39 @@ def ensure_database_initialized():
         return False
     
     return True
+
+@app.route('/api/user/nickname', methods=['PUT'])
+@jwt_required()
+def update_nickname():
+    """Update current user's public nickname"""
+    user_id = get_current_user_id()
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    data = request.get_json() or {}
+    nickname = data.get('nickname', '').strip()
+
+    if not nickname:
+        return jsonify({'error': 'Nickname is required'}), 400
+    if not (3 <= len(nickname) <= 20):
+        return jsonify({'error': 'Nickname must be between 3 and 20 characters'}), 400
+    import re
+    if not re.match(r'^[A-Za-z0-9_]+$', nickname):
+        return jsonify({'error': 'Nickname can contain only letters, numbers, and underscores'}), 400
+
+    # Uniqueness excluding self (case-insensitive)
+    exists = db.session.query(User.id).filter(
+        func.lower(User.nickname) == nickname.lower(),
+        User.id != user.id
+    ).first()
+    if exists:
+        return jsonify({'error': 'Nickname already taken'}), 400
+
+    user.nickname = nickname
+    db.session.commit()
+
+    return jsonify({'message': 'Nickname updated', 'user': user.to_dict()}), 200
 
 if __name__ == '__main__':
     with app.app_context():

@@ -36,6 +36,7 @@ class AuthService {
   // Register a new user
   Future<Map<String, dynamic>> register({
     required String username,
+    required String nickname,
     required String email,
     required String password,
   }) async {
@@ -45,6 +46,7 @@ class AuthService {
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'username': username,
+          'nickname': nickname,
           'email': email,
           'password': password,
         }),
@@ -126,6 +128,41 @@ class AuthService {
           await logout();
         }
         return {'success': false, 'message': data['error']};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> updateNickname(String nickname) async {
+    if (!isAuthenticated) {
+      return {'success': false, 'message': 'Not authenticated'};
+    }
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/user/nickname'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (_token != null) 'Authorization': 'Bearer $_token',
+        },
+        body: json.encode({'nickname': nickname}),
+      );
+      final data = json.decode(response.body);
+      if (response.statusCode == 200) {
+        // Update current user and persist
+        _currentUser = User.fromJson(data['user']);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_userKey, json.encode(data['user']));
+        return {
+          'success': true,
+          'message': data['message'],
+          'user': _currentUser
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['error'] ?? 'Failed to update nickname'
+        };
       }
     } catch (e) {
       return {'success': false, 'message': 'Network error: $e'};

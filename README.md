@@ -37,6 +37,44 @@ python app.py
 ```
 The backend will start on `http://localhost:5000` with sample data automatically initialized.
 
+#### Backend CLI (DB management)
+A simple CLI is available to add, remove and modify data in the backend database.
+
+- Location: `backend/cli.py`
+- Run from the `backend` folder
+- Windows PowerShell examples:
+  ```powershell
+  # Help
+  python .\cli.py --help
+  python .\cli.py users --help
+
+  # Users
+  python .\cli.py users list
+  python .\cli.py users add --username john --nickname Johnny --email john@example.com --password Secret123!
+  python .\cli.py users set-password --username john --password NewP@ssw0rd
+  python .\cli.py users set-nickname --username john --nickname J_Doe
+  python .\cli.py users delete --username john
+
+  # Routes
+  python .\cli.py routes list --grade 6a+
+  python .\cli.py routes add --name "New Route" --grade 6a+ --setter "John Doe" --wall "Steep Wall" --lane 3 --color Red --description "Fun route"
+  python .\cli.py routes delete --id 5
+
+  # Reference data
+  python .\cli.py grades list
+  python .\cli.py colors list
+
+  # DB utilities
+  python .\cli.py db init               # Seed grades/colors/sample users/routes
+  python .\cli.py db migrate-nickname   # Add/backfill nickname column if missing
+  python .\cli.py db create-tables      # Ensure tables exist
+  ```
+
+Notes:
+- Nickname validation matches the API (3–20 chars, [A-Za-z0-9_], case-insensitive uniqueness).
+- The CLI uses the same SQLite database configured in `backend/app.py`.
+- Deleting users may fail if related records exist; use `--force` only after review.
+
 ### Frontend Setup
 ```bash
 cd frontend
@@ -53,6 +91,7 @@ Crux/
 │   ├── app.py                       # Main Flask application with full API
 │   ├── requirements.txt             # Python dependencies
 │   ├── climbing_gym.db             # SQLite database (auto-generated)
+│   ├── cli.py                       # Command-line interface for DB management
 │   └── README.md                   # Backend documentation
 ├── frontend/                        # Flutter Mobile App
 │   ├── lib/

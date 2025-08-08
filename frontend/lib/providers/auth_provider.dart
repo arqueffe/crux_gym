@@ -33,6 +33,7 @@ class AuthProvider with ChangeNotifier {
   // Register a new user
   Future<bool> register({
     required String username,
+    required String nickname,
     required String email,
     required String password,
   }) async {
@@ -42,6 +43,7 @@ class AuthProvider with ChangeNotifier {
     try {
       final result = await _authService.register(
         username: username,
+        nickname: nickname,
         email: email,
         password: password,
       );
@@ -118,6 +120,23 @@ class AuthProvider with ChangeNotifier {
   // Get auth headers for API calls
   Map<String, String> getAuthHeaders() {
     return _authService.getAuthHeaders();
+  }
+
+  // Update user nickname
+  Future<bool> updateNickname(String nickname) async {
+    try {
+      final result = await _authService.updateNickname(nickname);
+      if (result['success'] == true) {
+        notifyListeners();
+        return true;
+      } else {
+        _setError(result['message'] ?? 'Failed to update nickname');
+        return false;
+      }
+    } catch (e) {
+      _setError('Failed to update nickname: $e');
+      return false;
+    }
   }
 
   // Private methods

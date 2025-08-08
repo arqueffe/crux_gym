@@ -58,7 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         Text(
-                          authProvider.currentUser?.username ?? 'Unknown',
+                          authProvider.currentUser?.nickname ?? 'Unknown',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                           ),
@@ -88,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         radius: 16,
                         backgroundColor: Theme.of(context).colorScheme.primary,
                         child: Text(
-                          (authProvider.currentUser?.username ?? 'U')[0]
+                          (authProvider.currentUser?.nickname ?? 'U')[0]
                               .toUpperCase(),
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onPrimary,

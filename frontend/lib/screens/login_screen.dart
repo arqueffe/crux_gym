@@ -14,6 +14,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _emailController = TextEditingController();
+  final _nicknameController = TextEditingController();
 
   bool _isLogin = true;
   bool _obscurePassword = true;
@@ -23,6 +24,7 @@ class _LoginScreenState extends State<LoginScreen> {
     _usernameController.dispose();
     _passwordController.dispose();
     _emailController.dispose();
+    _nicknameController.dispose();
     super.dispose();
   }
 
@@ -91,8 +93,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             TextFormField(
                               controller: _usernameController,
                               decoration: InputDecoration(
-                                labelText: 'Username',
-                                prefixIcon: const Icon(Icons.person),
+                                labelText: 'Username (for login)',
+                                prefixIcon: const Icon(Icons.badge),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -108,6 +110,34 @@ class _LoginScreenState extends State<LoginScreen> {
                               },
                             ),
                             const SizedBox(height: 16),
+
+                            // Nickname field (only for registration)
+                            if (!_isLogin) ...[
+                              TextFormField(
+                                controller: _nicknameController,
+                                decoration: InputDecoration(
+                                  labelText: 'Nickname (public display name)',
+                                  prefixIcon: const Icon(Icons.person),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Please enter your nickname';
+                                  }
+                                  if (value.length < 3 || value.length > 20) {
+                                    return 'Nickname must be 3-20 characters';
+                                  }
+                                  if (!RegExp(r'^[A-Za-z0-9_]+$')
+                                      .hasMatch(value)) {
+                                    return 'Only letters, numbers, and underscores';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                            ],
 
                             // Email field (only for registration)
                             if (!_isLogin) ...[
@@ -298,6 +328,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } else {
       success = await authProvider.register(
         username: _usernameController.text.trim(),
+        nickname: _nicknameController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );

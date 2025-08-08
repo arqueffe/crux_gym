@@ -35,6 +35,92 @@ class _ProfileScreenState extends State<ProfileScreen>
     super.dispose();
   }
 
+  Future<void> _promptEditNickname(BuildContext context) async {
+    final authProvider = context.read<AuthProvider>();
+    final controller = TextEditingController(
+      text: authProvider.currentUser?.nickname ?? '',
+    );
+    String? errorText;
+
+    bool validate(String value) {
+      if (value.trim().isEmpty) {
+        errorText = 'Please enter your nickname';
+        return false;
+      }
+      if (value.length < 3 || value.length > 20) {
+        errorText = 'Nickname must be 3-20 characters';
+        return false;
+      }
+      final regex = RegExp(r'^[A-Za-z0-9_]+$');
+      if (!regex.hasMatch(value)) {
+        errorText = 'Only letters, numbers, and underscores';
+        return false;
+      }
+      errorText = null;
+      return true;
+    }
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(builder: (ctx, setState) {
+          return AlertDialog(
+            title: const Text('Edit Nickname'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: controller,
+                  decoration: InputDecoration(
+                    labelText: 'Nickname',
+                    prefixIcon: const Icon(Icons.person_outline),
+                    errorText: errorText,
+                  ),
+                  onChanged: (v) => setState(() {
+                    validate(v);
+                  }),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  final value = controller.text.trim();
+                  if (!validate(value)) {
+                    setState(() {});
+                    return;
+                  }
+                  final ok = await authProvider.updateNickname(value);
+                  if (!ctx.mounted) return;
+                  if (ok) {
+                    Navigator.of(ctx).pop(true);
+                  } else {
+                    setState(() {
+                      errorText = authProvider.errorMessage ?? 'Update failed';
+                    });
+                  }
+                },
+                child: const Text('Save'),
+              ),
+            ],
+          );
+        });
+      },
+    );
+
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nickname updated')),
+      );
+      // No need to refresh profile data here; changing nickname doesn't affect stats/ticks/likes
+      // and calling refresh immediately after provider rebuild can target a disposed instance.
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -135,7 +221,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       radius: 32,
                       backgroundColor: Theme.of(context).colorScheme.primary,
                       child: Text(
-                        (authProvider.currentUser?.username ?? 'U')[0]
+                        (authProvider.currentUser?.nickname ?? 'U')[0]
                             .toUpperCase(),
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onPrimary,
@@ -149,14 +235,26 @@ class _ProfileScreenState extends State<ProfileScreen>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            authProvider.currentUser?.username ?? 'Unknown',
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  authProvider.currentUser?.nickname ??
+                                      'Unknown',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineSmall
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                 ),
+                              ),
+                              IconButton(
+                                tooltip: 'Edit nickname',
+                                icon: const Icon(Icons.edit_outlined),
+                                onPressed: () => _promptEditNickname(context),
+                              ),
+                            ],
                           ),
                           Text(
                             authProvider.currentUser?.email ?? '',
