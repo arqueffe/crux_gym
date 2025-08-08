@@ -127,6 +127,7 @@ class ProfileStats {
   final int totalComments;
   final int totalAttempts;
   final double averageAttempts;
+  final int totalProjects;
 
   // Send statistics
   final int totalSends;
@@ -152,6 +153,7 @@ class ProfileStats {
     required this.totalComments,
     required this.totalAttempts,
     required this.averageAttempts,
+    required this.totalProjects,
     required this.totalSends,
     required this.topRopeSends,
     required this.leadSends,
@@ -173,6 +175,7 @@ class ProfileStats {
       totalComments: json['total_comments'] ?? 0,
       totalAttempts: json['total_attempts'] ?? 0,
       averageAttempts: (json['average_attempts'] as num?)?.toDouble() ?? 0.0,
+      totalProjects: json['total_projects'] ?? 0,
       totalSends: json['total_sends'] ?? 0,
       topRopeSends: json['top_rope_sends'] ?? 0,
       leadSends: json['lead_sends'] ?? 0,
@@ -227,5 +230,43 @@ extension ProfileTimeFilterExtension on ProfileTimeFilter {
       case ProfileTimeFilter.lastYear:
         return now.subtract(const Duration(days: 365));
     }
+  }
+}
+
+class UserProject {
+  final int id;
+  final int userId;
+  final int routeId;
+  final String? routeName;
+  final String? routeGrade;
+  final String? routeWallSection;
+  final String? notes;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  UserProject({
+    required this.id,
+    required this.userId,
+    required this.routeId,
+    this.routeName,
+    this.routeGrade,
+    this.routeWallSection,
+    this.notes,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory UserProject.fromJson(Map<String, dynamic> json) {
+    return UserProject(
+      id: json['id'],
+      userId: json['user_id'],
+      routeId: json['route_id'],
+      routeName: json['route_name'],
+      routeGrade: json['route_grade'],
+      routeWallSection: json['route_wall_section'],
+      notes: json['notes'],
+      createdAt: DateTime.parse(json['created_at']),
+      updatedAt: DateTime.parse(json['updated_at']),
+    );
   }
 }

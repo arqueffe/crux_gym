@@ -76,6 +76,8 @@ class FilterDrawer extends StatelessWidget {
                     _buildLikedFilter(routeProvider),
                     const SizedBox(height: 16),
                     _buildWarnedFilter(routeProvider),
+                    const SizedBox(height: 16),
+                    _buildProjectFilter(routeProvider),
                     const SizedBox(height: 32),
 
                     // Clear filters button
@@ -258,6 +260,14 @@ class FilterDrawer extends StatelessWidget {
       'Warned Routes',
       routeProvider.warnedFilter,
       (state) => routeProvider.setWarnedFilter(state),
+    );
+  }
+
+  Widget _buildProjectFilter(RouteProvider routeProvider) {
+    return _buildThreeStageFilter(
+      'Project Routes',
+      routeProvider.projectFilter,
+      (state) => routeProvider.setProjectFilter(state),
     );
   }
 

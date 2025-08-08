@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/route_models.dart' as models;
+import '../utils/color_utils.dart';
 
 class RouteCard extends StatelessWidget {
   final models.Route route;
@@ -10,63 +11,6 @@ class RouteCard extends StatelessWidget {
     required this.route,
     required this.onTap,
   });
-
-  Color _parseColor(String colorName) {
-    switch (colorName.toLowerCase()) {
-      case 'red':
-        return Colors.red;
-      case 'blue':
-        return Colors.blue;
-      case 'green':
-        return Colors.green;
-      case 'yellow':
-        return Colors.yellow;
-      case 'orange':
-        return Colors.orange;
-      case 'purple':
-        return Colors.purple;
-      case 'pink':
-        return Colors.pink;
-      case 'black':
-        return Colors.black;
-      case 'white':
-        return Colors.white;
-      case 'cyan':
-        return Colors.cyan;
-      case 'teal':
-        return Colors.teal;
-      case 'lime':
-        return Colors.lime;
-      case 'indigo':
-        return Colors.indigo;
-      case 'brown':
-        return Colors.brown;
-      case 'amber':
-        return Colors.amber;
-      case 'deeporange':
-        return Colors.deepOrange;
-      case 'lightblue':
-        return Colors.lightBlue;
-      case 'lightgreen':
-        return Colors.lightGreen;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  Color _parseHexColor(String hexColor) {
-    try {
-      // Remove the # if present
-      final hex = hexColor.replaceAll('#', '');
-      // Parse the hex string to integer
-      final int colorValue = int.parse(hex, radix: 16);
-      // Create Color with full opacity (0xFF prefix)
-      return Color(0xFF000000 | colorValue);
-    } catch (e) {
-      // Return grey if parsing fails
-      return Colors.grey;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +45,8 @@ class RouteCard extends StatelessWidget {
                               ),
                               decoration: BoxDecoration(
                                 color: route.gradeColor != null
-                                    ? _parseHexColor(route.gradeColor!)
+                                    ? ColorUtils.parseHexColor(
+                                        route.gradeColor!)
                                     : Colors.grey,
                                 borderRadius: BorderRadius.circular(16),
                               ),
@@ -119,7 +64,8 @@ class RouteCard extends StatelessWidget {
                                 width: 20,
                                 height: 20,
                                 decoration: BoxDecoration(
-                                  color: _parseColor(route.color!),
+                                  color:
+                                      ColorUtils.parseHexColor(route.colorHex),
                                   shape: BoxShape.circle,
                                   border: Border.all(color: Colors.grey),
                                 ),

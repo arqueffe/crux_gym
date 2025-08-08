@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/profile_provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/route_provider.dart';
 import '../models/profile_models.dart';
 import '../widgets/grade_statistics_chart.dart';
 import '../widgets/performance_summary_card.dart';
@@ -297,7 +298,10 @@ class TicksTab extends StatelessWidget {
           );
         }
 
-        return TicksList(ticks: ticks);
+        return TicksList(
+          ticks: ticks,
+          gradeColors: context.read<RouteProvider>().gradeColors,
+        );
       },
     );
   }
@@ -333,7 +337,10 @@ class LikesTab extends StatelessWidget {
           );
         }
 
-        return LikesList(likes: likes);
+        return LikesList(
+          likes: likes,
+          gradeColors: context.read<RouteProvider>().gradeColors,
+        );
       },
     );
   }

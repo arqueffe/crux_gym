@@ -306,14 +306,14 @@ class ApiService {
     }
   }
 
-  Future<List<String>> getHoldColors() async {
+  Future<List<Map<String, dynamic>>> getHoldColors() async {
     final response = await http.get(
       Uri.parse('$baseUrl/hold-colors'),
       headers: _headers,
     );
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
-      return data.cast<String>();
+      return data.cast<Map<String, dynamic>>();
     } else {
       throw Exception('Failed to load hold colors');
     }
@@ -329,6 +329,57 @@ class ApiService {
       return data.cast<String, String>();
     } else {
       throw Exception('Failed to load grade colors');
+    }
+  }
+
+  // Project methods
+  Future<Project> addProject(int routeId, {String? notes}) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/routes/$routeId/projects'),
+      headers: _headers,
+      body: json.encode({'notes': notes}),
+    );
+    if (response.statusCode == 201) {
+      return Project.fromJson(json.decode(response.body));
+    } else {
+      final errorData = json.decode(response.body);
+      throw Exception(errorData['error'] ?? 'Failed to add project');
+    }
+  }
+
+  Future<void> removeProject(int routeId) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/routes/$routeId/projects'),
+      headers: _headers,
+    );
+    if (response.statusCode != 200) {
+      final errorData = json.decode(response.body);
+      throw Exception(errorData['error'] ?? 'Failed to remove project');
+    }
+  }
+
+  Future<Map<String, dynamic>?> getProjectStatus(int routeId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/routes/$routeId/projects/me'),
+      headers: _headers,
+    );
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Failed to load project status');
+    }
+  }
+
+  Future<List<Project>> getUserProjects() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/user/projects'),
+      headers: _headers,
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      return data.map((json) => Project.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load user projects');
     }
   }
 }

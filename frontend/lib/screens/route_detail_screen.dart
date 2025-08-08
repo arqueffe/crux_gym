@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/route_provider.dart';
 import '../widgets/route_interactions.dart';
+import '../utils/color_utils.dart';
 
 class RouteDetailScreen extends StatefulWidget {
   final int routeId;
@@ -98,7 +99,7 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                                         ),
                                         decoration: BoxDecoration(
                                           color: route.gradeColor != null
-                                              ? _parseHexColor(
+                                              ? ColorUtils.parseHexColor(
                                                   route.gradeColor!)
                                               : Colors.grey,
                                           borderRadius:
@@ -127,7 +128,7 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                                                         .getGradeColor(route
                                                             .averageProposedGrade!) !=
                                                     null
-                                                ? _parseHexColor(context
+                                                ? ColorUtils.parseHexColor(context
                                                     .read<RouteProvider>()
                                                     .getGradeColor(route
                                                         .averageProposedGrade!)!)
@@ -166,7 +167,8 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                                           width: 20,
                                           height: 20,
                                           decoration: BoxDecoration(
-                                            color: _parseColor(route.color!),
+                                            color: ColorUtils.parseHexColor(
+                                                route.colorHex ?? '#808080'),
                                             shape: BoxShape.circle,
                                             border:
                                                 Border.all(color: Colors.grey),
@@ -373,10 +375,11 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                                                         .getGradeColor(proposal
                                                             .proposedGrade) !=
                                                     null
-                                                ? _parseHexColor(context
-                                                    .read<RouteProvider>()
-                                                    .getGradeColor(proposal
-                                                        .proposedGrade)!)
+                                                ? ColorUtils.parseHexColor(
+                                                    context
+                                                        .read<RouteProvider>()
+                                                        .getGradeColor(proposal
+                                                            .proposedGrade)!)
                                                 : Colors.grey,
                                             borderRadius:
                                                 BorderRadius.circular(12),
@@ -493,63 +496,6 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
         },
       ),
     );
-  }
-
-  Color _parseColor(String colorName) {
-    switch (colorName.toLowerCase()) {
-      case 'red':
-        return Colors.red;
-      case 'blue':
-        return Colors.blue;
-      case 'green':
-        return Colors.green;
-      case 'yellow':
-        return Colors.yellow;
-      case 'orange':
-        return Colors.orange;
-      case 'purple':
-        return Colors.purple;
-      case 'pink':
-        return Colors.pink;
-      case 'black':
-        return Colors.black;
-      case 'white':
-        return Colors.white;
-      case 'cyan':
-        return Colors.cyan;
-      case 'teal':
-        return Colors.teal;
-      case 'lime':
-        return Colors.lime;
-      case 'indigo':
-        return Colors.indigo;
-      case 'brown':
-        return Colors.brown;
-      case 'amber':
-        return Colors.amber;
-      case 'deeporange':
-        return Colors.deepOrange;
-      case 'lightblue':
-        return Colors.lightBlue;
-      case 'lightgreen':
-        return Colors.lightGreen;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  Color _parseHexColor(String hexColor) {
-    try {
-      // Remove the # if present
-      final hex = hexColor.replaceAll('#', '');
-      // Parse the hex string to integer
-      final int colorValue = int.parse(hex, radix: 16);
-      // Create Color with full opacity (0xFF prefix)
-      return Color(0xFF000000 | colorValue);
-    } catch (e) {
-      // Return grey if parsing fails
-      return Colors.grey;
-    }
   }
 
   String _formatDate(DateTime date) {

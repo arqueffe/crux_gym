@@ -12,10 +12,12 @@ The Crux backend provides a complete API for managing climbing gym routes, user 
 - **JWT Authentication**: Secure user registration, login, and session management
 - **Route Management**: Complete CRUD operations with detailed route information
 - **French Grading System**: Uses the French rope climbing grade system (3a through 9c with + variants)
-- **Database-Defined Colors**: Hold colors and grade colors are defined and managed in the database
+- **Database-Defined Colors**: Hold colors and grade colors are defined and managed in the database with hex codes
+- **Color Consistency**: All colors are served with hex values ensuring consistent visual representation across clients
 - **User Interactions**: Comprehensive tracking of likes, comments, grade proposals, warnings, and advanced tick system with independent top rope/lead send tracking
+- **Project Management**: Users can mark routes as projects to track their goals, with automatic removal when lead sent
 - **Statistics & Analytics**: User performance tracking and climbing statistics
-- **Data Filtering**: Advanced filtering and sorting capabilities
+- **Data Filtering**: Advanced filtering and sorting capabilities including project filtering
 - **Sample Data**: Automatic initialization with realistic test data
 
 ### Security & Performance
@@ -151,6 +153,27 @@ class Tick:
     notes: Text (Optional)
     created_at: DateTime
     updated_at: DateTime
+
+class Project:
+    id: Integer (Primary Key)
+    user_id: Integer (Foreign Key)
+    route_id: Integer (Foreign Key)
+    notes: Text (Optional)             # Optional notes about the project goals
+    created_at: DateTime
+    updated_at: DateTime
+
+class Grade:
+    id: Integer (Primary Key)
+    grade: String (Unique, Required)   # e.g., "6a+", "7b"
+    difficulty_order: Integer          # For sorting grades by difficulty
+    color: String (Required)           # Hex color code for the grade (e.g., "#FF6347")
+    created_at: DateTime
+
+class HoldColor:
+    id: Integer (Primary Key)
+    name: String (Unique, Required)    # e.g., "Red", "Blue", "Yellow"
+    hex_code: String (Optional)        # Hex color representation (e.g., "#FF0000")
+    created_at: DateTime
 ```
 
 ## API Endpoints
@@ -400,6 +423,100 @@ Response (200):
 }
 ```
 
+### Project Management Endpoints
+
+#### Add Route to Projects
+```http
+POST /api/routes/{route_id}/projects
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+    "notes": "My goal route for this month"  # Optional
+}
+
+Response (201):
+{
+    "id": 1,
+    "user_id": 2,
+    "user_name": "alice_johnson",
+    "route_id": 1,
+    "route_name": "Crimpy Goodness",
+    "route_grade": "6b",
+    "route_wall_section": "Overhang Wall",
+    "notes": "My goal route for this month",
+    "created_at": "2025-01-01T00:00:00",
+    "updated_at": "2025-01-01T00:00:00"
+}
+
+Error (400):
+{
+    "error": "Cannot mark sent routes as projects. You have already lead sent this route."
+}
+```
+
+#### Remove Route from Projects
+```http
+DELETE /api/routes/{route_id}/projects
+Authorization: Bearer <jwt_token>
+
+Response (200):
+{
+    "message": "Project removed successfully"
+}
+```
+
+#### Check User Project Status
+```http
+GET /api/routes/{route_id}/projects/me
+Authorization: Bearer <jwt_token>
+
+Response (200):
+{
+    "is_project": true,
+    "project": {
+        "id": 1,
+        "user_id": 2,
+        "user_name": "alice_johnson",
+        "route_id": 1,
+        "route_name": "Crimpy Goodness",
+        "route_grade": "6b",
+        "route_wall_section": "Overhang Wall",
+        "notes": "My goal route for this month",
+        "created_at": "2025-01-01T00:00:00",
+        "updated_at": "2025-01-01T00:00:00"
+    }
+}
+
+# If not a project
+Response (200):
+{
+    "is_project": false
+}
+```
+
+#### Get User's All Projects
+```http
+GET /api/user/projects
+Authorization: Bearer <jwt_token>
+
+Response (200):
+[
+    {
+        "id": 1,
+        "user_id": 2,
+        "user_name": "alice_johnson",
+        "route_id": 1,
+        "route_name": "Crimpy Goodness",
+        "route_grade": "6b",
+        "route_wall_section": "Overhang Wall",
+        "notes": "My goal route for this month",
+        "created_at": "2025-01-01T00:00:00",
+        "updated_at": "2025-01-01T00:00:00"
+    }
+]
+```
+
 ### Configuration Endpoints
 
 #### Get Grade Definitions
@@ -519,6 +636,7 @@ Response (200):
     "total_comments": 12,
     "total_attempts": 45,
     "average_attempts": 3.0,
+    "total_projects": 3,
     
     "total_sends": 12,
     "top_rope_sends": 10,
@@ -554,7 +672,71 @@ GET /api/grades
 Authorization: Bearer <jwt_token>
 
 Response (200):
-["V0", "V1", "V2", "V3", "V4", "V5", "V6", "V7"]
+["3a", "3b", "3c", "4a", "4b", "4c", "5a", "5b", "5c", "6a", "6a+", "6b", "6b+", "6c", "6c+", "7a", "7a+", "7b", "7b+", "7c", "7c+", "8a", "8a+", "8b", "8b+", "8c", "8c+", "9a", "9a+", "9b", "9b+", "9c"]
+```
+
+#### Get Grade Definitions with Colors
+```http
+GET /api/grade-definitions
+Authorization: Bearer <jwt_token>
+
+Response (200):
+[
+    {
+        "id": 1,
+        "grade": "6a",
+        "difficulty_order": 40,
+        "color": "#FFD700",
+        "created_at": "2025-01-01T00:00:00"
+    },
+    ...
+]
+```
+
+#### Get Hold Colors
+```http
+GET /api/hold-colors
+Authorization: Bearer <jwt_token>
+
+Response (200):
+[
+    {
+        "id": 1,
+        "name": "Red",
+        "hex_code": "#FF0000",
+        "created_at": "2025-01-01T00:00:00"
+    },
+    {
+        "id": 2,
+        "name": "Blue", 
+        "hex_code": "#0000FF",
+        "created_at": "2025-01-01T00:00:00"
+    },
+    ...
+]
+```
+
+#### Get Grade Colors Mapping
+```http
+GET /api/grade-colors
+Authorization: Bearer <jwt_token>
+
+Response (200):
+{
+    "3a": "#90EE90",
+    "3b": "#90EE90", 
+    "3c": "#90EE90",
+    "4a": "#98FB98",
+    "4b": "#98FB98",
+    "4c": "#98FB98",
+    "5a": "#FFFF00",
+    "5b": "#FFFF00",
+    "5c": "#FFFF00",
+    "6a": "#FFD700",
+    "6a+": "#FFD700",
+    "6b": "#FFA500",
+    ...
+}
 ```
 
 #### Get Lane Numbers

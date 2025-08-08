@@ -7,6 +7,7 @@ class Route {
   final String wallSection;
   final int lane;
   final String? color;
+  final String? colorHex;
   final String? description;
   final DateTime createdAt;
   final int likesCount;
@@ -14,6 +15,7 @@ class Route {
   final int gradeProposalsCount;
   final int warningsCount;
   final int ticksCount;
+  final int projectsCount;
   final List<Like>? likes;
   final List<Comment>? comments;
   final List<GradeProposal>? gradeProposals;
@@ -29,6 +31,7 @@ class Route {
     required this.wallSection,
     required this.lane,
     this.color,
+    this.colorHex,
     this.description,
     required this.createdAt,
     required this.likesCount,
@@ -36,6 +39,7 @@ class Route {
     required this.gradeProposalsCount,
     required this.warningsCount,
     required this.ticksCount,
+    required this.projectsCount,
     this.likes,
     this.comments,
     this.gradeProposals,
@@ -53,6 +57,7 @@ class Route {
       wallSection: json['wall_section'],
       lane: json['lane'],
       color: json['color'],
+      colorHex: json['color_hex'],
       description: json['description'],
       createdAt: DateTime.parse(json['created_at']),
       likesCount: json['likes_count'],
@@ -60,6 +65,7 @@ class Route {
       gradeProposalsCount: json['grade_proposals_count'],
       warningsCount: json['warnings_count'],
       ticksCount: json['ticks_count'] ?? 0,
+      projectsCount: json['projects_count'] ?? 0,
       likes: json['likes'] != null
           ? (json['likes'] as List).map((e) => Like.fromJson(e)).toList()
           : null,
@@ -359,6 +365,53 @@ class Tick {
       'top_rope_flash': topRopeFlash,
       'lead_flash': leadFlash,
       'flash': flash,
+      'notes': notes,
+    };
+  }
+}
+
+class Project {
+  final int id;
+  final int userId;
+  final String userName;
+  final int routeId;
+  final String? routeName;
+  final String? routeGrade;
+  final String? routeWallSection;
+  final String? notes;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  Project({
+    required this.id,
+    required this.userId,
+    required this.userName,
+    required this.routeId,
+    this.routeName,
+    this.routeGrade,
+    this.routeWallSection,
+    this.notes,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory Project.fromJson(Map<String, dynamic> json) {
+    return Project(
+      id: json['id'],
+      userId: json['user_id'],
+      userName: json['user_name'],
+      routeId: json['route_id'],
+      routeName: json['route_name'],
+      routeGrade: json['route_grade'],
+      routeWallSection: json['route_wall_section'],
+      notes: json['notes'],
+      createdAt: DateTime.parse(json['created_at']),
+      updatedAt: DateTime.parse(json['updated_at']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
       'notes': notes,
     };
   }

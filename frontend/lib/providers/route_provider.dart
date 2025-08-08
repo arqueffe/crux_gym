@@ -27,12 +27,13 @@ class RouteProvider extends ChangeNotifier {
   List<int> _lanes = [];
   List<String> _routeSetters = [];
   List<Map<String, dynamic>> _gradeDefinitions = [];
-  List<String> _holdColors = [];
+  List<Map<String, dynamic>> _holdColors = [];
   Map<String, String> _gradeColors = {};
   SortOption _selectedSort = SortOption.newest;
   FilterState _tickedFilter = FilterState.all;
   FilterState _likedFilter = FilterState.all;
   FilterState _warnedFilter = FilterState.all;
+  FilterState _projectFilter = FilterState.all;
 
   // Getters
   List<Route> get routes => _currentRoutes;
@@ -48,12 +49,13 @@ class RouteProvider extends ChangeNotifier {
   List<int> get lanes => _lanes;
   List<String> get routeSetters => _routeSetters;
   List<Map<String, dynamic>> get gradeDefinitions => _gradeDefinitions;
-  List<String> get holdColors => _holdColors;
+  List<Map<String, dynamic>> get holdColors => _holdColors;
   Map<String, String> get gradeColors => _gradeColors;
   SortOption get selectedSort => _selectedSort;
   FilterState get tickedFilter => _tickedFilter;
   FilterState get likedFilter => _likedFilter;
   FilterState get warnedFilter => _warnedFilter;
+  FilterState get projectFilter => _projectFilter;
 
   bool get hasActiveFilters =>
       _selectedWallSection != null ||
@@ -62,7 +64,8 @@ class RouteProvider extends ChangeNotifier {
       _selectedRouteSetter != null ||
       _tickedFilter != FilterState.all ||
       _likedFilter != FilterState.all ||
-      _warnedFilter != FilterState.all;
+      _warnedFilter != FilterState.all ||
+      _projectFilter != FilterState.all;
 
   // Load initial data
   Future<void> loadInitialData() async {
@@ -176,6 +179,21 @@ class RouteProvider extends ChangeNotifier {
         filteredRoutes = filteredRoutes
             .where((route) =>
                 route.warningsCount == 0) // Show only non-warned routes
+            .toList();
+      }
+    }
+
+    // Filter by project status
+    if (_projectFilter != FilterState.all) {
+      if (_projectFilter == FilterState.only) {
+        filteredRoutes = filteredRoutes
+            .where(
+                (route) => route.projectsCount > 0) // Show only project routes
+            .toList();
+      } else if (_projectFilter == FilterState.exclude) {
+        filteredRoutes = filteredRoutes
+            .where((route) =>
+                route.projectsCount == 0) // Show only non-project routes
             .toList();
       }
     }
@@ -492,6 +510,11 @@ class RouteProvider extends ChangeNotifier {
     _applyFiltersAndSort();
   }
 
+  void setProjectFilter(FilterState state) {
+    _projectFilter = state;
+    _applyFiltersAndSort();
+  }
+
   void clearFilters() {
     _selectedWallSection = null;
     _selectedGrade = null;
@@ -507,6 +530,7 @@ class RouteProvider extends ChangeNotifier {
     _tickedFilter = FilterState.all;
     _likedFilter = FilterState.all;
     _warnedFilter = FilterState.all;
+    _projectFilter = FilterState.all;
     _selectedSort = SortOption.newest;
     loadRoutes();
   }
@@ -576,5 +600,52 @@ class RouteProvider extends ChangeNotifier {
   // Helper method to get color for a specific grade
   String? getGradeColor(String grade) {
     return _gradeColors[grade];
+  }
+
+  // Project management methods
+  Future<bool> addProject(int routeId, {String? notes}) async {
+    try {
+      await _apiService.addProject(routeId, notes: notes);
+      // Reload routes to update project counts
+      await loadRoutes();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> removeProject(int routeId) async {
+    try {
+      await _apiService.removeProject(routeId);
+      // Reload routes to update project counts
+      await loadRoutes();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>?> getProjectStatus(int routeId) async {
+    try {
+      return await _apiService.getProjectStatus(routeId);
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return null;
+    }
+  }
+
+  Future<List<Project>> getUserProjects() async {
+    try {
+      return await _apiService.getUserProjects();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return [];
+    }
   }
 }

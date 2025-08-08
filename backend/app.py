@@ -158,6 +158,7 @@ class Route(db.Model):
     grade_proposals = db.relationship('GradeProposal', backref='route', lazy=True, cascade='all, delete-orphan')
     warnings = db.relationship('Warning', backref='route', lazy=True, cascade='all, delete-orphan')
     ticks = db.relationship('Tick', backref='route', lazy=True, cascade='all, delete-orphan')
+    # Note: Project relationship will be added by the Project model's backref
 
     def to_dict(self):
         # Calculate counts using database queries for accuracy
@@ -167,6 +168,7 @@ class Route(db.Model):
         grade_proposals_count = db.session.query(func.count(GradeProposal.id)).filter(GradeProposal.route_id == self.id).scalar() or 0
         warnings_count = db.session.query(func.count(Warning.id)).filter(Warning.route_id == self.id).scalar() or 0
         ticks_count = db.session.query(func.count(Tick.id)).filter(Tick.route_id == self.id).scalar() or 0
+        projects_count = db.session.query(func.count(Project.id)).filter(Project.route_id == self.id).scalar() or 0
 
         return {
             'id': self.id,
@@ -177,13 +179,15 @@ class Route(db.Model):
             'wall_section': self.wall_section,
             'lane': self.lane,
             'color': self.hold_color_rel.name if self.hold_color_rel else None,
+            'color_hex': self.hold_color_rel.hex_code if self.hold_color_rel else None,
             'description': self.description,
             'created_at': self.created_at.isoformat(),
             'likes_count': likes_count,
             'comments_count': comments_count,
             'grade_proposals_count': grade_proposals_count,
             'warnings_count': warnings_count,
-            'ticks_count': ticks_count
+            'ticks_count': ticks_count,
+            'projects_count': projects_count
         }
 
 class Like(db.Model):
@@ -326,6 +330,36 @@ class Tick(db.Model):
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat()
         }
+
+class Project(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    route_id = db.Column(db.Integer, db.ForeignKey('route.id'), nullable=False)
+    notes = db.Column(db.Text, nullable=True)  # Optional notes about the project
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='projects')
+    route = db.relationship('Route', backref='projects')
+
+    # Ensure one project per user per route
+    __table_args__ = (db.UniqueConstraint('user_id', 'route_id', name='unique_user_route_project'),)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'user_name': self.user.username,
+            'route_id': self.route_id,
+            'route_name': self.route.name if self.route else None,
+            'route_grade': self.route.grade_rel.grade if self.route and self.route.grade_rel else None,
+            'route_wall_section': self.route.wall_section if self.route else None,
+            'notes': self.notes,
+            'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat()
+        }
+
 # API Routes
 
 # Authentication Routes
@@ -629,6 +663,11 @@ def add_or_update_tick(route_id):
         tick.top_rope_send = data.get('top_rope_send', False)
     if 'lead_send' in data:
         tick.lead_send = data.get('lead_send', False)
+        # Remove project status when lead sent (a sent route cannot be a project)
+        if tick.lead_send:
+            project = Project.query.filter_by(route_id=route_id, user_id=user_id).first()
+            if project:
+                db.session.delete(project)
     if 'top_rope_flash' in data:
         tick.top_rope_flash = data.get('top_rope_flash', False)
     if 'lead_flash' in data:
@@ -730,6 +769,11 @@ def mark_send(route_id):
         if tick.attempts <= 1:
             tick.lead_flash = True
             tick.flash = True  # Legacy field
+        
+        # Remove project status when lead sent (a sent route cannot be a project)
+        project = Project.query.filter_by(route_id=route_id, user_id=user_id).first()
+        if project:
+            db.session.delete(project)
     
     tick.updated_at = datetime.utcnow()
     
@@ -779,6 +823,100 @@ def get_user_tick(route_id):
         'tick': tick.to_dict()
     }), 200
 
+# Project Endpoints
+
+@app.route('/api/routes/<int:route_id>/projects', methods=['POST'])
+@jwt_required()
+def add_project(route_id):
+    """Mark a route as a project"""
+    user_id = get_current_user_id()
+    
+    # Check if route exists
+    route = Route.query.get_or_404(route_id)
+    
+    # Check if user has already lead sent this route
+    tick = Tick.query.filter_by(route_id=route_id, user_id=user_id).first()
+    if tick and tick.lead_send:
+        return jsonify({'error': 'Cannot mark sent routes as projects. You have already lead sent this route.'}), 400
+    
+    # Check if route is already marked as project
+    existing_project = Project.query.filter_by(
+        route_id=route_id,
+        user_id=user_id
+    ).first()
+    
+    if existing_project:
+        return jsonify({'error': 'Route already marked as project'}), 400
+    
+    data = request.get_json() or {}
+    
+    try:
+        project = Project(
+            route_id=route_id,
+            user_id=user_id,
+            notes=data.get('notes')
+        )
+        
+        db.session.add(project)
+        db.session.commit()
+        
+        return jsonify(project.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to add project'}), 500
+
+@app.route('/api/routes/<int:route_id>/projects', methods=['DELETE'])
+@jwt_required()
+def remove_project(route_id):
+    """Remove route from projects"""
+    user_id = get_current_user_id()
+    
+    project = Project.query.filter_by(
+        route_id=route_id,
+        user_id=user_id
+    ).first()
+    
+    if not project:
+        return jsonify({'error': 'Route not marked as project'}), 404
+    
+    try:
+        db.session.delete(project)
+        db.session.commit()
+        
+        return jsonify({'message': 'Project removed successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to remove project'}), 500
+
+@app.route('/api/routes/<int:route_id>/projects/me', methods=['GET'])
+@jwt_required()
+def get_user_project_status(route_id):
+    """Check if the current user has marked this route as a project"""
+    user_id = get_jwt_identity()
+    
+    project = Project.query.filter_by(
+        route_id=route_id,
+        user_id=user_id
+    ).first()
+    
+    if not project:
+        return jsonify({'is_project': False}), 200
+    
+    return jsonify({
+        'is_project': True,
+        'project': project.to_dict()
+    }), 200
+
+@app.route('/api/user/projects', methods=['GET'])
+@jwt_required()
+def get_user_projects():
+    """Get all projects for the current user"""
+    user_id = get_current_user_id()
+    
+    projects = Project.query.filter_by(user_id=user_id).all()
+    
+    return jsonify([project.to_dict() for project in projects]), 200
+
 @app.route('/api/wall-sections', methods=['GET'])
 @jwt_required()
 def get_wall_sections():
@@ -812,7 +950,7 @@ def get_grade_definitions():
 def get_hold_colors():
     """Get all available hold colors from database"""
     hold_colors = HoldColor.query.all()
-    return jsonify([color.name for color in hold_colors])
+    return jsonify([color.to_dict() for color in hold_colors])
 
 @app.route('/api/grade-colors', methods=['GET'])
 @jwt_required()
@@ -829,10 +967,12 @@ def get_user_ticks():
     """Get all ticks for the current user with route details"""
     user_id = get_current_user_id()
     
-    # Join ticks with routes and grades to get route details
-    ticks_with_routes = db.session.query(Tick, Route, Grade).join(Route).join(Grade, Route.grade_id == Grade.id).filter(
-        Tick.user_id == user_id
-    ).order_by(Tick.created_at.desc()).all()
+    # Join ticks with routes and grades to get route details using explicit joins
+    ticks_with_routes = db.session.query(Tick, Route, Grade)\
+        .join(Route, Tick.route_id == Route.id)\
+        .join(Grade, Route.grade_id == Grade.id)\
+        .filter(Tick.user_id == user_id)\
+        .order_by(Tick.created_at.desc()).all()
     
     result = []
     for tick, route, grade in ticks_with_routes:
@@ -850,10 +990,12 @@ def get_user_likes():
     """Get all likes for the current user with route details"""
     user_id = get_current_user_id()
     
-    # Join likes with routes and grades to get route details
-    likes_with_routes = db.session.query(Like, Route, Grade).join(Route).join(Grade, Route.grade_id == Grade.id).filter(
-        Like.user_id == user_id
-    ).order_by(Like.created_at.desc()).all()
+    # Join likes with routes and grades to get route details using explicit joins
+    likes_with_routes = db.session.query(Like, Route, Grade)\
+        .join(Route, Like.route_id == Route.id)\
+        .join(Grade, Route.grade_id == Grade.id)\
+        .filter(Like.user_id == user_id)\
+        .order_by(Like.created_at.desc()).all()
     
     result = []
     for like, route, grade in likes_with_routes:
@@ -875,6 +1017,7 @@ def get_user_stats():
     ticks = Tick.query.filter_by(user_id=user_id).all()
     likes = Like.query.filter_by(user_id=user_id).all()
     comments = Comment.query.filter_by(user_id=user_id).all()
+    projects = Project.query.filter_by(user_id=user_id).all()
     
     # Calculate basic statistics
     total_ticks = len(ticks)
@@ -940,6 +1083,7 @@ def get_user_stats():
         'total_comments': total_comments,
         'total_attempts': total_attempts,
         'average_attempts': round(average_attempts, 2),
+        'total_projects': len(projects),
         
         # Send stats
         'total_sends': total_sends,

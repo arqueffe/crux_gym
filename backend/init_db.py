@@ -11,7 +11,7 @@ from datetime import datetime
 # Add the current directory to the path so we can import app
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app import app, db, User, Route, Grade, HoldColor, Like, Comment, GradeProposal, Warning, Tick
+from app import app, db, User, Route, Grade, HoldColor, Like, Comment, GradeProposal, Warning, Tick, Project
 
 # French Climbing Grades with difficulty ordering and colors
 FRENCH_GRADES_DATA = [

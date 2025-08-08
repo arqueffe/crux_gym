@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import '../models/profile_models.dart';
 import '../screens/route_detail_screen.dart';
+import '../utils/color_utils.dart';
 
 class TicksList extends StatelessWidget {
   final List<UserTick> ticks;
+  final Map<String, String>? gradeColors;
 
   const TicksList({
     super.key,
     required this.ticks,
+    this.gradeColors,
   });
 
   @override
@@ -245,14 +248,7 @@ class TicksList extends StatelessWidget {
   }
 
   Color _getGradeColor(String grade) {
-    // Default colors for French grades - ideally this would come from the backend
-    // This is a fallback until we can pass the actual grade colors
-    if (grade.startsWith('3') || grade.startsWith('4')) return Colors.green;
-    if (grade.startsWith('5')) return Colors.yellow.shade700;
-    if (grade.startsWith('6')) return Colors.orange;
-    if (grade.startsWith('7')) return Colors.red;
-    if (grade.startsWith('8') || grade.startsWith('9')) return Colors.purple;
-    return Colors.grey;
+    return ColorUtils.getGradeColor(grade, gradeColors);
   }
 
   String _formatDate(DateTime date) {

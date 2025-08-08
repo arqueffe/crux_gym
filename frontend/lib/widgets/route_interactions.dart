@@ -16,6 +16,7 @@ class RouteInteractions extends StatefulWidget {
 class _RouteInteractionsState extends State<RouteInteractions> {
   bool _isLiked = false;
   bool _isTicked = false;
+  bool _isProject = false;
   Map<String, dynamic>? _tickData;
 
   @override
@@ -23,6 +24,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     super.initState();
     _checkIfLiked();
     _checkIfTicked();
+    _checkIfProject();
   }
 
   void _checkIfLiked() {
@@ -43,6 +45,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
   }
 
   void _checkIfTicked() async {
+    if (!mounted) return;
     final routeProvider = context.read<RouteProvider>();
     final tickStatus = await routeProvider.getUserTickStatus(widget.route.id);
     if (mounted) {
@@ -57,12 +60,24 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     }
   }
 
+  void _checkIfProject() async {
+    if (!mounted) return;
+    final routeProvider = context.read<RouteProvider>();
+    final projectStatus = await routeProvider.getProjectStatus(widget.route.id);
+    if (mounted) {
+      setState(() {
+        _isProject = projectStatus?['is_project'] ?? false;
+      });
+    }
+  }
+
   @override
   void didUpdateWidget(RouteInteractions oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.route.id != widget.route.id) {
       _checkIfLiked();
       _checkIfTicked();
+      _checkIfProject();
     }
   }
 
@@ -160,6 +175,19 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _isTicked
                         ? Colors.green.shade50
+                        : Theme.of(context).colorScheme.primaryContainer,
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () => _toggleProject(),
+                  icon: Icon(
+                    _isProject ? Icons.flag : Icons.flag_outlined,
+                    color: _isProject ? Colors.blue : null,
+                  ),
+                  label: Text(_isProject ? 'Project' : 'Set Project'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _isProject
+                        ? Colors.blue.shade50
                         : Theme.of(context).colorScheme.primaryContainer,
                   ),
                 ),
@@ -328,6 +356,51 @@ class _RouteInteractionsState extends State<RouteInteractions> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(_isLiked ? 'Route unliked!' : 'Route liked!'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${routeProvider.error}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _toggleProject() async {
+    if (!mounted) return;
+    final routeProvider = context.read<RouteProvider>();
+
+    bool success;
+    if (_isProject) {
+      success = await routeProvider.removeProject(widget.route.id);
+    } else {
+      // Check if user has already lead sent this route
+      if (_tickData != null && (_tickData!['lead_send'] ?? false)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                  'Cannot mark sent routes as projects. You have already lead sent this route.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+      success = await routeProvider.addProject(widget.route.id);
+    }
+
+    if (!mounted) return; // Check if widget is still mounted
+
+    if (success) {
+      _checkIfProject();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              _isProject ? 'Project removed!' : 'Route added to projects!'),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -674,7 +747,10 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     final routeProvider = context.read<RouteProvider>();
     try {
       await routeProvider.markSend(widget.route.id, sendType, notes: notes);
-      _checkIfTicked();
+      if (mounted) {
+        _checkIfTicked();
+        _checkIfProject(); // Also check project status as it may have changed
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

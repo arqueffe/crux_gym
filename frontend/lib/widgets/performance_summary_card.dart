@@ -105,23 +105,30 @@ class PerformanceSummaryCard extends StatelessWidget {
                 _buildStatCard(
                   context,
                   'Total Sends',
-                  '${filteredTotalSends}',
+                  '$filteredTotalSends',
                   Icons.check_circle,
                   Colors.green,
                 ),
                 _buildStatCard(
                   context,
                   'Top Rope',
-                  '${filteredTopRopeSends}',
+                  '$filteredTopRopeSends',
                   Icons.arrow_upward,
                   Colors.blue,
                 ),
                 _buildStatCard(
                   context,
                   'Lead',
-                  '${filteredLeadSends}',
+                  '$filteredLeadSends',
                   Icons.trending_up,
                   Colors.green,
+                ),
+                _buildStatCard(
+                  context,
+                  'Projects',
+                  '${stats!.totalProjects}',
+                  Icons.flag,
+                  Colors.blue,
                 ),
                 _buildStatCard(
                   context,

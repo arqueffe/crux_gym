@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import '../models/profile_models.dart';
 import '../screens/route_detail_screen.dart';
+import '../utils/color_utils.dart';
 
 class LikesList extends StatelessWidget {
   final List<UserLike> likes;
+  final Map<String, String>? gradeColors;
 
   const LikesList({
     super.key,
     required this.likes,
+    this.gradeColors,
   });
 
   @override
@@ -129,14 +132,7 @@ class LikesList extends StatelessWidget {
   }
 
   Color _getGradeColor(String grade) {
-    // Simple color coding based on grade difficulty
-    if (grade.contains('V0') || grade.contains('V1')) return Colors.green;
-    if (grade.contains('V2') || grade.contains('V3')) {
-      return Colors.yellow.shade700;
-    }
-    if (grade.contains('V4') || grade.contains('V5')) return Colors.orange;
-    if (grade.contains('V6') || grade.contains('V7')) return Colors.red;
-    return Colors.purple;
+    return ColorUtils.getGradeColor(grade, gradeColors);
   }
 
   String _formatDate(DateTime date) {

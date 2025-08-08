@@ -16,7 +16,8 @@ The Crux frontend is a feature-rich Flutter application that provides climbers w
 ### Route Discovery & Management
 - **Advanced Browsing**: Browse all climbing routes with detailed information
 - **French Grading System**: Full support for French rope climbing grades (3a through 9c with + variants)
-- **Dynamic Color System**: Grade and hold colors loaded from backend for consistent display
+- **Dynamic Color System**: Grade and hold colors loaded from backend database with hex precision for consistent display
+- **Color Utilities**: Centralized color parsing and fallback handling through `ColorUtils` class
 - **Smart Filtering**: Filter by wall section, grade, lane, route setter, and interaction status
 - **Multi-Sort Options**: Sort by date, difficulty, popularity, and more
 - **Route Creation**: Add new routes with complete details and validation
@@ -290,9 +291,31 @@ class ApiService {
 - `POST /routes` - Route creation
 
 #### Configuration Endpoints
-- `GET /grade-definitions` - French climbing grades with color mappings
-- `GET /hold-colors` - Available hold colors for route creation
-- `GET /grade-colors` - Grade-to-color mapping for UI consistency
+- `GET /grade-definitions` - French climbing grades with color mappings and hex codes
+- `GET /hold-colors` - Available hold colors with hex codes for precise color rendering
+- `GET /grade-colors` - Grade-to-color mapping for consistent UI display
+- `GET /wall-sections` - Available wall sections
+- `GET /lanes` - Available lane numbers
+
+### Color System Integration
+```dart
+class ColorUtils {
+  /// Parse hex color string into Flutter Color object
+  static Color parseHexColor(String? hexColor);
+  
+  /// Get grade color from backend data with fallback
+  static Color getGradeColor(String grade, Map<String, String>? gradeColors);
+  
+  /// Get hold color with hex code preference
+  static Color getHoldColor(String? colorName, String? colorHex);
+}
+```
+
+Features:
+- **Backend Integration**: All colors fetched from database with hex precision
+- **Fallback Handling**: Graceful degradation to default colors if backend unavailable
+- **Centralized Utilities**: Single source of truth for color parsing throughout the app
+- **Consistent Display**: Ensures identical color representation across all UI components
 
 #### Enhanced Tick Endpoints
 - `POST /routes/{id}/ticks` - Record or update comprehensive tick data

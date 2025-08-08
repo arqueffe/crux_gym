@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/route_models.dart' as models;
 import '../providers/route_provider.dart';
+import '../utils/color_utils.dart';
 
 class AddRouteScreen extends StatefulWidget {
   const AddRouteScreen({super.key});
@@ -22,7 +23,7 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
   String? _selectedColor;
 
   List<String> _grades = [];
-  List<String> _holdColors = [];
+  List<Map<String, dynamic>> _holdColors = [];
   final _wallSections = [
     'Overhang Wall',
     'Slab Wall',
@@ -207,25 +208,31 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
                                 value: null,
                                 child: Text('No specific color'),
                               ),
-                              ..._holdColors.map((color) => DropdownMenuItem(
-                                    value: color,
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          width: 20,
-                                          height: 20,
-                                          decoration: BoxDecoration(
-                                            color: _parseColor(color),
-                                            shape: BoxShape.circle,
-                                            border:
-                                                Border.all(color: Colors.grey),
-                                          ),
+                              ..._holdColors.map((colorData) {
+                                final colorName = colorData['name'] as String;
+                                final hexCode =
+                                    colorData['hex_code'] as String?;
+                                return DropdownMenuItem(
+                                  value: colorName,
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 20,
+                                        height: 20,
+                                        decoration: BoxDecoration(
+                                          color:
+                                              ColorUtils.parseHexColor(hexCode),
+                                          shape: BoxShape.circle,
+                                          border:
+                                              Border.all(color: Colors.grey),
                                         ),
-                                        const SizedBox(width: 8),
-                                        Text(color),
-                                      ],
-                                    ),
-                                  )),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(colorName),
+                                    ],
+                                  ),
+                                );
+                              }),
                             ],
                             onChanged: (value) =>
                                 setState(() => _selectedColor = value),
@@ -330,6 +337,7 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
         gradeProposalsCount: 0,
         warningsCount: 0,
         ticksCount: 0,
+        projectsCount: 0,
       );
 
       final routeProvider = context.read<RouteProvider>();
@@ -343,31 +351,6 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
           Navigator.pop(context);
         }
       }
-    }
-  }
-
-  Color _parseColor(String colorName) {
-    switch (colorName.toLowerCase()) {
-      case 'red':
-        return Colors.red;
-      case 'blue':
-        return Colors.blue;
-      case 'green':
-        return Colors.green;
-      case 'yellow':
-        return Colors.yellow;
-      case 'orange':
-        return Colors.orange;
-      case 'purple':
-        return Colors.purple;
-      case 'pink':
-        return Colors.pink;
-      case 'black':
-        return Colors.black;
-      case 'white':
-        return Colors.white;
-      default:
-        return Colors.grey;
     }
   }
 

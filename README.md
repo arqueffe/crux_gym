@@ -15,10 +15,12 @@ The system helps climbing gym members:
   - Attempt logging without marking sends
   - Automatic flash detection and tracking
   - Style-specific statistics and personal bests
+- Manage personal climbing projects with goal-oriented route tracking
 - Share feedback through likes, comments, grade proposals, and warnings
 - Report route issues and maintenance needs
 - View personal climbing profiles with performance analytics
 - Experience interactive climbing wall topology visualization
+- Enjoy color-coded grading system with backend-driven visual consistency
 
 ## Quick Start
 
@@ -228,6 +230,13 @@ The system initializes with sample data for immediate testing:
 - Loading states and user feedback
 - Responsive design patterns
 - Clean architecture with separation of concerns
+
+### Color System
+- **Backend-Driven Colors**: All grade and hold colors are managed in the backend database
+- **Hex Color Support**: Colors are stored as hex codes for precise color matching
+- **Centralized Color Utilities**: Shared `ColorUtils` class for consistent color parsing
+- **Fallback Mechanism**: Graceful degradation to default colors if backend data is unavailable
+- **Visual Consistency**: Uniform color representation across all UI components
 
 ## Future Enhancements
 
