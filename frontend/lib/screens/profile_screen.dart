@@ -3,11 +3,13 @@ import 'package:provider/provider.dart';
 import '../providers/profile_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/route_provider.dart';
+import '../providers/theme_provider.dart';
 import '../models/profile_models.dart';
 import '../widgets/grade_statistics_chart.dart';
 import '../widgets/performance_summary_card.dart';
 import '../widgets/ticks_list.dart';
 import '../widgets/likes_list.dart';
+import '../widgets/projects_list.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -23,7 +25,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ProfileProvider>().loadProfile();
     });
@@ -132,7 +134,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           Consumer<ProfileProvider>(
             builder: (context, profileProvider, child) {
               return Padding(
-                padding: const EdgeInsets.only(right: 16),
+                padding: const EdgeInsets.only(right: 8),
                 child: DropdownButton<ProfileTimeFilter>(
                   value: profileProvider.timeFilter,
                   underline: Container(),
@@ -154,6 +156,33 @@ class _ProfileScreenState extends State<ProfileScreen>
               );
             },
           ),
+          // Logout button
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Logout'),
+                  content: const Text('Are you sure you want to logout?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        context.read<AuthProvider>().logout();
+                      },
+                      child: const Text('Logout'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         ],
         bottom: TabBar(
           controller: _tabController,
@@ -163,12 +192,8 @@ class _ProfileScreenState extends State<ProfileScreen>
               text: 'Performance',
             ),
             Tab(
-              icon: Icon(Icons.check_circle),
-              text: 'Ticks',
-            ),
-            Tab(
-              icon: Icon(Icons.favorite),
-              text: 'Likes',
+              icon: Icon(Icons.map),
+              text: 'Routes',
             ),
           ],
         ),
@@ -276,6 +301,44 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   .withOpacity(0.7),
                             ),
                           ),
+                          const SizedBox(height: 8),
+                          // Dark mode toggle
+                          Consumer<ThemeProvider>(
+                            builder: (context, themeProvider, child) {
+                              return Row(
+                                children: [
+                                  Icon(
+                                    Icons.brightness_6,
+                                    size: 16,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onPrimaryContainer
+                                        .withOpacity(0.7),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Dark mode',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onPrimaryContainer
+                                          .withOpacity(0.7),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Switch(
+                                    value: themeProvider.isDarkMode,
+                                    onChanged: (value) {
+                                      themeProvider.toggleTheme();
+                                    },
+                                    materialTapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
                         ],
                       ),
                     ),
@@ -293,15 +356,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                       onRefresh: () => profileProvider.refresh(),
                       child: const PerformanceTab(),
                     ),
-                    // Ticks Tab
+                    // Routes Tab
                     RefreshIndicator(
                       onRefresh: () => profileProvider.refresh(),
-                      child: const TicksTab(),
-                    ),
-                    // Likes Tab
-                    RefreshIndicator(
-                      onRefresh: () => profileProvider.refresh(),
-                      child: const LikesTab(),
+                      child: const RoutesTab(),
                     ),
                   ],
                 ),
@@ -336,6 +394,8 @@ class PerformanceTab extends StatelessWidget {
                 stats: profileProvider.profileStats,
                 filteredTicks: profileProvider.filteredTicks,
                 timeFilter: profileProvider.timeFilter,
+                gradeDefinitions:
+                    context.read<RouteProvider>().gradeDefinitions,
               ),
               const SizedBox(height: 16),
 
@@ -366,80 +426,198 @@ class PerformanceTab extends StatelessWidget {
   }
 }
 
-class TicksTab extends StatelessWidget {
-  const TicksTab({super.key});
+class RoutesTab extends StatefulWidget {
+  const RoutesTab({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Consumer<ProfileProvider>(
-      builder: (context, profileProvider, child) {
-        final ticks = profileProvider.filteredTicks;
-
-        if (ticks.isEmpty) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.check_circle_outline, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
-                Text(
-                  'No ticks found',
-                  style: TextStyle(fontSize: 18, color: Colors.grey),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Complete some routes to see them here',
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return TicksList(
-          ticks: ticks,
-          gradeColors: context.read<RouteProvider>().gradeColors,
-        );
-      },
-    );
-  }
+  State<RoutesTab> createState() => _RoutesTabState();
 }
 
-class LikesTab extends StatelessWidget {
-  const LikesTab({super.key});
+class _RoutesTabState extends State<RoutesTab>
+    with SingleTickerProviderStateMixin {
+  late TabController _routesTabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _routesTabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _routesTabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ProfileProvider>(
-      builder: (context, profileProvider, child) {
-        final likes = profileProvider.filteredLikes;
+    return Column(
+      children: [
+        // Sub-tabs for Routes
+        Container(
+          color: Theme.of(context).colorScheme.surface,
+          child: TabBar(
+            controller: _routesTabController,
+            tabs: const [
+              Tab(
+                icon: Icon(Icons.check_circle),
+                text: 'Ticks',
+              ),
+              Tab(
+                icon: Icon(Icons.favorite),
+                text: 'Likes',
+              ),
+              Tab(
+                icon: Icon(Icons.flag),
+                text: 'Projects',
+              ),
+            ],
+          ),
+        ),
+        // Sub-tab content
+        Expanded(
+          child: TabBarView(
+            controller: _routesTabController,
+            children: [
+              // Ticks
+              Consumer<ProfileProvider>(
+                builder: (context, profileProvider, child) {
+                  final ticks = profileProvider.filteredTicks;
 
-        if (likes.isEmpty) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.favorite_outline, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
-                Text(
-                  'No liked routes found',
-                  style: TextStyle(fontSize: 18, color: Colors.grey),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Like some routes to see them here',
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ],
-            ),
-          );
-        }
+                  if (ticks.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.check_circle_outline,
+                              size: 64,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No ticks found',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Complete some routes to see them here',
+                            style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
 
-        return LikesList(
-          likes: likes,
-          gradeColors: context.read<RouteProvider>().gradeColors,
-        );
-      },
+                  return TicksList(
+                    ticks: ticks,
+                    gradeColors: context.read<RouteProvider>().gradeColors,
+                  );
+                },
+              ),
+              // Likes
+              Consumer<ProfileProvider>(
+                builder: (context, profileProvider, child) {
+                  final likes = profileProvider.filteredLikes;
+
+                  if (likes.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.favorite_outline,
+                              size: 64,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No liked routes found',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Like some routes to see them here',
+                            style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return LikesList(
+                    likes: likes,
+                    gradeColors: context.read<RouteProvider>().gradeColors,
+                  );
+                },
+              ),
+              // Projects
+              Consumer<ProfileProvider>(
+                builder: (context, profileProvider, child) {
+                  final projects = profileProvider.filteredProjects;
+
+                  if (projects.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.flag_outlined,
+                              size: 64,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No projects found',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Mark routes as projects to track your goals',
+                            style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return ProjectsList(
+                    projects: projects,
+                    gradeColors: context.read<RouteProvider>().gradeColors,
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

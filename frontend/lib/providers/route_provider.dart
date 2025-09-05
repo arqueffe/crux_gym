@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../models/route_models.dart';
+import '../models/lane_models.dart';
 import '../services/api_service.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/filter_drawer.dart';
@@ -24,7 +25,7 @@ class RouteProvider extends ChangeNotifier {
   String? _selectedRouteSetter;
   List<String> _wallSections = [];
   List<String> _grades = [];
-  List<int> _lanes = [];
+  List<Lane> _lanes = [];
   List<String> _routeSetters = [];
   List<Map<String, dynamic>> _gradeDefinitions = [];
   List<Map<String, dynamic>> _holdColors = [];
@@ -46,7 +47,8 @@ class RouteProvider extends ChangeNotifier {
   String? get selectedRouteSetter => _selectedRouteSetter;
   List<String> get wallSections => _wallSections;
   List<String> get grades => _grades;
-  List<int> get lanes => _lanes;
+  List<Lane> get lanes => _lanes;
+  List<int> get laneNumbers => _lanes.map((lane) => lane.number).toList();
   List<String> get routeSetters => _routeSetters;
   List<Map<String, dynamic>> get gradeDefinitions => _gradeDefinitions;
   List<Map<String, dynamic>> get holdColors => _holdColors;
@@ -374,6 +376,17 @@ class RouteProvider extends ChangeNotifier {
       _error = e.toString();
       notifyListeners();
       return false;
+    }
+  }
+
+  // Get current user's grade proposal for a route
+  Future<GradeProposal?> getUserGradeProposal(int routeId) async {
+    try {
+      return await _apiService.getUserGradeProposal(routeId);
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return null;
     }
   }
 

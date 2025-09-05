@@ -6,6 +6,7 @@ class Route {
   final String routeSetter;
   final String wallSection;
   final int lane;
+  final String? laneName;
   final String? color;
   final String? colorHex;
   final String? description;
@@ -30,6 +31,7 @@ class Route {
     required this.routeSetter,
     required this.wallSection,
     required this.lane,
+    this.laneName,
     this.color,
     this.colorHex,
     this.description,
@@ -56,6 +58,7 @@ class Route {
       routeSetter: json['route_setter'],
       wallSection: json['wall_section'],
       lane: json['lane'],
+      laneName: json['lane_name'],
       color: json['color'],
       colorHex: json['color_hex'],
       description: json['description'],
@@ -99,6 +102,7 @@ class Route {
   }
 
   // Calculate average proposed grade
+  // @deprecated Use GradeUtils.calculateAverageProposedGrade instead for accurate grading
   String? get averageProposedGrade {
     if (gradeProposals == null || gradeProposals!.isEmpty) {
       return null;

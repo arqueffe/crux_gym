@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'providers/route_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/profile_provider.dart';
+import 'providers/theme_provider.dart';
 import 'screens/main_navigation_screen.dart';
 import 'screens/login_screen.dart';
 
@@ -25,6 +26,7 @@ class ClimbingGymApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (context) => ThemeProvider()),
         ChangeNotifierProvider(create: (context) => AuthProvider()),
         ChangeNotifierProxyProvider<AuthProvider, RouteProvider>(
           create: (context) => RouteProvider(
@@ -34,39 +36,27 @@ class ClimbingGymApp extends StatelessWidget {
             authProvider: auth,
           ),
         ),
-        ChangeNotifierProxyProvider<AuthProvider, ProfileProvider>(
+        ChangeNotifierProxyProvider2<AuthProvider, RouteProvider,
+            ProfileProvider>(
           create: (context) => ProfileProvider(
             authProvider: context.read<AuthProvider>(),
+            routeProvider: context.read<RouteProvider>(),
           ),
-          update: (context, auth, previous) => ProfileProvider(
+          update: (context, auth, route, previous) => ProfileProvider(
             authProvider: auth,
+            routeProvider: route,
           ),
         ),
       ],
-      child: MaterialApp(
-        title: 'Climbing Gym Routes',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-          useMaterial3: true,
-          appBarTheme: const AppBarTheme(
-            centerTitle: true,
-          ),
-          cardTheme: CardTheme(
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-        ),
-        home: const AuthWrapper(),
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return MaterialApp(
+            title: 'Climbing Gym Routes',
+            debugShowCheckedModeBanner: false,
+            theme: themeProvider.themeData,
+            home: const AuthWrapper(),
+          );
+        },
       ),
     );
   }

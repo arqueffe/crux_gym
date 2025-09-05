@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../providers/route_provider.dart';
 import '../widgets/route_interactions.dart';
 import '../utils/color_utils.dart';
+import '../utils/grade_utils.dart';
+import '../widgets/grade_chip.dart';
 
 class RouteDetailScreen extends StatefulWidget {
   final int routeId;
@@ -19,6 +21,7 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final routeProvider = context.read<RouteProvider>();
+      routeProvider.loadGradeDefinitions(); // Load grade definitions first
       routeProvider.loadRoute(widget.routeId);
       routeProvider.loadGradeColors();
     });
@@ -92,75 +95,38 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                                   const SizedBox(height: 8),
                                   Row(
                                     children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 6,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: route.gradeColor != null
-                                              ? ColorUtils.parseHexColor(
-                                                  route.gradeColor!)
-                                              : Colors.grey,
-                                          borderRadius:
-                                              BorderRadius.circular(16),
-                                        ),
-                                        child: Text(
-                                          route.grade,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
+                                      GradeChip(
+                                        grade: route.grade,
+                                        gradeColorHex: route.gradeColor,
                                       ),
                                       // Show averaged proposed grade if available
-                                      if (route.averageProposedGrade !=
-                                          null) ...[
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: context
-                                                        .read<RouteProvider>()
-                                                        .getGradeColor(route
-                                                            .averageProposedGrade!) !=
-                                                    null
-                                                ? ColorUtils.parseHexColor(context
-                                                    .read<RouteProvider>()
-                                                    .getGradeColor(route
-                                                        .averageProposedGrade!)!)
-                                                : Colors.grey,
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                            border: Border.all(
-                                              color: Colors.white,
-                                              width: 2,
+                                      Consumer<RouteProvider>(
+                                        builder:
+                                            (context, routeProvider, child) {
+                                          final averageGrade = GradeUtils
+                                              .calculateAverageProposedGrade(
+                                            route.gradeProposals,
+                                            routeProvider.gradeDefinitions,
+                                          );
+
+                                          if (averageGrade == null) {
+                                            return const SizedBox.shrink();
+                                          }
+
+                                          final averageGradeColor =
+                                              routeProvider
+                                                  .getGradeColor(averageGrade);
+
+                                          return Padding(
+                                            padding:
+                                                const EdgeInsets.only(left: 8),
+                                            child: AverageGradeChip(
+                                              grade: averageGrade,
+                                              gradeColorHex: averageGradeColor,
                                             ),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const Icon(
-                                                Icons.people,
-                                                color: Colors.white,
-                                                size: 12,
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                route.averageProposedGrade!,
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 12,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
+                                          );
+                                        },
+                                      ),
                                       if (route.color != null) ...[
                                         const SizedBox(width: 8),
                                         Container(
@@ -178,27 +144,45 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                                     ],
                                   ),
                                   // Explanation for averaged proposed grade
-                                  if (route.averageProposedGrade != null) ...[
-                                    const SizedBox(height: 4),
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.info_outline,
-                                          size: 14,
-                                          color: Colors.grey.shade600,
+                                  Consumer<RouteProvider>(
+                                    builder: (context, routeProvider, child) {
+                                      final averageGrade = GradeUtils
+                                          .calculateAverageProposedGrade(
+                                        route.gradeProposals,
+                                        routeProvider.gradeDefinitions,
+                                      );
+
+                                      if (averageGrade == null) {
+                                        return const SizedBox.shrink();
+                                      }
+
+                                      return Padding(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.info_outline,
+                                              size: 14,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              'Community suggested: $averageGrade (avg of ${route.gradeProposalsCount} proposals)',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurfaceVariant,
+                                                fontStyle: FontStyle.italic,
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'Community suggested: ${route.averageProposedGrade} (avg of ${route.gradeProposalsCount} proposals)',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey.shade600,
-                                            fontStyle: FontStyle.italic,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                                      );
+                                    },
+                                  ),
                                 ],
                               ),
                             ),
@@ -249,8 +233,11 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                         const SizedBox(height: 16),
                         Row(
                           children: [
-                            const Icon(Icons.person,
-                                size: 16, color: Colors.grey),
+                            Icon(Icons.person,
+                                size: 16,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant),
                             const SizedBox(width: 4),
                             Text('Set by ${route.routeSetter}'),
                           ],
@@ -258,8 +245,11 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            const Icon(Icons.location_on,
-                                size: 16, color: Colors.grey),
+                            Icon(Icons.location_on,
+                                size: 16,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant),
                             const SizedBox(width: 4),
                             Text(route.wallSection),
                           ],
@@ -267,8 +257,11 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            const Icon(Icons.format_list_numbered,
-                                size: 16, color: Colors.grey),
+                            Icon(Icons.format_list_numbered,
+                                size: 16,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant),
                             const SizedBox(width: 4),
                             Text('Lane ${route.lane}'),
                           ],
@@ -386,8 +379,22 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                                           ),
                                           child: Text(
                                             proposal.proposedGrade,
-                                            style: const TextStyle(
-                                              color: Colors.white,
+                                            style: TextStyle(
+                                              color: GradeChip.getTextColor(
+                                                context
+                                                            .read<
+                                                                RouteProvider>()
+                                                            .getGradeColor(proposal
+                                                                .proposedGrade) !=
+                                                        null
+                                                    ? ColorUtils.parseHexColor(
+                                                        context
+                                                            .read<
+                                                                RouteProvider>()
+                                                            .getGradeColor(proposal
+                                                                .proposedGrade)!)
+                                                    : Colors.grey,
+                                              ),
                                               fontSize: 12,
                                               fontWeight: FontWeight.bold,
                                             ),
@@ -420,7 +427,9 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                 if (route.warnings != null && route.warnings!.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   Card(
-                    color: Colors.orange[50],
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.orange.withOpacity(0.1)
+                        : Colors.orange[50],
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/route_models.dart' as models;
+import '../providers/route_provider.dart';
 import '../utils/color_utils.dart';
+import '../utils/grade_utils.dart';
+import 'grade_chip.dart';
 
 class RouteCard extends StatelessWidget {
   final models.Route route;
@@ -38,26 +42,35 @@ class RouteCard extends StatelessWidget {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: route.gradeColor != null
-                                    ? ColorUtils.parseHexColor(
-                                        route.gradeColor!)
-                                    : Colors.grey,
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Text(
-                                route.grade,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                            GradeChip(
+                              grade: route.grade,
+                              gradeColorHex: route.gradeColor,
                             ),
+                            // Show average proposed grade if there are proposals
+                            if (route.gradeProposalsCount > 0) ...[
+                              const SizedBox(width: 8),
+                              Consumer<RouteProvider>(
+                                builder: (context, routeProvider, child) {
+                                  final averageGrade =
+                                      GradeUtils.calculateAverageProposedGrade(
+                                    route.gradeProposals,
+                                    routeProvider.gradeDefinitions,
+                                  );
+
+                                  if (averageGrade == null) {
+                                    return const SizedBox.shrink();
+                                  }
+
+                                  final averageGradeColor =
+                                      routeProvider.getGradeColor(averageGrade);
+
+                                  return AverageGradeChip(
+                                    grade: averageGrade,
+                                    gradeColorHex: averageGradeColor,
+                                  );
+                                },
+                              ),
+                            ],
                             if (route.color != null) ...[
                               const SizedBox(width: 8),
                               Container(
@@ -67,7 +80,10 @@ class RouteCard extends StatelessWidget {
                                   color:
                                       ColorUtils.parseHexColor(route.colorHex),
                                   shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.grey),
+                                  border: Border.all(
+                                    color:
+                                        Theme.of(context).colorScheme.outline,
+                                  ),
                                 ),
                               ),
                             ],
@@ -105,6 +121,17 @@ class RouteCard extends StatelessWidget {
                           Text('${route.ticksCount}'),
                         ],
                       ),
+                      if (route.gradeProposalsCount > 0) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.grade,
+                                color: Colors.orange, size: 16),
+                            const SizedBox(width: 4),
+                            Text('${route.gradeProposalsCount}'),
+                          ],
+                        ),
+                      ],
                       if (route.warningsCount > 0) ...[
                         const SizedBox(height: 4),
                         Row(
@@ -123,30 +150,41 @@ class RouteCard extends StatelessWidget {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  const Icon(Icons.person, size: 16, color: Colors.grey),
+                  Icon(Icons.person,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 4),
                   Text(
                     'Set by ${route.routeSetter}',
-                    style: TextStyle(color: Colors.grey[600]),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 4),
               Row(
                 children: [
-                  const Icon(Icons.location_on, size: 16, color: Colors.grey),
+                  Icon(Icons.location_on,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 4),
                   Text(
                     route.wallSection,
-                    style: TextStyle(color: Colors.grey[600]),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   const SizedBox(width: 16),
-                  const Icon(Icons.format_list_numbered,
-                      size: 16, color: Colors.grey),
+                  Icon(Icons.format_list_numbered,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 4),
                   Text(
                     'Lane ${route.lane}',
-                    style: TextStyle(color: Colors.grey[600]),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -154,7 +192,9 @@ class RouteCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   route.description!,
-                  style: TextStyle(color: Colors.grey[700]),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),

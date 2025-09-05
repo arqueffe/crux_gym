@@ -5,12 +5,14 @@ class PerformanceSummaryCard extends StatelessWidget {
   final ProfileStats? stats;
   final List<UserTick> filteredTicks;
   final ProfileTimeFilter timeFilter;
+  final List<Map<String, dynamic>> gradeDefinitions;
 
   const PerformanceSummaryCard({
     super.key,
     required this.stats,
     required this.filteredTicks,
     required this.timeFilter,
+    required this.gradeDefinitions,
   });
 
   @override
@@ -325,11 +327,16 @@ class PerformanceSummaryCard extends StatelessWidget {
   }
 
   int _gradeOrder(String grade) {
-    // Simple V-scale ordering
-    if (grade.startsWith('V')) {
-      final number = int.tryParse(grade.substring(1));
-      return number ?? 0;
+    // Return 0 if grade definitions are not loaded yet
+    if (gradeDefinitions.isEmpty) return 0;
+
+    // Find the grade in the definitions and return its difficulty_order
+    for (final gradeDefinition in gradeDefinitions) {
+      if (gradeDefinition['grade'] == grade) {
+        return gradeDefinition['difficulty_order'] as int;
+      }
     }
+    // Return 0 for unknown grades (will be sorted first)
     return 0;
   }
 

@@ -11,7 +11,7 @@ from datetime import datetime
 # Add the current directory to the path so we can import app
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app import app, db, User, Route, Grade, HoldColor, Like, Comment, GradeProposal, Warning, Tick, Project
+from app import app, db, User, Route, Grade, HoldColor, Lane, Like, Comment, GradeProposal, Warning, Tick, Project
 
 # French Climbing Grades with difficulty ordering and colors
 FRENCH_GRADES_DATA = [
@@ -117,6 +117,23 @@ def init_hold_colors():
     db.session.commit()
     print(f"✓ Initialized {len(HOLD_COLORS_DATA)} hold colors")
 
+def init_lanes():
+    """Initialize lanes in the database"""
+    print("Initializing lanes...")
+    
+    for lane_number in range(1, 18):  # Create lanes 1-17
+        existing_lane = Lane.query.filter_by(number=lane_number).first()
+        if not existing_lane:
+            lane = Lane(
+                number=lane_number,
+                name=f"Lane {lane_number}",
+                is_active=True
+            )
+            db.session.add(lane)
+    
+    db.session.commit()
+    print(f"✓ Initialized 17 lanes")
+
 def init_sample_users():
     """Initialize sample users"""
     print("Initializing sample users...")
@@ -164,6 +181,7 @@ def init_sample_routes():
     # Get grades and colors from database
     grades = {g.grade: g for g in Grade.query.all()}
     hold_colors = {c.name: c for c in HoldColor.query.all()}
+    lanes = {l.number: l for l in Lane.query.all()}
     
     sample_routes_data = [
         {
@@ -261,14 +279,15 @@ def init_sample_routes():
     for route_data in sample_routes_data:
         grade = grades.get(route_data['grade'])
         hold_color = hold_colors.get(route_data['color'])
+        lane = lanes.get(route_data['lane'])
         
-        if grade:  # Only create route if grade exists
+        if grade and lane:  # Only create route if grade and lane exist
             route = Route(
                 name=route_data['name'],
                 grade_id=grade.id,
                 route_setter=route_data['route_setter'],
                 wall_section=route_data['wall_section'],
-                lane=route_data['lane'],
+                lane_id=lane.id,
                 hold_color_id=hold_color.id if hold_color else None,
                 description=route_data['description']
             )
@@ -290,6 +309,7 @@ def init_database():
     # Initialize data in order
     init_grades()
     init_hold_colors()
+    init_lanes()
     init_sample_users()
     init_sample_routes()
     

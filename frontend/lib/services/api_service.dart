@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/route_models.dart';
+import '../models/lane_models.dart';
 import '../providers/auth_provider.dart';
 
 class ApiService {
@@ -142,6 +143,21 @@ class ApiService {
     }
   }
 
+  // Get current user's grade proposal for a route
+  Future<GradeProposal?> getUserGradeProposal(int routeId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/routes/$routeId/grade-proposals/user'),
+      headers: _headers,
+    );
+    if (response.statusCode == 200) {
+      return GradeProposal.fromJson(json.decode(response.body));
+    } else if (response.statusCode == 404) {
+      return null; // No proposal exists
+    } else {
+      throw Exception('Failed to get user grade proposal');
+    }
+  }
+
   // Warnings
   Future<Warning> addWarning(
     int routeId,
@@ -279,17 +295,22 @@ class ApiService {
     }
   }
 
-  Future<List<int>> getLanes() async {
+  Future<List<Lane>> getLanes() async {
     final response = await http.get(
       Uri.parse('$baseUrl/lanes'),
       headers: _headers,
     );
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
-      return data.cast<int>();
+      return data.map((json) => Lane.fromJson(json)).toList();
     } else {
       throw Exception('Failed to load lanes');
     }
+  }
+
+  Future<List<int>> getLaneNumbers() async {
+    final lanes = await getLanes();
+    return lanes.map((lane) => lane.number).toList();
   }
 
   // Grade and Color utilities

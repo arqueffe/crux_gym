@@ -1,17 +1,24 @@
 import 'package:flutter/foundation.dart';
 import '../models/profile_models.dart';
+import '../models/route_models.dart';
 import '../services/api_service.dart';
 import '../providers/auth_provider.dart';
+import '../providers/route_provider.dart';
 
 class ProfileProvider extends ChangeNotifier {
   late final ApiService _apiService;
+  final RouteProvider? _routeProvider;
 
-  ProfileProvider({required AuthProvider authProvider}) {
+  ProfileProvider({
+    required AuthProvider authProvider,
+    RouteProvider? routeProvider,
+  }) : _routeProvider = routeProvider {
     _apiService = ApiService(authProvider: authProvider);
   }
 
   List<UserTick> _userTicks = [];
   List<UserLike> _userLikes = [];
+  List<Project> _userProjects = [];
   List<GradeStatistics> _gradeStats = [];
   ProfileStats? _profileStats;
   bool _isLoading = false;
@@ -21,6 +28,7 @@ class ProfileProvider extends ChangeNotifier {
   // Getters
   List<UserTick> get userTicks => _userTicks;
   List<UserLike> get userLikes => _userLikes;
+  List<Project> get userProjects => _userProjects;
   List<GradeStatistics> get gradeStats => _gradeStats;
   ProfileStats? get profileStats => _profileStats;
   bool get isLoading => _isLoading;
@@ -41,6 +49,14 @@ class ProfileProvider extends ChangeNotifier {
     if (startDate == null) return _userLikes;
     return _userLikes
         .where((like) => like.createdAt.isAfter(startDate))
+        .toList();
+  }
+
+  List<Project> get filteredProjects {
+    final startDate = _timeFilter.startDate;
+    if (startDate == null) return _userProjects;
+    return _userProjects
+        .where((project) => project.createdAt.isAfter(startDate))
         .toList();
   }
 
@@ -78,7 +94,16 @@ class ProfileProvider extends ChangeNotifier {
   }
 
   int _gradeOrder(String grade) {
-    // Simple V-scale ordering
+    // Use route provider's grade definitions if available
+    if (_routeProvider != null && _routeProvider!.gradeDefinitions.isNotEmpty) {
+      for (final gradeDefinition in _routeProvider!.gradeDefinitions) {
+        if (gradeDefinition['grade'] == grade) {
+          return gradeDefinition['difficulty_order'] as int;
+        }
+      }
+    }
+
+    // Fallback to simple V-scale ordering for backwards compatibility
     if (grade.startsWith('V')) {
       final number = int.tryParse(grade.substring(1));
       return number ?? 0;
@@ -99,6 +124,7 @@ class ProfileProvider extends ChangeNotifier {
       await Future.wait([
         _loadUserTicks(),
         _loadUserLikes(),
+        _loadUserProjects(),
         _loadProfileStats(),
       ]);
 
@@ -133,6 +159,14 @@ class ProfileProvider extends ChangeNotifier {
       }
     } catch (e) {
       throw 'Failed to load user likes: $e';
+    }
+  }
+
+  Future<void> _loadUserProjects() async {
+    try {
+      _userProjects = await _apiService.getUserProjects();
+    } catch (e) {
+      throw 'Failed to load user projects: $e';
     }
   }
 

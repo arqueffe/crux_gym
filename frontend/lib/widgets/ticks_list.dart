@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/profile_models.dart';
 import '../screens/route_detail_screen.dart';
-import '../utils/color_utils.dart';
+import '../widgets/grade_chip.dart';
 
 class TicksList extends StatelessWidget {
   final List<UserTick> ticks;
@@ -64,23 +64,10 @@ class TicksList extends StatelessWidget {
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: _getGradeColor(tick.routeGrade),
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  child: Text(
-                                    tick.routeGrade,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                    ),
-                                  ),
+                                GradeChip(
+                                  grade: tick.routeGrade,
+                                  gradeColorHex: gradeColors?[tick.routeGrade],
+                                  fontSize: 12,
                                 ),
                                 const SizedBox(width: 12),
                                 Icon(
@@ -245,10 +232,6 @@ class TicksList extends StatelessWidget {
         );
       },
     );
-  }
-
-  Color _getGradeColor(String grade) {
-    return ColorUtils.getGradeColor(grade, gradeColors);
   }
 
   String _formatDate(DateTime date) {

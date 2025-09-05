@@ -120,6 +120,23 @@ class HoldColor(db.Model):
             'created_at': self.created_at.isoformat()
         }
 
+class Lane(db.Model):
+    __tablename__ = 'lanes'
+    id = db.Column(db.Integer, primary_key=True)
+    number = db.Column(db.Integer, unique=True, nullable=False)
+    name = db.Column(db.String(50), nullable=True)  # Optional name like "Lane 1", "Center Route"
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'number': self.number,
+            'name': self.name or f"Lane {self.number}",
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat()
+        }
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -151,13 +168,14 @@ class Route(db.Model):
     grade_id = db.Column(db.Integer, db.ForeignKey('grades.id'), nullable=False)
     route_setter = db.Column(db.String(100), nullable=False)
     wall_section = db.Column(db.String(50), nullable=False)
-    lane = db.Column(db.Integer, nullable=False)
+    lane_id = db.Column(db.Integer, db.ForeignKey('lanes.id'), nullable=False)
     hold_color_id = db.Column(db.Integer, db.ForeignKey('hold_colors.id'), nullable=True)
     description = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
     grade_rel = db.relationship('Grade', backref='routes')
+    lane_rel = db.relationship('Lane', backref='routes')
     hold_color_rel = db.relationship('HoldColor', backref='routes')
     likes = db.relationship('Like', backref='route', lazy=True, cascade='all, delete-orphan')
     comments = db.relationship('Comment', backref='route', lazy=True, cascade='all, delete-orphan')
@@ -183,7 +201,8 @@ class Route(db.Model):
             'grade_color': self.grade_rel.color if self.grade_rel else '#888888',
             'route_setter': self.route_setter,
             'wall_section': self.wall_section,
-            'lane': self.lane,
+            'lane': self.lane_rel.number if self.lane_rel else None,
+            'lane_name': self.lane_rel.name if self.lane_rel else None,
             'color': self.hold_color_rel.name if self.hold_color_rel else None,
             'color_hex': self.hold_color_rel.hex_code if self.hold_color_rel else None,
             'description': self.description,
@@ -466,14 +485,14 @@ def get_routes():
     grade = request.args.get('grade')
     lane = request.args.get('lane')
     
-    query = db.session.query(Route).join(Grade, Route.grade_id == Grade.id)
+    query = db.session.query(Route).join(Grade, Route.grade_id == Grade.id).join(Lane, Route.lane_id == Lane.id)
     
     if wall_section:
         query = query.filter(Route.wall_section == wall_section)
     if grade:
         query = query.filter(Grade.grade == grade)
     if lane:
-        query = query.filter(Route.lane == int(lane))
+        query = query.filter(Lane.number == int(lane))
     
     routes = query.all()
     return jsonify([route.to_dict() for route in routes])
@@ -526,13 +545,22 @@ def create_route():
                 'available_colors': available_colors
             }), 400
     
+    # Find lane in database
+    lane = Lane.query.filter_by(number=int(data['lane'])).first()
+    if not lane:
+        available_lanes = [l.number for l in Lane.query.filter_by(is_active=True).order_by(Lane.number).all()]
+        return jsonify({
+            'error': f"Invalid lane: {data['lane']}. Must be one of the available lanes.",
+            'available_lanes': available_lanes
+        }), 400
+
     try:
         route = Route(
             name=data['name'],
             grade_id=grade.id,
             route_setter=data['route_setter'],
             wall_section=data['wall_section'],
-            lane=data['lane'],
+            lane_id=lane.id,
             hold_color_id=hold_color.id if hold_color else None,
             description=data.get('description')
         )
@@ -598,7 +626,7 @@ def add_comment(route_id):
 @app.route('/api/routes/<int:route_id>/grade-proposals', methods=['POST'])
 @jwt_required()
 def propose_grade(route_id):
-    """Propose a different grade for a route"""
+    """Propose a different grade for a route (creates new or updates existing proposal)"""
     data = request.get_json()
     user_id = get_jwt_identity()
     
@@ -616,17 +644,47 @@ def propose_grade(route_id):
             'available_grades': available_grades
         }), 400
     
-    proposal = GradeProposal(
+    # Check if user already has a proposal for this route
+    existing_proposal = GradeProposal.query.filter_by(
         route_id=route_id,
-        user_id=user_id,
-        proposed_grade_id=proposed_grade.id,
-        reasoning=data.get('reasoning')
-    )
+        user_id=user_id
+    ).first()
     
-    db.session.add(proposal)
+    if existing_proposal:
+        # Update existing proposal
+        existing_proposal.proposed_grade_id = proposed_grade.id
+        existing_proposal.reasoning = data.get('reasoning')
+        existing_proposal.created_at = datetime.utcnow()  # Update timestamp
+        proposal = existing_proposal
+    else:
+        # Create new proposal
+        proposal = GradeProposal(
+            route_id=route_id,
+            user_id=user_id,
+            proposed_grade_id=proposed_grade.id,
+            reasoning=data.get('reasoning')
+        )
+        db.session.add(proposal)
+    
     db.session.commit()
     
     return jsonify(proposal.to_dict()), 201
+
+@app.route('/api/routes/<int:route_id>/grade-proposals/user', methods=['GET'])
+@jwt_required()
+def get_user_grade_proposal(route_id):
+    """Get current user's grade proposal for a route"""
+    user_id = get_jwt_identity()
+    
+    proposal = GradeProposal.query.filter_by(
+        route_id=route_id,
+        user_id=user_id
+    ).first()
+    
+    if proposal:
+        return jsonify(proposal.to_dict()), 200
+    else:
+        return jsonify({'message': 'No proposal found for this user'}), 404
 
 @app.route('/api/routes/<int:route_id>/warnings', methods=['POST'])
 @jwt_required()
@@ -953,9 +1011,9 @@ def get_grades():
 @app.route('/api/lanes', methods=['GET'])
 @jwt_required()
 def get_lanes():
-    """Get all unique lanes"""
-    lanes = db.session.query(Route.lane).distinct().order_by(Route.lane).all()
-    return jsonify([lane[0] for lane in lanes])
+    """Get all available lanes from database"""
+    lanes = Lane.query.filter_by(is_active=True).order_by(Lane.number).all()
+    return jsonify([lane.to_dict() for lane in lanes])
 
 @app.route('/api/grade-definitions', methods=['GET'])
 @jwt_required()

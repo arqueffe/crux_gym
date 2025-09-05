@@ -37,6 +37,7 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
   void initState() {
     super.initState();
     _loadGradesAndColors();
+    _loadLanes();
   }
 
   Future<void> _loadGradesAndColors() async {
@@ -53,6 +54,15 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
     } catch (e) {
       // Handle error - will use empty lists and show error
       print('Error loading grades and colors: $e');
+    }
+  }
+
+  Future<void> _loadLanes() async {
+    final routeProvider = context.read<RouteProvider>();
+    try {
+      await routeProvider.loadLanes();
+    } catch (e) {
+      print('Error loading lanes: $e');
     }
   }
 
@@ -178,10 +188,10 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
                                   'Select the lane number for this route',
                             ),
                             value: _selectedLane,
-                            items: List.generate(10, (index) => index + 1)
-                                .map((lane) => DropdownMenuItem(
-                                      value: lane,
-                                      child: Text('Lane $lane'),
+                            items: routeProvider.laneNumbers
+                                .map((laneNumber) => DropdownMenuItem(
+                                      value: laneNumber,
+                                      child: Text('Lane $laneNumber'),
                                     ))
                                 .toList(),
                             onChanged: (value) =>

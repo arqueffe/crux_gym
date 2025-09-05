@@ -83,266 +83,191 @@ class _RouteInteractionsState extends State<RouteInteractions> {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Interactions',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 16),
-
-            // User info display
-            Consumer<AuthProvider>(
-              builder: (context, authProvider, child) {
-                final user = authProvider.currentUser;
-                if (user == null) return const SizedBox.shrink();
-
-                return Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color:
-                        Theme.of(context).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 16,
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        child: Text(
-                          user.username[0].toUpperCase(),
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onPrimary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Logged in as:',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                          Text(
-                            user.username,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Action Buttons
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+    return SizedBox(
+        width: double.infinity,
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ElevatedButton.icon(
-                  onPressed: () => _toggleLike(),
-                  icon: Icon(
-                    _isLiked ? Icons.favorite : Icons.favorite_border,
-                    color: _isLiked ? Colors.red : null,
-                  ),
-                  label: Text(_isLiked ? 'Liked' : 'Like'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _isLiked
-                        ? Colors.red.shade50
-                        : Theme.of(context).colorScheme.primaryContainer,
-                  ),
+                Text(
+                  'Interactions',
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
-                ElevatedButton.icon(
-                  onPressed: () => _showTickDialog(),
-                  icon: Icon(
-                    _isTicked ? Icons.check_circle : Icons.check_circle_outline,
-                    color: _isTicked ? Colors.green : null,
-                  ),
-                  label: Text(_isTicked ? 'Progress' : 'Track'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _isTicked
-                        ? Colors.green.shade50
-                        : Theme.of(context).colorScheme.primaryContainer,
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () => _toggleProject(),
-                  icon: Icon(
-                    _isProject ? Icons.flag : Icons.flag_outlined,
-                    color: _isProject ? Colors.blue : null,
-                  ),
-                  label: Text(_isProject ? 'Project' : 'Set Project'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _isProject
-                        ? Colors.blue.shade50
-                        : Theme.of(context).colorScheme.primaryContainer,
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () => _showCommentDialog(),
-                  icon: const Icon(Icons.comment),
-                  label: const Text('Comment'),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () => _showGradeProposalDialog(),
-                  icon: const Icon(Icons.grade),
-                  label: const Text('Propose Grade'),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () => _showWarningDialog(),
-                  icon: const Icon(Icons.warning),
-                  label: const Text('Report Issue'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange.shade50,
-                    foregroundColor: Colors.orange.shade700,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-            // Tick information if route has progress
-            if (_isTicked && _tickData != null)
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  border: Border.all(color: Colors.blue.shade300),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                // Action Buttons
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
-                    Row(
-                      children: [
-                        Icon(Icons.trending_up, color: Colors.blue.shade600),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Your Progress',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue.shade700,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text('Attempts: ${_tickData!['attempts'] ?? 0}'),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(
-                          _tickData!['top_rope_send'] == true
-                              ? Icons.check
-                              : Icons.close,
-                          color: _tickData!['top_rope_send'] == true
-                              ? Colors.green
-                              : Colors.grey,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 4),
-                        const Text('Top Rope'),
-                        if (_tickData!['top_rope_flash'] == true)
-                          const Text(' (Flash)',
-                              style: TextStyle(
-                                  color: Colors.orange,
-                                  fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(
-                          _tickData!['lead_send'] == true
-                              ? Icons.check
-                              : Icons.close,
-                          color: _tickData!['lead_send'] == true
-                              ? Colors.green
-                              : Colors.grey,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 4),
-                        const Text('Lead'),
-                        if (_tickData!['lead_flash'] == true)
-                          const Text(' (Flash)',
-                              style: TextStyle(
-                                  color: Colors.orange,
-                                  fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                    if (_tickData!['notes'] != null &&
-                        _tickData!['notes'].toString().isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        'Notes: ${_tickData!['notes']}',
-                        style: const TextStyle(fontStyle: FontStyle.italic),
+                    ElevatedButton.icon(
+                      onPressed: () => _toggleLike(),
+                      icon: Icon(
+                        _isLiked ? Icons.favorite : Icons.favorite_border,
+                        color: _isLiked ? Colors.red : null,
                       ),
-                    ],
+                      label: Text(_isLiked ? 'Liked' : 'Like'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _isLiked
+                            ? Colors.red.shade50
+                            : Theme.of(context).colorScheme.primaryContainer,
+                      ),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: () => _showTickDialog(),
+                      icon: Icon(
+                        _isTicked
+                            ? Icons.check_circle
+                            : Icons.check_circle_outline,
+                        color: _isTicked ? Colors.green : null,
+                      ),
+                      label: Text(_isTicked ? 'Progress' : 'Track'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _isTicked
+                            ? Colors.green.shade50
+                            : Theme.of(context).colorScheme.primaryContainer,
+                      ),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: () => _toggleProject(),
+                      icon: Icon(
+                        _isProject ? Icons.flag : Icons.flag_outlined,
+                        color: _isProject ? Colors.blue : null,
+                      ),
+                      label: Text(_isProject ? 'Project' : 'Set Project'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _isProject
+                            ? Colors.blue.shade50
+                            : Theme.of(context).colorScheme.primaryContainer,
+                      ),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: () => _showCommentDialog(),
+                      icon: const Icon(Icons.comment),
+                      label: const Text('Comment'),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: () => _showGradeProposalDialog(),
+                      icon: const Icon(Icons.grade),
+                      label: const Text('Propose Grade'),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: () => _showWarningDialog(),
+                      icon: const Icon(Icons.warning),
+                      label: const Text('Report Issue'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange.shade50,
+                        foregroundColor: Colors.orange.shade700,
+                      ),
+                    ),
                   ],
                 ),
-              ),
-            //               ),
-            //             ),
-            //           ],
-            //         ),
-            //         if (_tickData!['tick'] != null) ...[
-            //           const SizedBox(height: 8),
-            //           Text('Attempts: ${_tickData!['tick']['attempts']}'),
-            //           if (_tickData!['tick']['flash'] == true)
-            //             Text(
-            //               'FLASH! ⚡',
-            //               style: TextStyle(
-            //                 fontWeight: FontWeight.bold,
-            //                 color: Colors.orange.shade600,
-            //               ),
-            //             ),
-            //           if (_tickData!['tick']['notes'] != null &&
-            //               _tickData!['tick']['notes'].toString().isNotEmpty)
-            //             Text('Notes: ${_tickData!['tick']['notes']}'),
-            //         ],
-            //       ],
-            //     ),
-            //   ),
+                const SizedBox(height: 16),
 
-            // Current user's like status
-            // if (_isLiked)
-            //   Container(
-            //     margin: const EdgeInsets.only(top: 8),
-            //     padding: const EdgeInsets.all(8),
-            //     decoration: BoxDecoration(
-            //       color: Colors.red.shade50,
-            //       border: Border.all(color: Colors.red.shade300),
-            //       borderRadius: BorderRadius.circular(8),
-            //     ),
-            //     child: Row(
-            //       mainAxisSize: MainAxisSize.min,
-            //       children: [
-            //         Icon(Icons.favorite, color: Colors.red.shade600, size: 16),
-            //         const SizedBox(width: 4),
-            //         Text(
-            //           'You liked this route',
-            //           style: TextStyle(color: Colors.red.shade700),
-            //         ),
-            //       ],
-            //     ),
-            //   ),
-          ],
-        ),
-      ),
-    );
+                // Tick information if route has progress
+                if (_isTicked && _tickData != null)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withOpacity(0.1)
+                          : Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withOpacity(0.05),
+                      border: Border.all(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withOpacity(0.3),
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.trending_up,
+                                color: Theme.of(context).colorScheme.primary),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Your Progress',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text('Attempts: ${_tickData!['attempts'] ?? 0}'),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(
+                              _tickData!['top_rope_send'] == true
+                                  ? Icons.check
+                                  : Icons.close,
+                              color: _tickData!['top_rope_send'] == true
+                                  ? Colors.green
+                                  : Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 4),
+                            const Text('Top Rope'),
+                            if (_tickData!['top_rope_flash'] == true)
+                              const Text(' (Flash)',
+                                  style: TextStyle(
+                                      color: Colors.orange,
+                                      fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(
+                              _tickData!['lead_send'] == true
+                                  ? Icons.check
+                                  : Icons.close,
+                              color: _tickData!['lead_send'] == true
+                                  ? Colors.green
+                                  : Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 4),
+                            const Text('Lead'),
+                            if (_tickData!['lead_flash'] == true)
+                              const Text(' (Flash)',
+                                  style: TextStyle(
+                                      color: Colors.orange,
+                                      fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        if (_tickData!['notes'] != null &&
+                            _tickData!['notes'].toString().isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            'Notes: ${_tickData!['notes']}',
+                            style: const TextStyle(fontStyle: FontStyle.italic),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ));
   }
 
   Future<void> _toggleLike() async {
@@ -551,7 +476,9 @@ class _RouteInteractionsState extends State<RouteInteractions> {
 
   void _showAddAttemptsDialog() {
     int attempts = 1;
-    String notes = '';
+    // Pre-populate with existing notes if available
+    String notes = _tickData?['notes']?.toString() ?? '';
+    final notesController = TextEditingController(text: notes);
 
     showDialog(
       context: context,
@@ -583,9 +510,31 @@ class _RouteInteractionsState extends State<RouteInteractions> {
               ),
               const SizedBox(height: 16),
               TextField(
-                decoration: const InputDecoration(
+                controller: notesController,
+                decoration: InputDecoration(
                   labelText: 'Notes (optional)',
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
+                  helperText: _tickData?['notes'] != null &&
+                          _tickData!['notes'].toString().isNotEmpty
+                      ? 'Your previous notes are loaded. You can edit or add to them.'
+                      : 'Add notes about your attempts',
+                  suffixIcon: _tickData?['notes'] != null &&
+                          _tickData!['notes'].toString().isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.add),
+                          tooltip: 'Add entry below existing notes',
+                          onPressed: () {
+                            final currentNotes = notesController.text;
+                            final newEntry =
+                                '\n\n--- ${DateTime.now().toString().split('.')[0]} ---\n';
+                            notesController.text = currentNotes + newEntry;
+                            notesController.selection =
+                                TextSelection.fromPosition(
+                              TextPosition(offset: notesController.text.length),
+                            );
+                          },
+                        )
+                      : null,
                 ),
                 maxLines: 3,
                 onChanged: (value) => notes = value,
@@ -600,7 +549,8 @@ class _RouteInteractionsState extends State<RouteInteractions> {
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
-                _addAttempts(attempts: attempts, notes: notes);
+                _addAttempts(
+                    attempts: attempts, notes: notesController.text.trim());
               },
               child: const Text('Add'),
             ),
@@ -612,7 +562,9 @@ class _RouteInteractionsState extends State<RouteInteractions> {
 
   void _showMarkSendDialog() {
     String sendType = 'top_rope';
-    String notes = '';
+    // Pre-populate with existing notes if available
+    String notes = _tickData?['notes']?.toString() ?? '';
+    final notesController = TextEditingController(text: notes);
 
     showDialog(
       context: context,
@@ -641,9 +593,31 @@ class _RouteInteractionsState extends State<RouteInteractions> {
               ),
               const SizedBox(height: 16),
               TextField(
-                decoration: const InputDecoration(
+                controller: notesController,
+                decoration: InputDecoration(
                   labelText: 'Notes (optional)',
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
+                  helperText: _tickData?['notes'] != null &&
+                          _tickData!['notes'].toString().isNotEmpty
+                      ? 'Your previous notes are loaded. You can edit or add to them.'
+                      : 'Add notes about this send',
+                  suffixIcon: _tickData?['notes'] != null &&
+                          _tickData!['notes'].toString().isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.add),
+                          tooltip: 'Add entry below existing notes',
+                          onPressed: () {
+                            final currentNotes = notesController.text;
+                            final newEntry =
+                                '\n\n--- ${DateTime.now().toString().split('.')[0]} ---\n';
+                            notesController.text = currentNotes + newEntry;
+                            notesController.selection =
+                                TextSelection.fromPosition(
+                              TextPosition(offset: notesController.text.length),
+                            );
+                          },
+                        )
+                      : null,
                 ),
                 maxLines: 3,
                 onChanged: (value) => notes = value,
@@ -658,7 +632,8 @@ class _RouteInteractionsState extends State<RouteInteractions> {
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
-                _markSend(sendType: sendType, notes: notes);
+                _markSend(
+                    sendType: sendType, notes: notesController.text.trim());
               },
               child: const Text('Mark Send'),
             ),
@@ -848,103 +823,137 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     }
   }
 
-  void _showGradeProposalDialog() {
-    String? selectedGrade;
-    final reasoningController = TextEditingController();
+  Future<void> _showGradeProposalDialog() async {
+    final routeProvider = context.read<RouteProvider>();
 
-    final grades = [
-      '3a',
-      '3b',
-      '3c',
-      '4a',
-      '4b',
-      '4c',
-      '5a',
-      '5b',
-      '5c',
-      '6a',
-      '6a+',
-      '6b',
-      '6b+',
-      '6c',
-      '6c+',
-      '7a',
-      '7a+',
-      '7b',
-      '7b+',
-      '7c',
-      '7c+',
-      '8a',
-      '8a+',
-      '8b',
-      '8b+',
-      '8c',
-      '8c+',
-      '9a',
-      '9a+',
-      '9b',
-      '9b+',
-      '9c'
-    ];
+    // Ensure grade definitions are loaded
+    if (routeProvider.gradeDefinitions.isEmpty) {
+      await routeProvider.loadGradeDefinitions();
+    }
+
+    // Check if user already has a proposal for this route
+    final existingProposal =
+        await routeProvider.getUserGradeProposal(widget.route.id);
+
+    // Get grades from route provider, sorted by difficulty order
+    final grades = routeProvider.gradeDefinitions
+        .map((gradeDefinition) => gradeDefinition['grade'] as String)
+        .toList()
+      ..sort((a, b) {
+        final aOrder = routeProvider.gradeDefinitions
+            .firstWhere((g) => g['grade'] == a)['difficulty_order'] as int;
+        final bOrder = routeProvider.gradeDefinitions
+            .firstWhere((g) => g['grade'] == b)['difficulty_order'] as int;
+        return aOrder.compareTo(bOrder);
+      });
+
+    // Set selected grade, ensuring it exists in the grades list
+    String? selectedGrade = existingProposal?.proposedGrade;
+    if (selectedGrade != null && !grades.contains(selectedGrade)) {
+      // If the existing grade is not in our list, don't pre-select it
+      selectedGrade = null;
+    }
+
+    final reasoningController = TextEditingController(
+      text: existingProposal?.reasoning ?? '',
+    );
+
+    if (!mounted) return;
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Propose Grade'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<String>(
-                decoration: const InputDecoration(
-                  labelText: 'Proposed Grade',
-                  border: OutlineInputBorder(),
+        builder: (context, setState) {
+          return AlertDialog(
+            title: Text(existingProposal != null
+                ? 'Update Grade Proposal'
+                : 'Propose Grade'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (existingProposal != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info, color: Colors.blue.shade700, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            selectedGrade != null
+                                ? 'You already proposed "${existingProposal.proposedGrade}". You can change your grade and update your reasoning below.'
+                                : 'You had a previous proposal that is no longer valid. Please select a new grade.',
+                            style: TextStyle(
+                              color: Colors.blue.shade700,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                DropdownButtonFormField<String>(
+                  decoration: InputDecoration(
+                    labelText: 'Proposed Grade',
+                    border: const OutlineInputBorder(),
+                    helperText: existingProposal != null
+                        ? 'You can change your proposed grade'
+                        : 'Select a grade to propose',
+                  ),
+                  value: selectedGrade,
+                  items: grades
+                      .map((grade) => DropdownMenuItem(
+                            value: grade,
+                            child: Text(grade),
+                          ))
+                      .toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      selectedGrade = value;
+                    });
+                  },
+                  isExpanded: true,
                 ),
-                value: selectedGrade,
-                items: grades
-                    .map((grade) => DropdownMenuItem(
-                          value: grade,
-                          child: Text(grade),
-                        ))
-                    .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedGrade = value;
-                  });
-                },
+                const SizedBox(height: 16),
+                TextField(
+                  controller: reasoningController,
+                  decoration: const InputDecoration(
+                    labelText: 'Reasoning (optional)',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
               ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: reasoningController,
-                decoration: const InputDecoration(
-                  labelText: 'Reasoning (optional)',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
+              TextButton(
+                onPressed: selectedGrade == null
+                    ? null
+                    : () {
+                        Navigator.pop(context);
+                        _proposeGrade(
+                          selectedGrade!,
+                          reasoningController.text.trim().isEmpty
+                              ? null
+                              : reasoningController.text.trim(),
+                        );
+                      },
+                child: Text(existingProposal != null ? 'Update' : 'Propose'),
               ),
             ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: selectedGrade == null
-                  ? null
-                  : () {
-                      Navigator.pop(context);
-                      _proposeGrade(
-                        selectedGrade!,
-                        reasoningController.text.trim().isEmpty
-                            ? null
-                            : reasoningController.text.trim(),
-                      );
-                    },
-              child: const Text('Propose'),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -962,7 +971,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Grade proposal submitted!'),
+          content: Text('Grade proposal updated!'),
           duration: Duration(seconds: 2),
         ),
       );
