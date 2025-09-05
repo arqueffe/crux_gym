@@ -1,87 +1,55 @@
-# Crux - Climbing Gym Route Management System
+# Crux - Climbing Gym Management System
 
-Welcome to Crux, a comprehensive climbing gym management system that allows climbers to track routes, share feedback, and build community around their climbing adventures.
-
-## Overview
-
-Crux is a full-stack application consisting of:
-- **Backend**: Flask-based REST API with SQLite database and JWT authentication
-- **Frontend**: Flutter mobile application with Material Design and comprehensive user features
-
-The system helps climbing gym members:
-- Browse available routes with detailed information and advanced filtering
-- Track their climbing progress with advanced tick system supporting:
-  - Independent top rope and lead send tracking
-  - Attempt logging without marking sends
-  - Automatic flash detection and tracking
-  - Style-specific statistics and personal bests
-- Manage personal climbing projects with goal-oriented route tracking
-- Share feedback through likes, comments, grade proposals, and warnings
-- Report route issues and maintenance needs
-- View personal climbing profiles with performance analytics
-- Experience interactive climbing wall topology visualization
-- Enjoy color-coded grading system with backend-driven visual consistency
+A modern climbing gym management application with Flask backend and Flutter mobile app.
 
 ## Quick Start
 
-### Prerequisites
-- Python 3.8+ (for backend)
-- Flutter 3.0+ (for frontend)
-- Git
-
-### Backend Setup
+### Backend
 ```bash
 cd backend
-python -m pip install -r requirements.txt
+pip install -r requirements.txt
 python app.py
 ```
-The backend will start on `http://localhost:5000` with sample data automatically initialized.
+Server runs on `http://localhost:5000`
 
-#### Backend CLI (DB management)
-A simple CLI is available to add, remove and modify data in the backend database.
-
-- Location: `backend/cli.py`
-- Run from the `backend` folder
-- Windows PowerShell examples:
-  ```powershell
-  # Help
-  python .\cli.py --help
-  python .\cli.py users --help
-
-  # Users
-  python .\cli.py users list
-  python .\cli.py users add --username john --nickname Johnny --email john@example.com --password Secret123!
-  python .\cli.py users set-password --username john --password NewP@ssw0rd
-  python .\cli.py users set-nickname --username john --nickname J_Doe
-  python .\cli.py users delete --username john
-
-  # Routes
-  python .\cli.py routes list --grade 6a+
-  python .\cli.py routes add --name "New Route" --grade 6a+ --setter "John Doe" --wall "Steep Wall" --lane 3 --color Red --description "Fun route"
-  python .\cli.py routes delete --id 5
-
-  # Reference data
-  python .\cli.py grades list
-  python .\cli.py colors list
-
-  # DB utilities
-  python .\cli.py db init               # Seed grades/colors/sample users/routes
-  python .\cli.py db migrate-nickname   # Add/backfill nickname column if missing
-  python .\cli.py db create-tables      # Ensure tables exist
-  ```
-
-Notes:
-- Nickname validation matches the API (3–20 chars, [A-Za-z0-9_], case-insensitive uniqueness).
-- The CLI uses the same SQLite database configured in `backend/app.py`.
-- Deleting users may fail if related records exist; use `--force` only after review.
-
-### Frontend Setup
+### Frontend
 ```bash
 cd frontend
 flutter pub get
 flutter run
 ```
-The app will connect to the backend API automatically.
+
+## Features
+
+- **Route Management**: Browse, create, and filter climbing routes
+- **User System**: Registration, login, and user profiles
+- **Interactions**: Like, comment, grade proposals, and warnings
+- **Tick Tracking**: Log attempts, sends (TR/Lead), and flashes
+- **Analytics**: Performance statistics and grade progression
+- **Localization**: English and French support
+- **Mobile UI**: Material Design 3 with responsive layouts
+
+## Sample Data
+
+Login with: `admin` / `admin123` or `alice_johnson` / `password123`
+
+## Tech Stack
+
+- **Backend**: Flask, SQLAlchemy, JWT, SQLite
+- **Frontend**: Flutter, Provider, Material Design 3
+- **Database**: SQLite with auto-initialization
+
+## Project Structure
+
+```
+├── backend/          # Flask REST API
+├── frontend/         # Flutter mobile app
+└── VERSION.md        # v0.8.0
+```
+
+## License
+
+MIT License
 
 ## Project Structure
 

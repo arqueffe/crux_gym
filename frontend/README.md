@@ -1,18 +1,79 @@
 # Crux Frontend - Flutter Mobile App
 
-A comprehensive Flutter mobile application for climbing gym route management, user authentication, and community interactions with Material Design 3 and advanced state management.
+Flutter mobile app for climbing gym route management with Material Design 3.
 
-## Overview
+## Quick Start
 
-The Crux frontend is a feature-rich Flutter application that provides climbers with an intuitive interface to browse routes, track progress, share feedback, and connect with the climbing community. Built with modern Flutter architecture patterns and Material Design 3.
+```bash
+flutter pub get
+flutter run
+```
+Connects to backend at `http://localhost:5000`
 
 ## Features
 
-### Authentication & User Management
-- **Secure Authentication**: JWT-based login and registration with persistent sessions
-- **Public Nicknames**: Users choose a public nickname during registration. Nickname is displayed across the app while username remains private for login.
-- **User Profiles**: Comprehensive profile management with statistics and achievements
-- **Session Management**: Automatic token validation and refresh handling
+### Core Functionality
+- **Route Discovery**: Browse, filter, and search climbing routes
+- **User Authentication**: JWT-based login with nickname system
+- **Tick Tracking**: Log attempts, sends (top rope/lead), and flashes
+- **Social Features**: Like, comment, grade proposals, and warnings
+- **Performance Analytics**: Statistics, charts, and grade progression
+- **Localization**: English and French language support
+
+### UI/UX
+- **Material Design 3**: Modern theming with dynamic colors
+- **Responsive Design**: Adapts to different screen sizes
+- **Interactive Elements**: Smooth animations and feedback
+- **3D Wall Viewer**: Interactive climbing wall visualization
+
+## Project Structure
+
+```
+lib/
+├── main.dart              # App entry point
+├── models/                # Data models
+├── providers/             # State management (Provider)
+├── screens/               # Full-screen views
+├── services/              # API communication
+├── widgets/               # Reusable components
+├── l10n/                 # Localization files
+└── utils/                # Helper utilities
+```
+
+## Key Screens
+
+- **Login**: Authentication with registration
+- **Home**: Route listing with advanced filtering
+- **Route Detail**: Full route information and interactions
+- **Profile**: User statistics and climbing history
+- **Add Route**: Route creation form
+
+## State Management
+
+Uses Provider pattern for clean state management:
+- `AuthProvider` - Authentication and user session
+- `RouteProvider` - Route data and filtering
+- `ProfileProvider` - User statistics and history
+
+## Localization
+
+Supports English and French with:
+- 350+ translation keys
+- Date/time formatting
+- Number formatting
+- Pluralization support
+
+## Dependencies
+
+- Flutter 3.0+ - Mobile framework
+- Provider 6.0.5 - State management
+- HTTP 1.1.0 - API communication
+- SharedPreferences 2.2.2 - Local storage
+- JWT Decoder 2.0.1 - Token handling
+
+## Sample Users
+
+Login with: `admin/admin123` or `alice_johnson/password123`
 
 ### Route Discovery & Management
 - **Advanced Browsing**: Browse all climbing routes with detailed information

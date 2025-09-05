@@ -1,24 +1,74 @@
 # Crux Backend - Flask REST API
 
-A comprehensive Flask-based REST API for climbing gym route management with JWT authentication, user interactions, and comprehensive route tracking.
+Flask-based REST API for climbing gym route management with JWT authentication.
 
-## Overview
+## Quick Start
 
-The Crux backend provides a complete API for managing climbing gym routes, user authentication, and community interactions. Built with Flask and SQLAlchemy, it offers a robust foundation for climbing gym management systems.
+```bash
+pip install -r requirements.txt
+python app.py
+```
+API available at `http://localhost:5000`
 
-## Features
+## CLI Tool
 
-### Core Functionality
-- **JWT Authentication**: Secure user registration, login, and session management
-- **User Nicknames**: Public display name chosen at registration; usernames remain private for login. All interaction payloads expose `user_name` populated with the nickname.
-- **Route Management**: Complete CRUD operations with detailed route information
-- **French Grading System**: Uses the French rope climbing grade system (3a through 9c with + variants)
-- **Database-Defined Colors**: Hold colors and grade colors are defined and managed in the database with hex codes
-- **Color Consistency**: All colors are served with hex values ensuring consistent visual representation across clients
-- **User Interactions**: Comprehensive tracking of likes, comments, grade proposals, warnings, and advanced tick system with independent top rope/lead send tracking
-- **Project Management**: Users can mark routes as projects to track their goals, with automatic removal when lead sent
-- **Statistics & Analytics**: User performance tracking and climbing statistics
-- **Data Filtering**: Advanced filtering and sorting capabilities including project filtering
+Manage database from command line:
+```bash
+# Users
+python cli.py users list
+python cli.py users add --username john --nickname Johnny --email john@test.com --password Pass123!
+
+# Routes  
+python cli.py routes list
+python cli.py routes add --name "Test Route" --grade 6a+ --setter "John" --wall "Main Wall" --lane 1
+
+# Initialize sample data
+python cli.py db init
+```
+
+## Key API Endpoints
+
+### Authentication
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
+- `GET /api/auth/me` - Current user info
+
+### Routes
+- `GET /api/routes` - List routes (with filtering)
+- `GET /api/routes/{id}` - Route details
+- `POST /api/routes` - Create route
+
+### Interactions
+- `POST /api/routes/{id}/like` - Like route
+- `POST /api/routes/{id}/comments` - Add comment
+- `POST /api/routes/{id}/ticks` - Log climbing attempt
+- `POST /api/routes/{id}/grade-proposals` - Suggest grade
+- `POST /api/routes/{id}/warnings` - Report issue
+
+### Profile
+- `GET /api/user/ticks` - User's completed routes
+- `GET /api/user/stats` - Climbing statistics
+- `PUT /api/user/nickname` - Update display name
+
+## Database Models
+
+- **User**: Authentication and profile (username, nickname, email)
+- **Route**: Climbing routes (name, grade, setter, wall section, lane)
+- **Tick**: Climbing progress (attempts, sends by type, flashes)
+- **Like/Comment/Warning/GradeProposal**: User interactions
+
+## Sample Data
+
+**Users**: `admin/admin123`, `alice_johnson/password123`
+**Routes**: 6 sample routes from V1 to V6
+
+## Dependencies
+
+- Flask 2.3.3 - Web framework
+- SQLAlchemy 3.0.5 - Database ORM  
+- JWT-Extended 4.5.3 - Authentication
+- Bcrypt 1.0.1 - Password hashing
+- CORS 4.0.0 - Cross-origin support
 - **Sample Data**: Automatic initialization with realistic test data
 
 ### Security & Performance
