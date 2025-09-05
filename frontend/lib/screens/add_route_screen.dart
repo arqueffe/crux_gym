@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../models/route_models.dart' as models;
 import '../providers/route_provider.dart';
 import '../utils/color_utils.dart';
+import '../widgets/custom_app_bar.dart';
+import '../generated/l10n/app_localizations.dart';
 
 class AddRouteScreen extends StatefulWidget {
   const AddRouteScreen({super.key});
@@ -24,20 +26,27 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
 
   List<String> _grades = [];
   List<Map<String, dynamic>> _holdColors = [];
-  final _wallSections = [
-    'Overhang Wall',
-    'Slab Wall',
-    'Steep Wall',
-    'Vertical Wall',
-    'Cave Section',
-    'Roof Section'
-  ];
+  late List<String> _wallSections;
 
   @override
   void initState() {
     super.initState();
     _loadGradesAndColors();
     _loadLanes();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final l10n = AppLocalizations.of(context);
+    _wallSections = [
+      l10n.overhangWall,
+      l10n.slabWall,
+      l10n.steepWall,
+      l10n.verticalWall,
+      'Cave Section', // These don't seem to have translations yet
+      'Roof Section'
+    ];
   }
 
   Future<void> _loadGradesAndColors() async {
@@ -68,10 +77,11 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Add New Route'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+      appBar: CustomAppBar(
+        title: l10n.addNewRoute,
       ),
       body: Consumer<RouteProvider>(
         builder: (context, routeProvider, child) {
@@ -89,7 +99,7 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Route Information',
+                            l10n.routeInformation,
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
                           const SizedBox(height: 16),
@@ -97,14 +107,14 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
                           // Route Name
                           TextFormField(
                             controller: _nameController,
-                            decoration: const InputDecoration(
-                              labelText: 'Route Name *',
-                              border: OutlineInputBorder(),
-                              helperText: 'Enter a creative name for the route',
+                            decoration: InputDecoration(
+                              labelText: '${l10n.routeName} *',
+                              border: const OutlineInputBorder(),
+                              helperText: l10n.enterCreativeName,
                             ),
                             validator: (value) {
                               if (value == null || value.trim().isEmpty) {
-                                return 'Route name is required';
+                                return l10n.routeNameRequired;
                               }
                               return null;
                             },
@@ -113,10 +123,10 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
 
                           // Grade
                           DropdownButtonFormField<String>(
-                            decoration: const InputDecoration(
-                              labelText: 'Grade *',
-                              border: OutlineInputBorder(),
-                              helperText: 'Select the difficulty grade',
+                            decoration: InputDecoration(
+                              labelText: '${l10n.grade} *',
+                              border: const OutlineInputBorder(),
+                              helperText: l10n.selectDifficultyGrade,
                             ),
                             value: _selectedGrade,
                             items: _grades
@@ -129,7 +139,7 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
                                 setState(() => _selectedGrade = value),
                             validator: (value) {
                               if (value == null) {
-                                return 'Grade is required';
+                                return l10n.gradeRequired;
                               }
                               return null;
                             },
@@ -139,15 +149,14 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
                           // Route Setter
                           TextFormField(
                             controller: _routeSetterController,
-                            decoration: const InputDecoration(
-                              labelText: 'Route Setter *',
-                              border: OutlineInputBorder(),
-                              helperText:
-                                  'Name of the person who set this route',
+                            decoration: InputDecoration(
+                              labelText: '${l10n.routeSetter} *',
+                              border: const OutlineInputBorder(),
+                              helperText: l10n.nameOfPersonWhoSet,
                             ),
                             validator: (value) {
                               if (value == null || value.trim().isEmpty) {
-                                return 'Route setter name is required';
+                                return l10n.routeSetterRequired;
                               }
                               return null;
                             },
@@ -156,10 +165,10 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
 
                           // Wall Section
                           DropdownButtonFormField<String>(
-                            decoration: const InputDecoration(
-                              labelText: 'Wall Section *',
-                              border: OutlineInputBorder(),
-                              helperText: 'Location of the route in the gym',
+                            decoration: InputDecoration(
+                              labelText: '${l10n.wallSection} *',
+                              border: const OutlineInputBorder(),
+                              helperText: l10n.locationOfRouteInGym,
                             ),
                             value: _selectedWallSection,
                             items: _wallSections
@@ -172,7 +181,7 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
                                 setState(() => _selectedWallSection = value),
                             validator: (value) {
                               if (value == null) {
-                                return 'Wall section is required';
+                                return l10n.wallSectionRequired;
                               }
                               return null;
                             },
@@ -181,24 +190,23 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
 
                           // Lane
                           DropdownButtonFormField<int>(
-                            decoration: const InputDecoration(
-                              labelText: 'Lane *',
-                              border: OutlineInputBorder(),
-                              helperText:
-                                  'Select the lane number for this route',
+                            decoration: InputDecoration(
+                              labelText: '${l10n.lane} *',
+                              border: const OutlineInputBorder(),
+                              helperText: l10n.selectLaneNumber,
                             ),
                             value: _selectedLane,
                             items: routeProvider.laneNumbers
                                 .map((laneNumber) => DropdownMenuItem(
                                       value: laneNumber,
-                                      child: Text('Lane $laneNumber'),
+                                      child: Text(l10n.laneNumber(laneNumber)),
                                     ))
                                 .toList(),
                             onChanged: (value) =>
                                 setState(() => _selectedLane = value),
                             validator: (value) {
                               if (value == null) {
-                                return 'Lane is required';
+                                return l10n.laneRequired;
                               }
                               return null;
                             },
@@ -207,16 +215,16 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
 
                           // Color (optional)
                           DropdownButtonFormField<String>(
-                            decoration: const InputDecoration(
-                              labelText: 'Hold Color',
-                              border: OutlineInputBorder(),
-                              helperText: 'Color of the route holds (optional)',
+                            decoration: InputDecoration(
+                              labelText: l10n.holdColor,
+                              border: const OutlineInputBorder(),
+                              helperText: l10n.colorOfRouteHolds,
                             ),
                             value: _selectedColor,
                             items: [
-                              const DropdownMenuItem<String>(
+                              DropdownMenuItem<String>(
                                 value: null,
-                                child: Text('No specific color'),
+                                child: Text(l10n.noSpecificColor),
                               ),
                               ..._holdColors.map((colorData) {
                                 final colorName = colorData['name'] as String;
@@ -252,11 +260,10 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
                           // Description (optional)
                           TextFormField(
                             controller: _descriptionController,
-                            decoration: const InputDecoration(
-                              labelText: 'Description',
-                              border: OutlineInputBorder(),
-                              helperText:
-                                  'Optional description of the route style or features',
+                            decoration: InputDecoration(
+                              labelText: l10n.routeDescription,
+                              border: const OutlineInputBorder(),
+                              helperText: l10n.optionalDescriptionRoute,
                             ),
                             maxLines: 3,
                           ),
@@ -273,22 +280,22 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     child: routeProvider.isLoading
-                        ? const Row(
+                        ? Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              SizedBox(
+                              const SizedBox(
                                 width: 20,
                                 height: 20,
                                 child:
                                     CircularProgressIndicator(strokeWidth: 2),
                               ),
-                              SizedBox(width: 8),
-                              Text('Creating Route...'),
+                              const SizedBox(width: 8),
+                              Text(l10n.creatingRoute),
                             ],
                           )
-                        : const Text(
-                            'Create Route',
-                            style: TextStyle(fontSize: 16),
+                        : Text(
+                            l10n.createRoute,
+                            style: const TextStyle(fontSize: 16),
                           ),
                   ),
 
@@ -313,7 +320,7 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
                           ),
                           TextButton(
                             onPressed: () => routeProvider.clearError(),
-                            child: const Text('Dismiss'),
+                            child: Text(l10n.dismiss),
                           ),
                         ],
                       ),
@@ -356,7 +363,9 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
       if (success) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Route created successfully!')),
+            SnackBar(
+                content:
+                    Text(AppLocalizations.of(context).routeCreatedSuccess)),
           );
           Navigator.pop(context);
         }

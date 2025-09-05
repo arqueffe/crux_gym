@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../generated/l10n/app_localizations.dart';
 import 'home_screen.dart';
 import 'profile_screen.dart';
 import '../providers/route_provider.dart';
@@ -21,6 +22,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       body: _screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
@@ -37,14 +40,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             routeProvider.refreshRoutes();
           }
         },
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Routes',
+            icon: const Icon(Icons.home),
+            label: l10n.navRoutes,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
+            icon: const Icon(Icons.person),
+            label: l10n.navProfile,
           ),
         ],
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../generated/l10n/app_localizations.dart';
 import '../models/route_models.dart' as models;
 import '../providers/route_provider.dart';
 import '../providers/auth_provider.dart';
@@ -83,6 +84,8 @@ class _RouteInteractionsState extends State<RouteInteractions> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return SizedBox(
         width: double.infinity,
         child: Card(
@@ -92,7 +95,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Interactions',
+                  l10n.interactions,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 16),
@@ -108,7 +111,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                         _isLiked ? Icons.favorite : Icons.favorite_border,
                         color: _isLiked ? Colors.red : null,
                       ),
-                      label: Text(_isLiked ? 'Liked' : 'Like'),
+                      label: Text(_isLiked ? l10n.unlikeRoute : l10n.likeRoute),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _isLiked
                             ? Colors.red.shade50
@@ -123,7 +126,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                             : Icons.check_circle_outline,
                         color: _isTicked ? Colors.green : null,
                       ),
-                      label: Text(_isTicked ? 'Progress' : 'Track'),
+                      label: Text(_isTicked ? l10n.progress : l10n.track),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _isTicked
                             ? Colors.green.shade50
@@ -136,7 +139,8 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                         _isProject ? Icons.flag : Icons.flag_outlined,
                         color: _isProject ? Colors.blue : null,
                       ),
-                      label: Text(_isProject ? 'Project' : 'Set Project'),
+                      label: Text(
+                          _isProject ? l10n.removeProject : l10n.projectRoute),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _isProject
                             ? Colors.blue.shade50
@@ -146,17 +150,17 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                     ElevatedButton.icon(
                       onPressed: () => _showCommentDialog(),
                       icon: const Icon(Icons.comment),
-                      label: const Text('Comment'),
+                      label: Text(l10n.comment),
                     ),
                     ElevatedButton.icon(
                       onPressed: () => _showGradeProposalDialog(),
                       icon: const Icon(Icons.grade),
-                      label: const Text('Propose Grade'),
+                      label: Text(l10n.proposeGrade),
                     ),
                     ElevatedButton.icon(
                       onPressed: () => _showWarningDialog(),
                       icon: const Icon(Icons.warning),
-                      label: const Text('Report Issue'),
+                      label: Text(l10n.reportIssue),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange.shade50,
                         foregroundColor: Colors.orange.shade700,
@@ -197,7 +201,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                                 color: Theme.of(context).colorScheme.primary),
                             const SizedBox(width: 8),
                             Text(
-                              'Your Progress',
+                              l10n.yourProgress,
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: Theme.of(context).colorScheme.primary,
@@ -222,7 +226,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                               size: 16,
                             ),
                             const SizedBox(width: 4),
-                            const Text('Top Rope'),
+                            Text(l10n.topRope),
                             if (_tickData!['top_rope_flash'] == true)
                               const Text(' (Flash)',
                                   style: TextStyle(
@@ -245,7 +249,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                               size: 16,
                             ),
                             const SizedBox(width: 4),
-                            const Text('Lead'),
+                            Text(l10n.lead),
                             if (_tickData!['lead_flash'] == true)
                               const Text(' (Flash)',
                                   style: TextStyle(
@@ -350,96 +354,101 @@ class _RouteInteractionsState extends State<RouteInteractions> {
   }
 
   void _showTickManagementDialog() {
+    final l10n = AppLocalizations.of(context);
+
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Manage Tick'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Current tick information
-                if (_tickData != null) ...[
-                  const Text('Current Progress:',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Text('Attempts: ${_tickData!['attempts'] ?? 0}'),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(
-                          _tickData!['top_rope_send'] == true
-                              ? Icons.check
-                              : Icons.close,
-                          color: _tickData!['top_rope_send'] == true
-                              ? Colors.green
-                              : Colors.red,
-                          size: 16),
-                      const SizedBox(width: 4),
-                      const Text('Top Rope Send'),
-                      if (_tickData!['top_rope_flash'] == true)
-                        const Text(' (Flash)',
-                            style: TextStyle(
-                                color: Colors.orange,
-                                fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(
-                          _tickData!['lead_send'] == true
-                              ? Icons.check
-                              : Icons.close,
-                          color: _tickData!['lead_send'] == true
-                              ? Colors.green
-                              : Colors.red,
-                          size: 16),
-                      const SizedBox(width: 4),
-                      const Text('Lead Send'),
-                      if (_tickData!['lead_flash'] == true)
-                        const Text(' (Flash)',
-                            style: TextStyle(
-                                color: Colors.orange,
-                                fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  if (_tickData!['notes'] != null &&
-                      _tickData!['notes'].isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    const Text('Notes:',
+        builder: (context, setState) {
+          final l10n = AppLocalizations.of(context);
+          return AlertDialog(
+            title: Text(l10n.manageTick),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Current tick information
+                  if (_tickData != null) ...[
+                    const Text('Current Progress:', // Add to ARB
                         style: TextStyle(fontWeight: FontWeight.bold)),
-                    Text(_tickData!['notes']),
+                    const SizedBox(height: 8),
+                    Text('${l10n.attempts}: ${_tickData!['attempts'] ?? 0}'),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(
+                            _tickData!['top_rope_send'] == true
+                                ? Icons.check
+                                : Icons.close,
+                            color: _tickData!['top_rope_send'] == true
+                                ? Colors.green
+                                : Colors.red,
+                            size: 16),
+                        const SizedBox(width: 4),
+                        Text(l10n.topRope + ' Send'), // Will fix this later
+                        if (_tickData!['top_rope_flash'] == true)
+                          const Text(' (Flash)',
+                              style: TextStyle(
+                                  color: Colors.orange,
+                                  fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(
+                            _tickData!['lead_send'] == true
+                                ? Icons.check
+                                : Icons.close,
+                            color: _tickData!['lead_send'] == true
+                                ? Colors.green
+                                : Colors.red,
+                            size: 16),
+                        const SizedBox(width: 4),
+                        Text(l10n.leadSend),
+                        if (_tickData!['lead_flash'] == true)
+                          const Text(' (Flash)',
+                              style: TextStyle(
+                                  color: Colors.orange,
+                                  fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    if (_tickData!['notes'] != null &&
+                        _tickData!['notes'].isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      const Text('Notes:',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      Text(_tickData!['notes']),
+                    ],
+                    const SizedBox(height: 16),
                   ],
-                  const SizedBox(height: 16),
                 ],
-              ],
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Close'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _showAddProgressDialog();
-              },
-              child: const Text('Add Progress'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _showRemoveTickDialog();
-              },
-              child: const Text('Remove Tick',
-                  style: TextStyle(color: Colors.red)),
-            ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(l10n.close),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _showAddProgressDialog();
+                },
+                child: Text(l10n.addProgress),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _showRemoveTickDialog();
+                },
+                child: Text(l10n.removeTick,
+                    style: const TextStyle(color: Colors.red)),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -447,30 +456,33 @@ class _RouteInteractionsState extends State<RouteInteractions> {
   void _showNewTickDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Track Progress'),
-        content: const Text('What would you like to track for this route?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _showAddAttemptsDialog();
-            },
-            child: const Text('Add Attempts'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _showMarkSendDialog();
-            },
-            child: const Text('Mark Send'),
-          ),
-        ],
-      ),
+      builder: (context) {
+        final l10n = AppLocalizations.of(context);
+        return AlertDialog(
+          title: Text(l10n.trackProgress),
+          content: const Text('What would you like to track for this route?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n.cancel),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _showAddAttemptsDialog();
+              },
+              child: Text(l10n.addAttempts),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _showMarkSendDialog();
+              },
+              child: Text(l10n.markSend),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -483,79 +495,83 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Add Attempts'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  const Text('Attempts: '),
-                  Expanded(
-                    child: Slider(
-                      value: attempts.toDouble(),
-                      min: 1,
-                      max: 20,
-                      divisions: 19,
-                      label: attempts.toString(),
-                      onChanged: (value) {
-                        setState(() {
-                          attempts = value.round();
-                        });
-                      },
+        builder: (context, setState) {
+          final l10n = AppLocalizations.of(context);
+          return AlertDialog(
+            title: Text(l10n.addAttempts),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    const Text('Attempts: '),
+                    Expanded(
+                      child: Slider(
+                        value: attempts.toDouble(),
+                        min: 1,
+                        max: 20,
+                        divisions: 19,
+                        label: attempts.toString(),
+                        onChanged: (value) {
+                          setState(() {
+                            attempts = value.round();
+                          });
+                        },
+                      ),
                     ),
-                  ),
-                  Text(attempts.toString()),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: notesController,
-                decoration: InputDecoration(
-                  labelText: 'Notes (optional)',
-                  border: const OutlineInputBorder(),
-                  helperText: _tickData?['notes'] != null &&
-                          _tickData!['notes'].toString().isNotEmpty
-                      ? 'Your previous notes are loaded. You can edit or add to them.'
-                      : 'Add notes about your attempts',
-                  suffixIcon: _tickData?['notes'] != null &&
-                          _tickData!['notes'].toString().isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.add),
-                          tooltip: 'Add entry below existing notes',
-                          onPressed: () {
-                            final currentNotes = notesController.text;
-                            final newEntry =
-                                '\n\n--- ${DateTime.now().toString().split('.')[0]} ---\n';
-                            notesController.text = currentNotes + newEntry;
-                            notesController.selection =
-                                TextSelection.fromPosition(
-                              TextPosition(offset: notesController.text.length),
-                            );
-                          },
-                        )
-                      : null,
+                    Text(attempts.toString()),
+                  ],
                 ),
-                maxLines: 3,
-                onChanged: (value) => notes = value,
+                const SizedBox(height: 16),
+                TextField(
+                  controller: notesController,
+                  decoration: InputDecoration(
+                    labelText: 'Notes (optional)',
+                    border: const OutlineInputBorder(),
+                    helperText: _tickData?['notes'] != null &&
+                            _tickData!['notes'].toString().isNotEmpty
+                        ? 'Your previous notes are loaded. You can edit or add to them.'
+                        : l10n.addNotesAttempts,
+                    suffixIcon: _tickData?['notes'] != null &&
+                            _tickData!['notes'].toString().isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.add),
+                            tooltip: 'Add entry below existing notes',
+                            onPressed: () {
+                              final currentNotes = notesController.text;
+                              final newEntry =
+                                  '\n\n--- ${DateTime.now().toString().split('.')[0]} ---\n';
+                              notesController.text = currentNotes + newEntry;
+                              notesController.selection =
+                                  TextSelection.fromPosition(
+                                TextPosition(
+                                    offset: notesController.text.length),
+                              );
+                            },
+                          )
+                        : null,
+                  ),
+                  maxLines: 3,
+                  onChanged: (value) => notes = value,
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(l10n.cancel),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _addAttempts(
+                      attempts: attempts, notes: notesController.text.trim());
+                },
+                child: Text(l10n.add),
               ),
             ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _addAttempts(
-                    attempts: attempts, notes: notesController.text.trim());
-              },
-              child: const Text('Add'),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -569,76 +585,81 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Mark Send'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Send Type:'),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                value: sendType,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
+        builder: (context, setState) {
+          final l10n = AppLocalizations.of(context);
+          return AlertDialog(
+            title: Text(l10n.markSend),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Send Type:'),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  value: sendType,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                  ),
+                  items: [
+                    DropdownMenuItem(
+                        value: 'top_rope', child: Text(l10n.topRope)),
+                    DropdownMenuItem(value: 'lead', child: Text(l10n.lead)),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      sendType = value ?? 'top_rope';
+                    });
+                  },
                 ),
-                items: const [
-                  DropdownMenuItem(value: 'top_rope', child: Text('Top Rope')),
-                  DropdownMenuItem(value: 'lead', child: Text('Lead')),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    sendType = value ?? 'top_rope';
-                  });
-                },
+                const SizedBox(height: 16),
+                TextField(
+                  controller: notesController,
+                  decoration: InputDecoration(
+                    labelText: 'Notes (optional)',
+                    border: const OutlineInputBorder(),
+                    helperText: _tickData?['notes'] != null &&
+                            _tickData!['notes'].toString().isNotEmpty
+                        ? 'Your previous notes are loaded. You can edit or add to them.'
+                        : l10n.addNotesSend,
+                    suffixIcon: _tickData?['notes'] != null &&
+                            _tickData!['notes'].toString().isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.add),
+                            tooltip: 'Add entry below existing notes',
+                            onPressed: () {
+                              final currentNotes = notesController.text;
+                              final newEntry =
+                                  '\n\n--- ${DateTime.now().toString().split('.')[0]} ---\n';
+                              notesController.text = currentNotes + newEntry;
+                              notesController.selection =
+                                  TextSelection.fromPosition(
+                                TextPosition(
+                                    offset: notesController.text.length),
+                              );
+                            },
+                          )
+                        : null,
+                  ),
+                  maxLines: 3,
+                  onChanged: (value) => notes = value,
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(l10n.cancel),
               ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: notesController,
-                decoration: InputDecoration(
-                  labelText: 'Notes (optional)',
-                  border: const OutlineInputBorder(),
-                  helperText: _tickData?['notes'] != null &&
-                          _tickData!['notes'].toString().isNotEmpty
-                      ? 'Your previous notes are loaded. You can edit or add to them.'
-                      : 'Add notes about this send',
-                  suffixIcon: _tickData?['notes'] != null &&
-                          _tickData!['notes'].toString().isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.add),
-                          tooltip: 'Add entry below existing notes',
-                          onPressed: () {
-                            final currentNotes = notesController.text;
-                            final newEntry =
-                                '\n\n--- ${DateTime.now().toString().split('.')[0]} ---\n';
-                            notesController.text = currentNotes + newEntry;
-                            notesController.selection =
-                                TextSelection.fromPosition(
-                              TextPosition(offset: notesController.text.length),
-                            );
-                          },
-                        )
-                      : null,
-                ),
-                maxLines: 3,
-                onChanged: (value) => notes = value,
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _markSend(
+                      sendType: sendType, notes: notesController.text.trim());
+                },
+                child: Text(l10n.markSend),
               ),
             ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _markSend(
-                    sendType: sendType, notes: notesController.text.trim());
-              },
-              child: const Text('Mark Send'),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -646,54 +667,61 @@ class _RouteInteractionsState extends State<RouteInteractions> {
   void _showAddProgressDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Progress'),
-        content: const Text('What would you like to add?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _showAddAttemptsDialog();
-            },
-            child: const Text('Add Attempts'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _showMarkSendDialog();
-            },
-            child: const Text('Mark Send'),
-          ),
-        ],
-      ),
+      builder: (context) {
+        final l10n = AppLocalizations.of(context);
+        return AlertDialog(
+          title: Text(l10n.addProgress),
+          content: const Text('What would you like to add?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n.cancel),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _showAddAttemptsDialog();
+              },
+              child: Text(l10n.addAttempts),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _showMarkSendDialog();
+              },
+              child: Text(l10n.markSend),
+            ),
+          ],
+        );
+      },
     );
   }
 
   void _showRemoveTickDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Remove Tick'),
-        content: const Text(
-            'Are you sure you want to remove all progress for this route?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _untickRoute();
-            },
-            child: const Text('Remove', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+      builder: (context) {
+        final l10n = AppLocalizations.of(context);
+        return AlertDialog(
+          title: Text(l10n.removeTick),
+          content: const Text(
+              'Are you sure you want to remove all progress for this route?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n.cancel),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _untickRoute();
+              },
+              child:
+                  Text(l10n.remove, style: const TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -727,9 +755,10 @@ class _RouteInteractionsState extends State<RouteInteractions> {
         _checkIfProject(); // Also check project status as it may have changed
       }
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('Marked ${sendType.replaceAll('_', ' ')} send!')),
+              content: Text(l10n.markedSend(sendType.replaceAll('_', ' ')))),
         );
       }
     } catch (e) {
@@ -749,10 +778,11 @@ class _RouteInteractionsState extends State<RouteInteractions> {
 
     if (success) {
       _checkIfTicked();
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Tick removed'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(l10n.tickRemoved),
+          duration: const Duration(seconds: 2),
         ),
       );
     } else {
@@ -770,33 +800,36 @@ class _RouteInteractionsState extends State<RouteInteractions> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Comment'),
-        content: TextField(
-          controller: commentController,
-          decoration: const InputDecoration(
-            labelText: 'Your comment',
-            border: OutlineInputBorder(),
+      builder: (context) {
+        final l10n = AppLocalizations.of(context);
+        return AlertDialog(
+          title: Text(l10n.addComment),
+          content: TextField(
+            controller: commentController,
+            decoration: InputDecoration(
+              labelText: l10n.yourComment,
+              border: const OutlineInputBorder(),
+            ),
+            maxLines: 4,
+            autofocus: true,
           ),
-          maxLines: 4,
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              if (commentController.text.trim().isNotEmpty) {
-                Navigator.pop(context);
-                _addComment(commentController.text.trim());
-              }
-            },
-            child: const Text('Add Comment'),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                if (commentController.text.trim().isNotEmpty) {
+                  Navigator.pop(context);
+                  _addComment(commentController.text.trim());
+                }
+              },
+              child: const Text('Add Comment'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -864,6 +897,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) {
+          final l10n = AppLocalizations.of(context);
           return AlertDialog(
             title: Text(existingProposal != null
                 ? 'Update Grade Proposal'
@@ -901,11 +935,11 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                 ],
                 DropdownButtonFormField<String>(
                   decoration: InputDecoration(
-                    labelText: 'Proposed Grade',
+                    labelText: l10n.proposedGrade,
                     border: const OutlineInputBorder(),
                     helperText: existingProposal != null
-                        ? 'You can change your proposed grade'
-                        : 'Select a grade to propose',
+                        ? l10n.changeProposedGrade
+                        : l10n.selectGradeToPropose,
                   ),
                   value: selectedGrade,
                   items: grades

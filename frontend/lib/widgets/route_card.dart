@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../generated/l10n/app_localizations.dart';
 import '../models/route_models.dart' as models;
 import '../providers/route_provider.dart';
 import '../utils/color_utils.dart';
@@ -18,6 +19,8 @@ class RouteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
@@ -155,7 +158,7 @@ class RouteCard extends StatelessWidget {
                       color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 4),
                   Text(
-                    'Set by ${route.routeSetter}',
+                    l10n.setBy(route.routeSetter),
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
@@ -181,7 +184,7 @@ class RouteCard extends StatelessWidget {
                       color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 4),
                   Text(
-                    'Lane ${route.lane}',
+                    l10n.laneNumber(route.lane),
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),

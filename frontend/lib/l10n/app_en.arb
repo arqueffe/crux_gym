@@ -1,0 +1,364 @@
+{
+  "@@locale": "en",
+  "@@last_modified": "2025-09-05T10:00:00.000Z",
+  
+  "@_APP_TITLE": {},
+  "appTitle": "Climbing Gym Routes",
+  
+  "@_NAVIGATION": {},
+  "navRoutes": "Routes",
+  "navProfile": "Profile",
+  
+  "@_COMMON": {},
+  "cancel": "Cancel",
+  "save": "Save",
+  "delete": "Delete",
+  "edit": "Edit",
+  "close": "Close",
+  "retry": "Retry",
+  "loading": "Loading...",
+  "error": "Error",
+  "success": "Success",
+  "confirm": "Confirm",
+  "yes": "Yes",
+  "no": "No",
+  "ok": "OK",
+  "add": "Add",
+  "update": "Update",
+  "remove": "Remove",
+  "search": "Search",
+  
+  "@_AUTHENTICATION": {},
+  "loginTitle": "Sign In",
+  "registerTitle": "Create Account",
+  "logout": "Logout",
+  "logoutConfirmTitle": "Logout",
+  "logoutConfirmMessage": "Are you sure you want to logout?",
+  "username": "Username (for login)",
+  "nickname": "Nickname (public display name)",
+  "email": "Email",
+  "password": "Password",
+  "pleaseEnterUsername": "Please enter your username",
+  "pleaseEnterNickname": "Please enter your nickname",
+  "pleaseEnterEmail": "Please enter your email",
+  "pleaseEnterPassword": "Please enter your password",
+  "usernameMinLength": "Username must be at least 3 characters",
+  "nicknameLength": "Nickname must be 3-20 characters",
+  "nicknameFormat": "Only letters, numbers, and underscores",
+  "emailInvalid": "Please enter a valid email address",
+  "passwordMinLength": "Password must be at least 6 characters",
+  "signInButton": "Sign In",
+  "createAccountButton": "Create Account",
+  "switchToRegister": "Don't have an account? Sign up",
+  "switchToLogin": "Already have an account? Sign in",
+  "initializing": "Initializing...",
+  
+  "@_PROFILE": {},
+  "profileTitle": "Profile",
+  "editNickname": "Edit Nickname",
+  "editNicknameTooltip": "Edit nickname",
+  "nicknameUpdated": "Nickname updated",
+  "updateFailed": "Update failed",
+  "memberSince": "Member since {date}",
+  "@memberSince": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "darkMode": "Dark mode",
+  "languageSettings": "Language",
+  "performanceTab": "Performance",
+  "routesTab": "Routes",
+  "ticksTab": "Ticks",
+  "likesTab": "Likes",
+  "projectsTab": "Projects",
+  "noTicksFound": "No ticks found",
+  "noTicksDescription": "Complete some routes to see them here",
+  "noLikesFound": "No liked routes found",
+  "noLikesDescription": "Like some routes to see them here",
+  "noProjectsFound": "No projects found",
+  "noProjectsDescription": "Mark routes as projects to track your goals",
+  "gradeBreakdown": "Grade Breakdown",
+  "hardestGrade": "Hardest Grade",
+  "totalTicks": "Total Sends",
+  "totalAttempts": "Avg. Attempts",
+  "topRopeFlash": "TR Flash",
+  "leadFlash": "Lead Flash",
+  "flashRate": "Flash Rate",
+  "averageAttempts": "Avg. Attempts",
+  
+  "@_ROUTES": {},
+  "routeTitle": "Route Details",
+  "addRoute": "Add Route",
+  "routeName": "Route Name",
+  "routeNameRequired": "Route name is required",
+  "routeNameHelper": "Give your route a memorable name",
+  "grade": "Grade",
+  "gradeRequired": "Grade is required",
+  "gradeHelper": "Select the difficulty grade",
+  "routeSetter": "Route Setter",
+  "routeSetterRequired": "Route setter name is required",
+  "routeSetterHelper": "Name of the person who set this route",
+  "wallSection": "Wall Section",
+  "wallSectionRequired": "Wall section is required",
+  "wallSectionHelper": "Which section of the climbing wall",
+  "lane": "Lane",
+  "laneRequired": "Lane is required",
+  "laneHelper": "Lane number on the wall",
+  "laneNumber": "Lane {number}",
+  "@laneNumber": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "holdColor": "Hold Color",
+  "holdColorHelper": "Color of the route holds (optional)",
+  "noSpecificColor": "No specific color",
+  "routeDescription": "Description",
+  "routeDescriptionHelper": "Additional details about the route (optional)",
+  "setBy": "Set by {setter}",
+  "@setBy": {
+    "placeholders": {
+      "setter": {
+        "type": "String"
+      }
+    }
+  },
+  "unknownRoute": "Unknown Route",
+  
+  "@_ADD_ROUTE": {},
+  "addNewRoute": "Add New Route",
+  "routeInformation": "Route Information",
+  "createRoute": "Create Route",
+  "creatingRoute": "Creating Route...",
+  "routeCreatedSuccess": "Route created successfully!",
+  "dismiss": "Dismiss",
+  "enterCreativeName": "Enter a creative name for the route",
+  "selectDifficultyGrade": "Select the difficulty grade",
+  "nameOfPersonWhoSet": "Name of the person who set this route",
+  "locationOfRouteInGym": "Location of the route in the gym",
+  "selectLaneNumber": "Select the lane number for this route",
+  "colorOfRouteHolds": "Color of the route holds (optional)",
+  "optionalDescriptionRoute": "Optional description of the route style or features",
+  
+  "@_ROUTE_INTERACTIONS": {},
+  "markSend": "Mark Send",
+  "addProgress": "Add Progress",
+  "addAttempts": "Add Attempts",
+  "reportIssue": "Report Issue",
+  "sendType": "Send Type:",
+  "topRope": "Top Rope",
+  "lead": "Lead",
+  "notes": "Notes:",
+  "notesHelper": "Add any notes about your send (optional)",
+  "addTimestamp": "Add timestamp",
+  "attempts": "Attempts:",
+  "@attempts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "attemptsCount": "{count} {count, plural, =1{attempt} other{attempts}}",
+  "attemptsHelper": "How many attempts did it take?",
+  "issueType": "Issue Type",
+  "brokenHold": "Broken Hold",
+  "safetyIssue": "Safety Issue",
+  "needsCleaning": "Needs Cleaning",
+  "looseHold": "Loose Hold",
+  "other": "Other",
+  "issueDescription": "Description",
+  "issueDescriptionHelper": "Describe the issue",
+  "submitReport": "Submit Report",
+  "projectRoute": "Add to Projects",
+  "removeProject": "Remove from Projects",
+  "likeRoute": "Like",
+  "unlikeRoute": "Unlike",
+  
+  "@_SEND_TYPES": {},
+  "topRopeShort": "TR",
+  "leadShort": "Lead",
+  "flash": "⚡",
+  
+  "@_TIME_FILTERS": {},
+  "filterAll": "All Time",
+  "filterThisWeek": "This Week",
+  "filterThisMonth": "This Month",
+  "filterThisYear": "This Year",
+  "filterLast3Months": "Last 3 Months",
+  
+  "@_LANGUAGES": {},
+  "languageEnglish": "English",
+  "languageFrench": "Français",
+  "languageSpanish": "Español",
+  "languageGerman": "Deutsch",
+  "languageItalian": "Italiano",
+  "languageJapanese": "日本語",
+  "languageChinese": "中文",
+  
+  "@_COLORS": {},
+  "colorRed": "Red",
+  "colorBlue": "Blue",
+  "colorGreen": "Green",
+  "colorYellow": "Yellow",
+  "colorOrange": "Orange",
+  "colorPurple": "Purple",
+  "colorPink": "Pink",
+  "colorBlack": "Black",
+  "colorWhite": "White",
+  "colorGray": "Gray",
+  "colorBrown": "Brown",
+  
+  "@_ADDITIONAL_INTERACTIONS": {},
+  "interactions": "Interactions",
+  "yourProgress": "Your Progress",
+  "removeTick": "Remove Tick",
+  "addNotesAttempts": "Add notes about your attempts",
+  "addEntryBelowNotes": "Add entry below existing notes",
+  "addNotesSend": "Add notes about this send",
+  "markedSend": "Marked {sendType} send!",
+  "@markedSend": {
+    "placeholders": {
+      "sendType": {
+        "type": "String"
+      }
+    }
+  },
+  "yourComment": "Your comment",
+  "proposedGrade": "Proposed Grade",
+  "selectGradeToPropose": "Select a grade to propose",
+  "changeProposedGrade": "You can change your proposed grade",
+  
+  "@_WALL_SECTIONS": {},
+  "overhangWall": "Overhang Wall",
+  "slabWall": "Slab Wall",
+  "steepWall": "Steep Wall",
+  "verticalWall": "Vertical Wall",
+  "caveSection": "Cave Section",
+  "roofSection": "Roof Section",
+  
+  "@_ROUTE_DETAIL": {},
+  "comments": "Comments",
+  "gradeProposals": "Grade Proposals", 
+  "warnings": "Warnings",
+  
+  "@_HOME_SCREEN": {},
+  "filters": "Filters",
+  "clearAll": "Clear All",
+  "noRoutesFound": "No routes found",
+  "adjustFiltersOrAddRoute": "Try adjusting your filters or add a new route",
+  "unknown": "Unknown",
+  
+  "@_ROUTE_INTERACTIONS_EXTENDED": {},
+  "progress": "Progress",
+  "track": "Track",
+  "comment": "Comment",
+  "proposeGrade": "Propose Grade",
+  "manageTick": "Manage Tick",
+  "leadSend": "Lead Send",
+  "trackProgress": "Track Progress",
+  "tickRemoved": "Tick removed",
+  "addComment": "Add Comment",
+  
+  "@_FILTER_DRAWER": {},
+  "filtersAndSorting": "Filters & Sorting",
+  "sortBy": "Sort By",
+  "basicFilters": "Basic Filters",
+  "userInteractions": "User Interactions",
+  "clearAllFilters": "Clear All Filters",
+  "sortby": "Sort by",
+  "allSections": "All Sections",
+  "allGrades": "All Grades",
+  "allLanes": "All Lanes",
+  "allRouteSetters": "All Route Setters",
+  "tickedRoutes": "Ticked Routes",
+  "likedRoutes": "Liked Routes",
+  "warnedRoutes": "Warned Routes",
+  "projectRoutes": "Project Routes",
+  
+  "@_SORT_OPTIONS": {},
+  "newestFirst": "Newest First",
+  "oldestFirst": "Oldest First",
+  "nameAZ": "Name (A-Z)",
+  "nameZA": "Name (Z-A)",
+  "gradeEasyToHard": "Grade (Easy to Hard)",
+  "gradeHardToEasy": "Grade (Hard to Easy)",
+  "mostLikes": "Most Likes",
+  "leastLikes": "Least Likes",
+  "mostComments": "Most Comments",
+  "leastComments": "Least Comments",
+  "mostTicks": "Most Ticks",
+  "leastTicks": "Least Ticks",
+  
+  "@_FILTER_STATES": {},
+  "filterStateAll": "All",
+  "filterStateOnly": "Only",
+  "filterStateExclude": "Exclude",
+  
+  "@_PERFORMANCE_SUMMARY": {},
+  "noPerformanceData": "No performance data available",
+  "performanceSummary": "Performance Summary",
+  "trFlash": "TR Flash",
+  "allTimeStats": "All-Time Stats",
+  "totalLikesGiven": "Total Likes Given",
+  "commentsPosted": "Comments Posted",
+  "wallSectionsClimbed": "Wall Sections Climbed",
+  "gradesAchieved": "Grades Achieved",
+  
+  "@_GRADE_BREAKDOWN": {},
+  "noGradeData": "No grade data available",
+  "completed": "Completed",
+  "flashed": "Flashed",
+  "detailedStatistics": "Detailed Statistics",
+  "routesCompleted": "Routes Completed:",
+  "flashes": "Flashes",
+  "totalAttemptsColon": "Total Attempts:",
+  "gradeStatistics": "{grade} Statistics",
+  "@gradeStatistics": {
+    "placeholders": {
+      "grade": {
+        "type": "String"
+      }
+    }
+  },
+  
+  "@_ROUTE_CARDS": {},
+  "added": "Added",
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "daysAgo": "{count} days ago",
+  "@daysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "weekAgo": "1 week ago",
+  "weeksAgo": "{count} weeks ago",
+  "@weeksAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "monthAgo": "1 month ago",
+  "monthsAgo": "{count} months ago",
+  "@monthsAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  
+  "@_REPORTING": {},
+  "report": "Report",
+  "propose": "Propose"
+}

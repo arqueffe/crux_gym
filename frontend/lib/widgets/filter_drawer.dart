@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/route_provider.dart';
+import '../generated/l10n/app_localizations.dart';
 
 class FilterDrawer extends StatelessWidget {
   const FilterDrawer({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Drawer(
       width: 400,
       child: Consumer<RouteProvider>(
@@ -31,7 +34,7 @@ class FilterDrawer extends StatelessWidget {
                         ),
                         const SizedBox(width: 16),
                         Text(
-                          'Filters & Sorting',
+                          l10n.filtersAndSorting,
                           style: Theme.of(context)
                               .textTheme
                               .headlineSmall
@@ -51,33 +54,33 @@ class FilterDrawer extends StatelessWidget {
                   padding: const EdgeInsets.all(16),
                   children: [
                     // Sorting section
-                    _buildSectionHeader('Sort By'),
+                    _buildSectionHeader(l10n.sortBy),
                     const SizedBox(height: 8),
-                    _buildSortDropdown(context, routeProvider),
+                    _buildSortDropdown(context, routeProvider, l10n),
                     const SizedBox(height: 24),
 
                     // Basic filters section
-                    _buildSectionHeader('Basic Filters'),
+                    _buildSectionHeader(l10n.basicFilters),
                     const SizedBox(height: 8),
-                    _buildWallSectionFilter(routeProvider),
+                    _buildWallSectionFilter(routeProvider, l10n),
                     const SizedBox(height: 16),
-                    _buildGradeFilter(routeProvider),
+                    _buildGradeFilter(routeProvider, l10n),
                     const SizedBox(height: 16),
-                    _buildLaneFilter(routeProvider),
+                    _buildLaneFilter(routeProvider, l10n),
                     const SizedBox(height: 16),
-                    _buildRouteSetterFilter(routeProvider),
+                    _buildRouteSetterFilter(routeProvider, l10n),
                     const SizedBox(height: 24),
 
                     // User interaction filters
-                    _buildSectionHeader('User Interactions'),
+                    _buildSectionHeader(l10n.userInteractions),
                     const SizedBox(height: 12),
-                    _buildTickedFilter(routeProvider),
+                    _buildTickedFilter(routeProvider, l10n),
                     const SizedBox(height: 16),
-                    _buildLikedFilter(routeProvider),
+                    _buildLikedFilter(routeProvider, l10n),
                     const SizedBox(height: 16),
-                    _buildWarnedFilter(routeProvider),
+                    _buildWarnedFilter(routeProvider, l10n),
                     const SizedBox(height: 16),
-                    _buildProjectFilter(routeProvider),
+                    _buildProjectFilter(routeProvider, l10n),
                     const SizedBox(height: 32),
 
                     // Clear filters button
@@ -85,7 +88,7 @@ class FilterDrawer extends StatelessWidget {
                       ElevatedButton.icon(
                         onPressed: () => routeProvider.clearAllFilters(),
                         icon: const Icon(Icons.clear_all),
-                        label: const Text('Clear All Filters'),
+                        label: Text(l10n.clearAllFilters),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red[100],
                           foregroundColor: Colors.red[800],
@@ -113,18 +116,19 @@ class FilterDrawer extends StatelessWidget {
     );
   }
 
-  Widget _buildSortDropdown(BuildContext context, RouteProvider routeProvider) {
+  Widget _buildSortDropdown(BuildContext context, RouteProvider routeProvider,
+      AppLocalizations l10n) {
     return DropdownButtonFormField<SortOption>(
-      decoration: const InputDecoration(
-        labelText: 'Sort by',
-        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        border: OutlineInputBorder(),
+      decoration: InputDecoration(
+        labelText: l10n.sortby,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        border: const OutlineInputBorder(),
       ),
       value: routeProvider.selectedSort,
       items: SortOption.values.map((option) {
         return DropdownMenuItem<SortOption>(
           value: option,
-          child: Text(option.displayName),
+          child: Text(option.getDisplayName(l10n)),
         );
       }).toList(),
       onChanged: (value) {
@@ -135,18 +139,19 @@ class FilterDrawer extends StatelessWidget {
     );
   }
 
-  Widget _buildWallSectionFilter(RouteProvider routeProvider) {
+  Widget _buildWallSectionFilter(
+      RouteProvider routeProvider, AppLocalizations l10n) {
     return DropdownButtonFormField<String>(
-      decoration: const InputDecoration(
-        labelText: 'Wall Section',
-        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        border: OutlineInputBorder(),
+      decoration: InputDecoration(
+        labelText: l10n.wallSection,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        border: const OutlineInputBorder(),
       ),
       value: routeProvider.selectedWallSection,
       items: [
-        const DropdownMenuItem<String>(
+        DropdownMenuItem<String>(
           value: null,
-          child: Text('All Sections'),
+          child: Text(l10n.allSections),
         ),
         ...routeProvider.wallSections.map(
           (section) => DropdownMenuItem<String>(
@@ -161,18 +166,18 @@ class FilterDrawer extends StatelessWidget {
     );
   }
 
-  Widget _buildGradeFilter(RouteProvider routeProvider) {
+  Widget _buildGradeFilter(RouteProvider routeProvider, AppLocalizations l10n) {
     return DropdownButtonFormField<String>(
-      decoration: const InputDecoration(
-        labelText: 'Grade',
-        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        border: OutlineInputBorder(),
+      decoration: InputDecoration(
+        labelText: l10n.grade,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        border: const OutlineInputBorder(),
       ),
       value: routeProvider.selectedGrade,
       items: [
-        const DropdownMenuItem<String>(
+        DropdownMenuItem<String>(
           value: null,
-          child: Text('All Grades'),
+          child: Text(l10n.allGrades),
         ),
         ...routeProvider.grades.map(
           (grade) => DropdownMenuItem<String>(
@@ -187,18 +192,18 @@ class FilterDrawer extends StatelessWidget {
     );
   }
 
-  Widget _buildLaneFilter(RouteProvider routeProvider) {
+  Widget _buildLaneFilter(RouteProvider routeProvider, AppLocalizations l10n) {
     return DropdownButtonFormField<int>(
-      decoration: const InputDecoration(
-        labelText: 'Lane',
-        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        border: OutlineInputBorder(),
+      decoration: InputDecoration(
+        labelText: l10n.lane,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        border: const OutlineInputBorder(),
       ),
       value: routeProvider.selectedLane,
       items: [
-        const DropdownMenuItem<int>(
+        DropdownMenuItem<int>(
           value: null,
-          child: Text('All Lanes'),
+          child: Text(l10n.allLanes),
         ),
         ...routeProvider.lanes.map(
           (lane) => DropdownMenuItem<int>(
@@ -213,18 +218,19 @@ class FilterDrawer extends StatelessWidget {
     );
   }
 
-  Widget _buildRouteSetterFilter(RouteProvider routeProvider) {
+  Widget _buildRouteSetterFilter(
+      RouteProvider routeProvider, AppLocalizations l10n) {
     return DropdownButtonFormField<String>(
-      decoration: const InputDecoration(
-        labelText: 'Route Setter',
-        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        border: OutlineInputBorder(),
+      decoration: InputDecoration(
+        labelText: l10n.routeSetter,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        border: const OutlineInputBorder(),
       ),
       value: routeProvider.selectedRouteSetter,
       items: [
-        const DropdownMenuItem<String>(
+        DropdownMenuItem<String>(
           value: null,
-          child: Text('All Route Setters'),
+          child: Text(l10n.allRouteSetters),
         ),
         ...routeProvider.routeSetters.map(
           (setter) => DropdownMenuItem<String>(
@@ -239,35 +245,42 @@ class FilterDrawer extends StatelessWidget {
     );
   }
 
-  Widget _buildTickedFilter(RouteProvider routeProvider) {
+  Widget _buildTickedFilter(
+      RouteProvider routeProvider, AppLocalizations l10n) {
     return _buildThreeStageFilter(
-      'Ticked Routes',
+      l10n.tickedRoutes,
       routeProvider.tickedFilter,
       (state) => routeProvider.setTickedFilter(state),
+      l10n,
     );
   }
 
-  Widget _buildLikedFilter(RouteProvider routeProvider) {
+  Widget _buildLikedFilter(RouteProvider routeProvider, AppLocalizations l10n) {
     return _buildThreeStageFilter(
-      'Liked Routes',
+      l10n.likedRoutes,
       routeProvider.likedFilter,
       (state) => routeProvider.setLikedFilter(state),
+      l10n,
     );
   }
 
-  Widget _buildWarnedFilter(RouteProvider routeProvider) {
+  Widget _buildWarnedFilter(
+      RouteProvider routeProvider, AppLocalizations l10n) {
     return _buildThreeStageFilter(
-      'Warned Routes',
+      l10n.warnedRoutes,
       routeProvider.warnedFilter,
       (state) => routeProvider.setWarnedFilter(state),
+      l10n,
     );
   }
 
-  Widget _buildProjectFilter(RouteProvider routeProvider) {
+  Widget _buildProjectFilter(
+      RouteProvider routeProvider, AppLocalizations l10n) {
     return _buildThreeStageFilter(
-      'Project Routes',
+      l10n.projectRoutes,
       routeProvider.projectFilter,
       (state) => routeProvider.setProjectFilter(state),
+      l10n,
     );
   }
 
@@ -275,6 +288,7 @@ class FilterDrawer extends StatelessWidget {
     String label,
     FilterState currentState,
     Function(FilterState) onChanged,
+    AppLocalizations l10n,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -339,7 +353,7 @@ class FilterDrawer extends StatelessWidget {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          state.displayName,
+                          state.getDisplayName(l10n),
                           style: TextStyle(
                             color: isSelected ? Colors.white : state.color,
                             fontWeight:
@@ -376,6 +390,36 @@ enum SortOption {
 }
 
 extension SortOptionExtension on SortOption {
+  String getDisplayName(AppLocalizations l10n) {
+    switch (this) {
+      case SortOption.newest:
+        return l10n.newestFirst;
+      case SortOption.oldest:
+        return l10n.oldestFirst;
+      case SortOption.nameAZ:
+        return l10n.nameAZ;
+      case SortOption.nameZA:
+        return l10n.nameZA;
+      case SortOption.gradeAsc:
+        return l10n.gradeEasyToHard;
+      case SortOption.gradeDesc:
+        return l10n.gradeHardToEasy;
+      case SortOption.mostLikes:
+        return l10n.mostLikes;
+      case SortOption.leastLikes:
+        return l10n.leastLikes;
+      case SortOption.mostComments:
+        return l10n.mostComments;
+      case SortOption.leastComments:
+        return l10n.leastComments;
+      case SortOption.mostTicks:
+        return l10n.mostTicks;
+      case SortOption.leastTicks:
+        return l10n.leastTicks;
+    }
+  }
+
+  @Deprecated('Use getDisplayName(l10n) instead')
   String get displayName {
     switch (this) {
       case SortOption.newest:
@@ -413,6 +457,18 @@ enum FilterState {
 }
 
 extension FilterStateExtension on FilterState {
+  String getDisplayName(AppLocalizations l10n) {
+    switch (this) {
+      case FilterState.all:
+        return l10n.filterStateAll;
+      case FilterState.only:
+        return l10n.filterStateOnly;
+      case FilterState.exclude:
+        return l10n.filterStateExclude;
+    }
+  }
+
+  @Deprecated('Use getDisplayName(l10n) instead')
   String get displayName {
     switch (this) {
       case FilterState.all:

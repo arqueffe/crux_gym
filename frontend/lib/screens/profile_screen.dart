@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../generated/l10n/app_localizations.dart';
 import '../providers/profile_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/route_provider.dart';
@@ -10,6 +11,8 @@ import '../widgets/performance_summary_card.dart';
 import '../widgets/ticks_list.dart';
 import '../widgets/likes_list.dart';
 import '../widgets/projects_list.dart';
+import '../widgets/language_selector.dart';
+import '../widgets/custom_app_bar.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -38,6 +41,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Future<void> _promptEditNickname(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final authProvider = context.read<AuthProvider>();
     final controller = TextEditingController(
       text: authProvider.currentUser?.nickname ?? '',
@@ -46,16 +50,16 @@ class _ProfileScreenState extends State<ProfileScreen>
 
     bool validate(String value) {
       if (value.trim().isEmpty) {
-        errorText = 'Please enter your nickname';
+        errorText = l10n.pleaseEnterNickname;
         return false;
       }
       if (value.length < 3 || value.length > 20) {
-        errorText = 'Nickname must be 3-20 characters';
+        errorText = l10n.nicknameLength;
         return false;
       }
       final regex = RegExp(r'^[A-Za-z0-9_]+$');
       if (!regex.hasMatch(value)) {
-        errorText = 'Only letters, numbers, and underscores';
+        errorText = l10n.nicknameFormat;
         return false;
       }
       errorText = null;
@@ -67,14 +71,14 @@ class _ProfileScreenState extends State<ProfileScreen>
       builder: (ctx) {
         return StatefulBuilder(builder: (ctx, setState) {
           return AlertDialog(
-            title: const Text('Edit Nickname'),
+            title: Text(l10n.editNickname),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: controller,
                   decoration: InputDecoration(
-                    labelText: 'Nickname',
+                    labelText: l10n.nickname,
                     prefixIcon: const Icon(Icons.person_outline),
                     errorText: errorText,
                   ),
@@ -87,7 +91,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Cancel'),
+                child: Text(l10n.cancel),
               ),
               ElevatedButton(
                 onPressed: () async {
@@ -102,11 +106,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                     Navigator.of(ctx).pop(true);
                   } else {
                     setState(() {
-                      errorText = authProvider.errorMessage ?? 'Update failed';
+                      errorText =
+                          authProvider.errorMessage ?? l10n.updateFailed;
                     });
                   }
                 },
-                child: const Text('Save'),
+                child: Text(l10n.save),
               ),
             ],
           );
@@ -116,7 +121,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
     if (result == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nickname updated')),
+        SnackBar(content: Text(l10n.nicknameUpdated)),
       );
       // No need to refresh profile data here; changing nickname doesn't affect stats/ticks/likes
       // and calling refresh immediately after provider rebuild can target a disposed instance.
@@ -125,11 +130,14 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+      appBar: CustomAppBar(
+        title: l10n.profileTitle,
         actions: [
+          // Language selector
+          const LanguageSelector(),
           // Time filter dropdown
           Consumer<ProfileProvider>(
             builder: (context, profileProvider, child) {
@@ -142,7 +150,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     return DropdownMenuItem(
                       value: filter,
                       child: Text(
-                        filter.displayName,
+                        _getTimeFilterDisplayName(filter, l10n),
                         style: const TextStyle(fontSize: 14),
                       ),
                     );
@@ -159,24 +167,24 @@ class _ProfileScreenState extends State<ProfileScreen>
           // Logout button
           IconButton(
             icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
+            tooltip: l10n.logout,
             onPressed: () {
               showDialog(
                 context: context,
                 builder: (ctx) => AlertDialog(
-                  title: const Text('Logout'),
-                  content: const Text('Are you sure you want to logout?'),
+                  title: Text(l10n.logoutConfirmTitle),
+                  content: Text(l10n.logoutConfirmMessage),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(ctx).pop(),
-                      child: const Text('Cancel'),
+                      child: Text(l10n.cancel),
                     ),
                     ElevatedButton(
                       onPressed: () {
                         Navigator.of(ctx).pop();
                         context.read<AuthProvider>().logout();
                       },
-                      child: const Text('Logout'),
+                      child: Text(l10n.logout),
                     ),
                   ],
                 ),
@@ -186,20 +194,22 @@ class _ProfileScreenState extends State<ProfileScreen>
         ],
         bottom: TabBar(
           controller: _tabController,
-          tabs: const [
+          tabs: [
             Tab(
-              icon: Icon(Icons.analytics),
-              text: 'Performance',
+              icon: const Icon(Icons.analytics),
+              text: l10n.performanceTab,
             ),
             Tab(
-              icon: Icon(Icons.map),
-              text: 'Routes',
+              icon: const Icon(Icons.map),
+              text: l10n.routesTab,
             ),
           ],
         ),
       ),
       body: Consumer2<ProfileProvider, AuthProvider>(
         builder: (context, profileProvider, authProvider, child) {
+          final l10n = AppLocalizations.of(context);
+
           if (profileProvider.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -212,14 +222,14 @@ class _ProfileScreenState extends State<ProfileScreen>
                   const Icon(Icons.error_outline, size: 64, color: Colors.red),
                   const SizedBox(height: 16),
                   Text(
-                    'Error: ${profileProvider.error}',
+                    '${l10n.error}: ${profileProvider.error}',
                     textAlign: TextAlign.center,
                     style: const TextStyle(fontSize: 16),
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () => profileProvider.loadProfile(),
-                    child: const Text('Retry'),
+                    child: Text(l10n.retry),
                   ),
                 ],
               ),
@@ -275,7 +285,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 ),
                               ),
                               IconButton(
-                                tooltip: 'Edit nickname',
+                                tooltip: l10n.editNicknameTooltip,
                                 icon: const Icon(Icons.edit_outlined),
                                 onPressed: () => _promptEditNickname(context),
                               ),
@@ -292,7 +302,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Member since ${_formatDate(authProvider.currentUser?.createdAt)}',
+                            l10n.memberSince(_formatDate(
+                                authProvider.currentUser?.createdAt)),
                             style: TextStyle(
                               fontSize: 12,
                               color: Theme.of(context)
@@ -302,39 +313,46 @@ class _ProfileScreenState extends State<ProfileScreen>
                             ),
                           ),
                           const SizedBox(height: 8),
-                          // Dark mode toggle
+                          // Dark mode toggle and Language settings
                           Consumer<ThemeProvider>(
                             builder: (context, themeProvider, child) {
-                              return Row(
+                              return Column(
                                 children: [
-                                  Icon(
-                                    Icons.brightness_6,
-                                    size: 16,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onPrimaryContainer
-                                        .withOpacity(0.7),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.brightness_6,
+                                        size: 16,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onPrimaryContainer
+                                            .withOpacity(0.7),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        l10n.darkMode,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onPrimaryContainer
+                                              .withOpacity(0.7),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Switch(
+                                        value: themeProvider.isDarkMode,
+                                        onChanged: (value) {
+                                          themeProvider.toggleTheme();
+                                        },
+                                        materialTapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Dark mode',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onPrimaryContainer
-                                          .withOpacity(0.7),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Switch(
-                                    value: themeProvider.isDarkMode,
-                                    onChanged: (value) {
-                                      themeProvider.toggleTheme();
-                                    },
-                                    materialTapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                  ),
+                                  const SizedBox(height: 8),
+                                  // Language settings tile
+                                  const LanguageListTile(),
                                 ],
                               );
                             },
@@ -375,6 +393,22 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (date == null) return 'Unknown';
     return '${date.day}/${date.month}/${date.year}';
   }
+
+  String _getTimeFilterDisplayName(
+      ProfileTimeFilter filter, AppLocalizations l10n) {
+    switch (filter) {
+      case ProfileTimeFilter.all:
+        return l10n.filterAll;
+      case ProfileTimeFilter.lastWeek:
+        return l10n.filterThisWeek;
+      case ProfileTimeFilter.lastMonth:
+        return l10n.filterThisMonth;
+      case ProfileTimeFilter.last3Months:
+        return l10n.filterLast3Months;
+      case ProfileTimeFilter.lastYear:
+        return l10n.filterThisYear;
+    }
+  }
 }
 
 class PerformanceTab extends StatelessWidget {
@@ -382,6 +416,8 @@ class PerformanceTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Consumer<ProfileProvider>(
       builder: (context, profileProvider, child) {
         return SingleChildScrollView(
@@ -407,7 +443,7 @@ class PerformanceTab extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Grade Breakdown',
+                        l10n.gradeBreakdown,
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 16),
@@ -451,6 +487,8 @@ class _RoutesTabState extends State<RoutesTab>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Column(
       children: [
         // Sub-tabs for Routes
@@ -458,18 +496,18 @@ class _RoutesTabState extends State<RoutesTab>
           color: Theme.of(context).colorScheme.surface,
           child: TabBar(
             controller: _routesTabController,
-            tabs: const [
+            tabs: [
               Tab(
-                icon: Icon(Icons.check_circle),
-                text: 'Ticks',
+                icon: const Icon(Icons.check_circle),
+                text: l10n.ticksTab,
               ),
               Tab(
-                icon: Icon(Icons.favorite),
-                text: 'Likes',
+                icon: const Icon(Icons.favorite),
+                text: l10n.likesTab,
               ),
               Tab(
-                icon: Icon(Icons.flag),
-                text: 'Projects',
+                icon: const Icon(Icons.flag),
+                text: l10n.projectsTab,
               ),
             ],
           ),
@@ -482,6 +520,7 @@ class _RoutesTabState extends State<RoutesTab>
               // Ticks
               Consumer<ProfileProvider>(
                 builder: (context, profileProvider, child) {
+                  final l10n = AppLocalizations.of(context);
                   final ticks = profileProvider.filteredTicks;
 
                   if (ticks.isEmpty) {
@@ -496,7 +535,7 @@ class _RoutesTabState extends State<RoutesTab>
                                   .onSurfaceVariant),
                           const SizedBox(height: 16),
                           Text(
-                            'No ticks found',
+                            l10n.noTicksFound,
                             style: TextStyle(
                               fontSize: 18,
                               color: Theme.of(context)
@@ -506,7 +545,7 @@ class _RoutesTabState extends State<RoutesTab>
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Complete some routes to see them here',
+                            l10n.noTicksDescription,
                             style: TextStyle(
                               color: Theme.of(context)
                                   .colorScheme
@@ -527,6 +566,7 @@ class _RoutesTabState extends State<RoutesTab>
               // Likes
               Consumer<ProfileProvider>(
                 builder: (context, profileProvider, child) {
+                  final l10n = AppLocalizations.of(context);
                   final likes = profileProvider.filteredLikes;
 
                   if (likes.isEmpty) {
@@ -541,7 +581,7 @@ class _RoutesTabState extends State<RoutesTab>
                                   .onSurfaceVariant),
                           const SizedBox(height: 16),
                           Text(
-                            'No liked routes found',
+                            l10n.noLikesFound,
                             style: TextStyle(
                               fontSize: 18,
                               color: Theme.of(context)
@@ -551,7 +591,7 @@ class _RoutesTabState extends State<RoutesTab>
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Like some routes to see them here',
+                            l10n.noLikesDescription,
                             style: TextStyle(
                               color: Theme.of(context)
                                   .colorScheme
@@ -572,6 +612,7 @@ class _RoutesTabState extends State<RoutesTab>
               // Projects
               Consumer<ProfileProvider>(
                 builder: (context, profileProvider, child) {
+                  final l10n = AppLocalizations.of(context);
                   final projects = profileProvider.filteredProjects;
 
                   if (projects.isEmpty) {
@@ -586,7 +627,7 @@ class _RoutesTabState extends State<RoutesTab>
                                   .onSurfaceVariant),
                           const SizedBox(height: 16),
                           Text(
-                            'No projects found',
+                            l10n.noProjectsFound,
                             style: TextStyle(
                               fontSize: 18,
                               color: Theme.of(context)
@@ -596,7 +637,7 @@ class _RoutesTabState extends State<RoutesTab>
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Mark routes as projects to track your goals',
+                            l10n.noProjectsDescription,
                             style: TextStyle(
                               color: Theme.of(context)
                                   .colorScheme

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../generated/l10n/app_localizations.dart';
 import '../models/profile_models.dart';
 
 class PerformanceSummaryCard extends StatelessWidget {
@@ -17,12 +18,14 @@ class PerformanceSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     if (stats == null) {
-      return const Card(
+      return Card(
         child: Padding(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           child: Center(
-            child: Text('No performance data available'),
+            child: Text(l10n.noPerformanceData),
           ),
         ),
       );
@@ -71,7 +74,7 @@ class PerformanceSummaryCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Performance Summary',
+                  l10n.performanceSummary,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const Spacer(),
@@ -83,7 +86,7 @@ class PerformanceSummaryCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    timeFilter.displayName,
+                    _getTimeFilterDisplayName(timeFilter, l10n),
                     style: TextStyle(
                       fontSize: 12,
                       color: Theme.of(context).colorScheme.onPrimaryContainer,
@@ -106,49 +109,49 @@ class PerformanceSummaryCard extends StatelessWidget {
               children: [
                 _buildStatCard(
                   context,
-                  'Total Sends',
+                  l10n.totalTicks,
                   '$filteredTotalSends',
                   Icons.check_circle,
                   Colors.green,
                 ),
                 _buildStatCard(
                   context,
-                  'Top Rope',
+                  l10n.topRope,
                   '$filteredTopRopeSends',
                   Icons.arrow_upward,
                   Colors.blue,
                 ),
                 _buildStatCard(
                   context,
-                  'Lead',
+                  l10n.lead,
                   '$filteredLeadSends',
                   Icons.trending_up,
                   Colors.green,
                 ),
                 _buildStatCard(
                   context,
-                  'Projects',
+                  l10n.projectsTab,
                   '${stats!.totalProjects}',
                   Icons.flag,
                   Colors.blue,
                 ),
                 _buildStatCard(
                   context,
-                  'Flash Rate',
+                  l10n.flashRate,
                   '${(filteredFlashRate * 100).toStringAsFixed(1)}%',
                   Icons.flash_on,
                   Colors.orange,
                 ),
                 _buildStatCard(
                   context,
-                  'Avg. Attempts',
+                  l10n.averageAttempts,
                   filteredAverageAttempts.toStringAsFixed(1),
                   Icons.repeat,
                   Colors.blue,
                 ),
                 _buildStatCard(
                   context,
-                  'Hardest Grade',
+                  l10n.hardestGrade,
                   filteredHardestGrade ?? stats!.hardestGrade ?? 'N/A',
                   Icons.emoji_events,
                   Colors.purple,
@@ -164,7 +167,7 @@ class PerformanceSummaryCard extends StatelessWidget {
                 Expanded(
                   child: _buildSendTypeCard(
                     context,
-                    'TR Flash',
+                    l10n.trFlash,
                     filteredTopRopeFlashes,
                     filteredTopRopeSends,
                     Icons.arrow_upward,
@@ -175,7 +178,7 @@ class PerformanceSummaryCard extends StatelessWidget {
                 Expanded(
                   child: _buildSendTypeCard(
                     context,
-                    'Lead Flash',
+                    l10n.leadFlash,
                     filteredLeadFlashes,
                     filteredLeadSends,
                     Icons.trending_up,
@@ -192,7 +195,7 @@ class PerformanceSummaryCard extends StatelessWidget {
 
               // All-time stats
               Text(
-                'All-Time Stats',
+                l10n.allTimeStats,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -204,7 +207,7 @@ class PerformanceSummaryCard extends StatelessWidget {
                   Expanded(
                     child: _buildInfoRow(
                       context,
-                      'Total Likes Given',
+                      l10n.totalLikesGiven,
                       '${stats!.totalLikes}',
                       Icons.favorite,
                     ),
@@ -212,7 +215,7 @@ class PerformanceSummaryCard extends StatelessWidget {
                   Expanded(
                     child: _buildInfoRow(
                       context,
-                      'Comments Posted',
+                      l10n.commentsPosted,
                       '${stats!.totalComments}',
                       Icons.comment,
                     ),
@@ -225,7 +228,7 @@ class PerformanceSummaryCard extends StatelessWidget {
                   Expanded(
                     child: _buildInfoRow(
                       context,
-                      'Wall Sections Climbed',
+                      l10n.wallSectionsClimbed,
                       '${stats!.uniqueWallSections}',
                       Icons.location_on,
                     ),
@@ -233,7 +236,7 @@ class PerformanceSummaryCard extends StatelessWidget {
                   Expanded(
                     child: _buildInfoRow(
                       context,
-                      'Grades Achieved',
+                      l10n.gradesAchieved,
                       '${stats!.achievedGrades.length}',
                       Icons.grade,
                     ),
@@ -393,5 +396,21 @@ class PerformanceSummaryCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _getTimeFilterDisplayName(
+      ProfileTimeFilter filter, AppLocalizations l10n) {
+    switch (filter) {
+      case ProfileTimeFilter.all:
+        return l10n.filterAll;
+      case ProfileTimeFilter.lastWeek:
+        return l10n.filterThisWeek;
+      case ProfileTimeFilter.lastMonth:
+        return l10n.filterThisMonth;
+      case ProfileTimeFilter.last3Months:
+        return l10n.filterLast3Months;
+      case ProfileTimeFilter.lastYear:
+        return l10n.filterThisYear;
+    }
   }
 }

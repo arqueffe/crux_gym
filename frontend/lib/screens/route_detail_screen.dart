@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/route_provider.dart';
 import '../widgets/route_interactions.dart';
+import '../widgets/custom_app_bar.dart';
 import '../utils/color_utils.dart';
 import '../utils/grade_utils.dart';
 import '../widgets/grade_chip.dart';
@@ -30,9 +31,8 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Route Details'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+      appBar: CustomAppBar(
+        title: 'Route Details',
       ),
       body: Consumer<RouteProvider>(
         builder: (context, routeProvider, child) {

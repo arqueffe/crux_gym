@@ -5,6 +5,7 @@ import '../providers/auth_provider.dart';
 import '../widgets/route_card.dart';
 import '../widgets/filter_drawer.dart';
 import '../widgets/interactive_climbing_wall.dart';
+import '../widgets/custom_app_bar.dart';
 import 'route_detail_screen.dart';
 import 'add_route_screen.dart';
 
@@ -29,9 +30,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Climbing Gym Routes'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+      appBar: CustomAppBar(
+        title: 'Climbing Gym Routes',
         automaticallyImplyLeading:
             false, // Remove back button since we're using bottom nav
         actions: [

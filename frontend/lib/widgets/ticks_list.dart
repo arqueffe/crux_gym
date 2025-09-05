@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../generated/l10n/app_localizations.dart';
 import '../models/profile_models.dart';
 import '../screens/route_detail_screen.dart';
 import '../widgets/grade_chip.dart';
@@ -15,6 +16,8 @@ class TicksList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: ticks.length,
@@ -110,7 +113,7 @@ class TicksList extends StatelessWidget {
                                           size: 12, color: Colors.blue),
                                       const SizedBox(width: 2),
                                       Text(
-                                        'TR${tick.topRopeFlash ? ' ⚡' : ''}',
+                                        '${l10n.topRopeShort}${tick.topRopeFlash ? ' ⚡' : ''}',
                                         style: const TextStyle(
                                           color: Colors.blue,
                                           fontSize: 10,
@@ -137,7 +140,7 @@ class TicksList extends StatelessWidget {
                                           size: 12, color: Colors.green),
                                       const SizedBox(width: 2),
                                       Text(
-                                        'Lead${tick.leadFlash ? ' ⚡' : ''}',
+                                        '${l10n.leadShort}${tick.leadFlash ? ' ⚡' : ''}',
                                         style: const TextStyle(
                                           color: Colors.green,
                                           fontSize: 10,
@@ -163,7 +166,7 @@ class TicksList extends StatelessWidget {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                '${tick.attempts} ${tick.attempts == 1 ? 'attempt' : 'attempts'}',
+                                l10n.attemptsCount(tick.attempts),
                                 style: TextStyle(
                                   color: Colors.grey.shade600,
                                   fontSize: 12,
@@ -173,7 +176,7 @@ class TicksList extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            _formatDate(tick.createdAt),
+                            _formatDate(tick.createdAt, l10n),
                             style: TextStyle(
                               color: Colors.grey.shade500,
                               fontSize: 12,
@@ -184,45 +187,10 @@ class TicksList extends StatelessWidget {
                     ],
                   ),
                   if (tick.notes != null && tick.notes!.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.notes,
-                                size: 16,
-                                color: Colors.grey.shade600,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Notes:',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                  color: Colors.grey.shade700,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            tick.notes!,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey.shade700,
-                            ),
-                          ),
-                        ],
-                      ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${l10n.notes} ${tick.notes!}',
+                      style: const TextStyle(fontStyle: FontStyle.italic),
                     ),
                   ],
                 ],
@@ -234,19 +202,19 @@ class TicksList extends StatelessWidget {
     );
   }
 
-  String _formatDate(DateTime date) {
+  String _formatDate(DateTime date, AppLocalizations l10n) {
     final now = DateTime.now();
     final difference = now.difference(date);
 
     if (difference.inDays == 0) {
-      return 'Today';
+      return l10n.today;
     } else if (difference.inDays == 1) {
-      return 'Yesterday';
+      return l10n.yesterday;
     } else if (difference.inDays < 7) {
-      return '${difference.inDays} days ago';
+      return l10n.daysAgo(difference.inDays);
     } else if (difference.inDays < 30) {
       final weeks = (difference.inDays / 7).floor();
-      return '$weeks ${weeks == 1 ? 'week' : 'weeks'} ago';
+      return weeks == 1 ? l10n.weekAgo : l10n.weeksAgo(weeks);
     } else {
       return '${date.day}/${date.month}/${date.year}';
     }

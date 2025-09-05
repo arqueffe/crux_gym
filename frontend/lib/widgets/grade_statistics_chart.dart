@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/profile_models.dart';
+import '../generated/l10n/app_localizations.dart';
 
 class GradeStatisticsChart extends StatelessWidget {
   final List<GradeStatistics> gradeStats;
@@ -11,13 +12,15 @@ class GradeStatisticsChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     if (gradeStats.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(32),
+          padding: const EdgeInsets.all(32),
           child: Text(
-            'No grade data available',
-            style: TextStyle(color: Colors.grey),
+            l10n.noGradeData,
+            style: const TextStyle(color: Colors.grey),
           ),
         ),
       );
@@ -33,9 +36,9 @@ class GradeStatisticsChart extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _buildLegendItem(context, 'Completed', Colors.blue),
-            _buildLegendItem(context, 'Flashed', Colors.orange),
-            _buildLegendItem(context, 'Flash Rate', Colors.green),
+            _buildLegendItem(context, l10n.completed, Colors.blue),
+            _buildLegendItem(context, l10n.flashed, Colors.orange),
+            _buildLegendItem(context, l10n.flashRate, Colors.green),
           ],
         ),
         const SizedBox(height: 16),
@@ -48,7 +51,7 @@ class GradeStatisticsChart extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: gradeStats
-                  .map((stat) => _buildGradeBar(context, stat, maxTicks))
+                  .map((stat) => _buildGradeBar(context, stat, maxTicks, l10n))
                   .toList(),
             ),
           ),
@@ -57,7 +60,7 @@ class GradeStatisticsChart extends StatelessWidget {
         const SizedBox(height: 16),
 
         // Summary table
-        _buildSummaryTable(context),
+        _buildSummaryTable(context, l10n),
       ],
     );
   }
@@ -83,8 +86,8 @@ class GradeStatisticsChart extends StatelessWidget {
     );
   }
 
-  Widget _buildGradeBar(
-      BuildContext context, GradeStatistics stat, int maxTicks) {
+  Widget _buildGradeBar(BuildContext context, GradeStatistics stat,
+      int maxTicks, AppLocalizations l10n) {
     // Calculate available height for the bar (total - other elements)
     const totalHeight = 280.0;
     const indicatorHeight = 16.0;
@@ -138,7 +141,7 @@ class GradeStatisticsChart extends StatelessWidget {
                 border: Border.all(color: Colors.grey.shade300),
               ),
               child: GestureDetector(
-                onTap: () => _showGradeDetails(context, stat),
+                onTap: () => _showGradeDetails(context, stat, l10n),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -194,7 +197,7 @@ class GradeStatisticsChart extends StatelessWidget {
     );
   }
 
-  Widget _buildSummaryTable(BuildContext context) {
+  Widget _buildSummaryTable(BuildContext context, AppLocalizations l10n) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -202,7 +205,7 @@ class GradeStatisticsChart extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Detailed Statistics',
+              l10n.detailedStatistics,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -212,12 +215,12 @@ class GradeStatisticsChart extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               child: DataTable(
                 columnSpacing: 16,
-                columns: const [
-                  DataColumn(label: Text('Grade')),
-                  DataColumn(label: Text('Completed')),
-                  DataColumn(label: Text('Flashes')),
-                  DataColumn(label: Text('Avg. Attempts')),
-                  DataColumn(label: Text('Flash Rate')),
+                columns: [
+                  DataColumn(label: Text(l10n.grade)),
+                  DataColumn(label: Text(l10n.completed)),
+                  DataColumn(label: Text(l10n.flashes)),
+                  DataColumn(label: Text(l10n.averageAttempts)),
+                  DataColumn(label: Text(l10n.flashRate)),
                 ],
                 rows: gradeStats
                     .map((stat) => DataRow(
@@ -257,28 +260,29 @@ class GradeStatisticsChart extends StatelessWidget {
     );
   }
 
-  void _showGradeDetails(BuildContext context, GradeStatistics stat) {
+  void _showGradeDetails(
+      BuildContext context, GradeStatistics stat, AppLocalizations l10n) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('${stat.grade} Statistics'),
+        title: Text(l10n.gradeStatistics(stat.grade)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildDetailRow('Routes Completed:', '${stat.tickCount}'),
-            _buildDetailRow('Total Attempts:', '${stat.totalAttempts}'),
-            _buildDetailRow('Flashes:', '${stat.flashCount}'),
+            _buildDetailRow(l10n.routesCompleted, '${stat.tickCount}'),
+            _buildDetailRow(l10n.totalAttemptsColon, '${stat.totalAttempts}'),
+            _buildDetailRow(l10n.flashes, '${stat.flashCount}'),
             _buildDetailRow(
-                'Average Attempts:', stat.averageAttempts.toStringAsFixed(1)),
-            _buildDetailRow(
-                'Flash Rate:', '${(stat.flashRate * 100).toStringAsFixed(1)}%'),
+                l10n.averageAttempts, stat.averageAttempts.toStringAsFixed(1)),
+            _buildDetailRow(l10n.flashRate,
+                '${(stat.flashRate * 100).toStringAsFixed(1)}%'),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            child: Text(l10n.close),
           ),
         ],
       ),
