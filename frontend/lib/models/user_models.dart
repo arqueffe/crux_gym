@@ -5,6 +5,7 @@ class User {
   final String email;
   final DateTime createdAt;
   final bool isActive;
+  final String role;
 
   User({
     required this.id,
@@ -13,6 +14,7 @@ class User {
     required this.email,
     required this.createdAt,
     required this.isActive,
+    required this.role,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class User {
       email: json['email'],
       createdAt: DateTime.parse(json['created_at']),
       isActive: json['is_active'] ?? true,
+      role: json['role'] ?? 'user',
     );
   }
 
@@ -34,8 +37,14 @@ class User {
       'email': email,
       'created_at': createdAt.toIso8601String(),
       'is_active': isActive,
+      'role': role,
     };
   }
+
+  // Role-based permission methods
+  bool get isAdmin => role == 'admin';
+  bool get isRouteSetter => role == 'route_setter';
+  bool get canCreateRoutes => isAdmin || isRouteSetter;
 
   @override
   String toString() {

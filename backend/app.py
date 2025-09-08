@@ -56,6 +56,32 @@ def get_current_user_id():
     user_id_str = get_jwt_identity()
     return int(user_id_str) if user_id_str else None
 
+# Role-based authorization decorator
+from functools import wraps
+
+def require_role(*required_roles):
+    """Decorator to require specific roles for route access"""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            user_id = get_current_user_id()
+            if not user_id:
+                return jsonify({'error': 'Authentication required'}), 401
+            
+            user = User.query.get(user_id)
+            if not user:
+                return jsonify({'error': 'User not found'}), 404
+            
+            if not user.is_active:
+                return jsonify({'error': 'Account is disabled'}), 403
+            
+            if required_roles and user.role not in required_roles:
+                return jsonify({'error': 'Insufficient permissions'}), 403
+            
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
 # JWT Error handlers
 @jwt.expired_token_loader
 def expired_token_callback(jwt_header, jwt_payload):
@@ -144,6 +170,7 @@ class User(db.Model):
     nickname = db.Column(db.String(80), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
+    role = db.Column(db.String(20), default='user', nullable=False)  # 'admin', 'route_setter', 'user'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
     
@@ -153,12 +180,22 @@ class User(db.Model):
     def check_password(self, password):
         return bcrypt.check_password_hash(self.password_hash, password)
     
+    def is_admin(self):
+        return self.role == 'admin'
+    
+    def is_route_setter(self):
+        return self.role in ['admin', 'route_setter']
+    
+    def can_create_routes(self):
+        return self.role in ['admin', 'route_setter']
+    
     def to_dict(self):
         return {
             'id': self.id,
             'username': self.username,
             'nickname': self.nickname,
             'email': self.email,
+            'role': self.role,
             'created_at': self.created_at.isoformat(),
             'is_active': self.is_active
         }
@@ -475,6 +512,25 @@ def get_current_user():
     
     return jsonify({'user': user.to_dict()}), 200
 
+@app.route('/api/auth/permissions', methods=['GET'])
+@jwt_required()
+def get_user_permissions():
+    """Get current user's permissions"""
+    user_id = get_current_user_id()
+    user = User.query.get(user_id)
+    
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    return jsonify({
+        'permissions': {
+            'can_create_routes': user.can_create_routes(),
+            'is_admin': user.is_admin(),
+            'is_route_setter': user.is_route_setter(),
+            'role': user.role
+        }
+    }), 200
+
 # API Routes
 
 @app.route('/api/routes', methods=['GET'])
@@ -515,8 +571,9 @@ def get_route(route_id):
 
 @app.route('/api/routes', methods=['POST'])
 @jwt_required()
+@require_role('admin', 'route_setter')
 def create_route():
-    """Create a new route"""
+    """Create a new route - admin and route_setter only"""
     data = request.get_json()
     
     # Validate required fields

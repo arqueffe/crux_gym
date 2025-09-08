@@ -1,17 +1,17 @@
 import 'package:flutter/foundation.dart';
 import '../models/route_models.dart';
 import '../models/lane_models.dart';
-import '../services/api_service.dart';
+import '../services/cached_api_service.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/filter_drawer.dart';
 
 class RouteProvider extends ChangeNotifier {
-  late final ApiService _apiService;
+  late final CachedApiService _apiService;
   final AuthProvider _authProvider;
 
   RouteProvider({required AuthProvider authProvider})
       : _authProvider = authProvider {
-    _apiService = ApiService(authProvider: authProvider);
+    _apiService = CachedApiService(authProvider: authProvider);
   }
 
   List<Route> _routes = [];
@@ -70,25 +70,25 @@ class RouteProvider extends ChangeNotifier {
       _projectFilter != FilterState.all;
 
   // Load initial data
-  Future<void> loadInitialData() async {
+  Future<void> loadInitialData({bool forceRefresh = false}) async {
     await Future.wait([
-      loadRoutes(),
-      loadWallSections(),
-      loadGrades(),
-      loadLanes(),
+      loadRoutes(forceRefresh: forceRefresh),
+      loadWallSections(forceRefresh: forceRefresh),
+      loadGrades(forceRefresh: forceRefresh),
+      loadLanes(forceRefresh: forceRefresh),
       loadRouteSetters(),
-      loadGradeDefinitions(),
-      loadHoldColors(),
-      loadGradeColors(),
+      loadGradeDefinitions(forceRefresh: forceRefresh),
+      loadHoldColors(forceRefresh: forceRefresh),
+      loadGradeColors(forceRefresh: forceRefresh),
     ]);
   }
 
   // Load routes with optional filtering
-  Future<void> loadRoutes() async {
+  Future<void> loadRoutes({bool forceRefresh = false}) async {
     _setLoading(true);
     try {
       // Always fetch all routes first to ensure we have the complete dataset
-      _routes = await _apiService.getRoutes();
+      _routes = await _apiService.getRoutes(forceRefresh: forceRefresh);
 
       // Apply client-side filters
       _applyClientSideFilters();
@@ -107,8 +107,8 @@ class RouteProvider extends ChangeNotifier {
   }
 
   // Refresh routes while preserving current filters
-  Future<void> refreshRoutes() async {
-    await loadRoutes();
+  Future<void> refreshRoutes({bool forceRefresh = false}) async {
+    await loadRoutes(forceRefresh: forceRefresh);
   }
 
   // Apply client-side filters (for features not supported by API)
@@ -204,10 +204,11 @@ class RouteProvider extends ChangeNotifier {
   }
 
   // Load specific route with details
-  Future<void> loadRoute(int routeId) async {
+  Future<void> loadRoute(int routeId, {bool forceRefresh = false}) async {
     _setLoading(true);
     try {
-      _selectedRoute = await _apiService.getRoute(routeId);
+      _selectedRoute =
+          await _apiService.getRoute(routeId, forceRefresh: forceRefresh);
       _error = null;
     } catch (e) {
       _error = e.toString();
@@ -368,7 +369,7 @@ class RouteProvider extends ChangeNotifier {
     String? reasoning,
   ) async {
     try {
-      await _apiService.proposeGrade(routeId, proposedGrade, reasoning);
+      await _apiService.proposeGrade(routeId, proposedGrade, reasoning ?? '');
       // Refresh the route to show new proposal
       await loadRoute(routeId);
       return true;
@@ -409,9 +410,10 @@ class RouteProvider extends ChangeNotifier {
   }
 
   // Load wall sections
-  Future<void> loadWallSections() async {
+  Future<void> loadWallSections({bool forceRefresh = false}) async {
     try {
-      _wallSections = await _apiService.getWallSections();
+      _wallSections =
+          await _apiService.getWallSections(forceRefresh: forceRefresh);
     } catch (e) {
       _error = e.toString();
     }
@@ -419,9 +421,9 @@ class RouteProvider extends ChangeNotifier {
   }
 
   // Load grades
-  Future<void> loadGrades() async {
+  Future<void> loadGrades({bool forceRefresh = false}) async {
     try {
-      _grades = await _apiService.getGrades();
+      _grades = await _apiService.getGrades(forceRefresh: forceRefresh);
     } catch (e) {
       _error = e.toString();
     }
@@ -429,9 +431,9 @@ class RouteProvider extends ChangeNotifier {
   }
 
   // Load lanes
-  Future<void> loadLanes() async {
+  Future<void> loadLanes({bool forceRefresh = false}) async {
     try {
-      _lanes = await _apiService.getLanes();
+      _lanes = await _apiService.getLanes(forceRefresh: forceRefresh);
     } catch (e) {
       _error = e.toString();
     }
@@ -453,9 +455,10 @@ class RouteProvider extends ChangeNotifier {
   }
 
   // Load grade definitions with colors
-  Future<void> loadGradeDefinitions() async {
+  Future<void> loadGradeDefinitions({bool forceRefresh = false}) async {
     try {
-      _gradeDefinitions = await _apiService.getGradeDefinitions();
+      _gradeDefinitions =
+          await _apiService.getGradeDefinitions(forceRefresh: forceRefresh);
     } catch (e) {
       _error = e.toString();
     }
@@ -463,9 +466,9 @@ class RouteProvider extends ChangeNotifier {
   }
 
   // Load hold colors
-  Future<void> loadHoldColors() async {
+  Future<void> loadHoldColors({bool forceRefresh = false}) async {
     try {
-      _holdColors = await _apiService.getHoldColors();
+      _holdColors = await _apiService.getHoldColors(forceRefresh: forceRefresh);
     } catch (e) {
       _error = e.toString();
     }
@@ -473,9 +476,10 @@ class RouteProvider extends ChangeNotifier {
   }
 
   // Load grade colors mapping
-  Future<void> loadGradeColors() async {
+  Future<void> loadGradeColors({bool forceRefresh = false}) async {
     try {
-      _gradeColors = await _apiService.getGradeColors();
+      _gradeColors =
+          await _apiService.getGradeColors(forceRefresh: forceRefresh);
     } catch (e) {
       _error = e.toString();
     }
@@ -654,11 +658,31 @@ class RouteProvider extends ChangeNotifier {
 
   Future<List<Project>> getUserProjects() async {
     try {
-      return await _apiService.getUserProjects();
+      return await _apiService.getUserProjectsTyped();
     } catch (e) {
       _error = e.toString();
       notifyListeners();
       return [];
     }
+  }
+
+  /// Clear all cache
+  void clearAllCache() {
+    _apiService.clearAllCache();
+  }
+
+  /// Clear route-specific cache
+  void clearRouteCache() {
+    _apiService.clearRouteCache();
+  }
+
+  /// Clear user-specific cache
+  void clearUserCache() {
+    _apiService.clearUserCache();
+  }
+
+  /// Get cache statistics for debugging
+  Map<String, dynamic> getCacheStats() {
+    return _apiService.getCacheStats();
   }
 }

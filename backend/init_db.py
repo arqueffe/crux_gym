@@ -138,36 +138,59 @@ def init_sample_users():
     """Initialize sample users"""
     print("Initializing sample users...")
     
-    # If users exist but missing nickname column values, backfill nickname = username
+    # If users exist but missing nickname or role column values, backfill them
     existing_users = User.query.all()
     if existing_users:
         updated = 0
         for u in existing_users:
+            needs_update = False
+            
+            # Backfill nickname if missing
             if getattr(u, 'nickname', None) in (None, ''):
                 u.nickname = u.username
+                needs_update = True
+            
+            # Backfill role if missing
+            if not hasattr(u, 'role') or getattr(u, 'role', None) in (None, ''):
+                # Set admin role for admin user, route_setter for some users, user for others
+                if u.username == 'admin':
+                    u.role = 'admin'
+                elif u.username in ['alice_johnson', 'bob_smith']:
+                    u.role = 'route_setter'
+                else:
+                    u.role = 'user'
+                needs_update = True
+            
+            if needs_update:
                 updated += 1
+                
         if updated:
             db.session.commit()
-            print(f"✓ Backfilled nickname for {updated} existing users")
+            print(f"✓ Updated {updated} existing users with roles and nicknames")
         else:
-            print("✓ Users already exist, skipping seed...")
+            print("✓ Users already exist with correct data, skipping seed...")
         return
     
-    # Create sample users
+    # Create sample users with roles
     users_data = [
-        {'username': 'admin', 'nickname': 'Admin', 'email': 'admin@climbing-gym.com', 'password': 'admin123'},
-        {'username': 'alice_johnson', 'nickname': 'Alice', 'email': 'alice@example.com', 'password': 'password123'},
-        {'username': 'bob_smith', 'nickname': 'Bob', 'email': 'bob@example.com', 'password': 'password123'},
-        {'username': 'charlie_brown', 'nickname': 'Charlie', 'email': 'charlie@example.com', 'password': 'password123'},
+        {'username': 'admin', 'nickname': 'Admin', 'email': 'admin@climbing-gym.com', 'password': 'admin123', 'role': 'admin'},
+        {'username': 'alice_johnson', 'nickname': 'Alice', 'email': 'alice@example.com', 'password': 'password123', 'role': 'route_setter'},
+        {'username': 'bob_smith', 'nickname': 'Bob', 'email': 'bob@example.com', 'password': 'password123', 'role': 'route_setter'},
+        {'username': 'charlie_brown', 'nickname': 'Charlie', 'email': 'charlie@example.com', 'password': 'password123', 'role': 'user'},
     ]
     
     for user_data in users_data:
-        user = User(username=user_data['username'], nickname=user_data['nickname'], email=user_data['email'])
+        user = User(
+            username=user_data['username'], 
+            nickname=user_data['nickname'], 
+            email=user_data['email'],
+            role=user_data['role']
+        )
         user.set_password(user_data['password'])
         db.session.add(user)
     
     db.session.commit()
-    print(f"✓ Initialized {len(users_data)} sample users")
+    print(f"✓ Initialized {len(users_data)} sample users with roles")
 
 def init_sample_routes():
     """Initialize sample routes"""
@@ -316,10 +339,10 @@ def init_database():
     print("=" * 50)
     print("🎉 Database initialization complete!")
     print("\nSample user accounts created:")
-    print("- admin / admin123")
-    print("- alice_johnson / password123")
-    print("- bob_smith / password123")
-    print("- charlie_brown / password123")
+    print("- admin / admin123 (admin role - can create routes)")
+    print("- alice_johnson / password123 (route_setter role - can create routes)")
+    print("- bob_smith / password123 (route_setter role - can create routes)")
+    print("- charlie_brown / password123 (user role - cannot create routes)")
     print(f"\nDatabase file: {app.config['SQLALCHEMY_DATABASE_URI']}")
 
 if __name__ == '__main__':

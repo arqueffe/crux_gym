@@ -1,19 +1,19 @@
 import 'package:flutter/foundation.dart';
 import '../models/profile_models.dart';
 import '../models/route_models.dart';
-import '../services/api_service.dart';
+import '../services/cached_api_service.dart';
 import '../providers/auth_provider.dart';
 import '../providers/route_provider.dart';
 
 class ProfileProvider extends ChangeNotifier {
-  late final ApiService _apiService;
+  late final CachedApiService _apiService;
   final RouteProvider? _routeProvider;
 
   ProfileProvider({
     required AuthProvider authProvider,
     RouteProvider? routeProvider,
   }) : _routeProvider = routeProvider {
-    _apiService = ApiService(authProvider: authProvider);
+    _apiService = CachedApiService(authProvider: authProvider);
   }
 
   List<UserTick> _userTicks = [];
@@ -116,16 +116,16 @@ class ProfileProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> loadProfile() async {
+  Future<void> loadProfile({bool forceRefresh = false}) async {
     _setLoading(true);
     _error = null;
 
     try {
       await Future.wait([
-        _loadUserTicks(),
-        _loadUserLikes(),
-        _loadUserProjects(),
-        _loadProfileStats(),
+        _loadUserTicks(forceRefresh: forceRefresh),
+        _loadUserLikes(forceRefresh: forceRefresh),
+        _loadUserProjects(forceRefresh: forceRefresh),
+        _loadProfileStats(forceRefresh: forceRefresh),
       ]);
 
       _calculateGradeStats();
@@ -136,46 +136,38 @@ class ProfileProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> _loadUserTicks() async {
+  Future<void> _loadUserTicks({bool forceRefresh = false}) async {
     try {
-      final response = await _apiService.get('/user/ticks');
-      if (response['success']) {
-        _userTicks = (response['data'] as List)
-            .map((json) => UserTick.fromJson(json))
-            .toList();
-      }
+      final data = await _apiService.getUserTicks(forceRefresh: forceRefresh);
+      _userTicks = data.map((json) => UserTick.fromJson(json)).toList();
     } catch (e) {
       throw 'Failed to load user ticks: $e';
     }
   }
 
-  Future<void> _loadUserLikes() async {
+  Future<void> _loadUserLikes({bool forceRefresh = false}) async {
     try {
-      final response = await _apiService.get('/user/likes');
-      if (response['success']) {
-        _userLikes = (response['data'] as List)
-            .map((json) => UserLike.fromJson(json))
-            .toList();
-      }
+      final data = await _apiService.getUserLikes(forceRefresh: forceRefresh);
+      _userLikes = data.map((json) => UserLike.fromJson(json)).toList();
     } catch (e) {
       throw 'Failed to load user likes: $e';
     }
   }
 
-  Future<void> _loadUserProjects() async {
+  Future<void> _loadUserProjects({bool forceRefresh = false}) async {
     try {
-      _userProjects = await _apiService.getUserProjects();
+      final data =
+          await _apiService.getUserProjects(forceRefresh: forceRefresh);
+      _userProjects = data.map((json) => Project.fromJson(json)).toList();
     } catch (e) {
       throw 'Failed to load user projects: $e';
     }
   }
 
-  Future<void> _loadProfileStats() async {
+  Future<void> _loadProfileStats({bool forceRefresh = false}) async {
     try {
-      final response = await _apiService.get('/user/stats');
-      if (response['success']) {
-        _profileStats = ProfileStats.fromJson(response['data']);
-      }
+      final data = await _apiService.getUserStats(forceRefresh: forceRefresh);
+      _profileStats = ProfileStats.fromJson(data);
     } catch (e) {
       throw 'Failed to load profile stats: $e';
     }
@@ -221,6 +213,16 @@ class ProfileProvider extends ChangeNotifier {
   }
 
   Future<void> refresh() async {
-    await loadProfile();
+    await loadProfile(forceRefresh: true);
+  }
+
+  /// Clear user-specific cache
+  void clearUserCache() {
+    _apiService.clearUserCache();
+  }
+
+  /// Get cache statistics for debugging
+  Map<String, dynamic> getCacheStats() {
+    return _apiService.getCacheStats();
   }
 }

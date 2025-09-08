@@ -125,17 +125,25 @@ class _HomeScreenState extends State<HomeScreen> {
           //   icon: const Icon(Icons.view_in_ar),
           //   tooltip: '3D Wall View',
           // ),
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const AddRouteScreen(),
-                ),
+          Consumer<AuthProvider>(
+            builder: (context, authProvider, child) {
+              // Only show add route button if user has permission
+              if (!authProvider.canCreateRoutes) {
+                return const SizedBox.shrink();
+              }
+              return IconButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AddRouteScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.add),
+                tooltip: 'Add Route',
               );
             },
-            icon: const Icon(Icons.add),
-            tooltip: 'Add Route',
           ),
         ],
       ),

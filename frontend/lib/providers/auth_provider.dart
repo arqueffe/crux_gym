@@ -1,9 +1,11 @@
 import 'package:flutter/foundation.dart';
 import '../services/auth_service.dart';
+import '../services/cache_service.dart';
 import '../models/user_models.dart';
 
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
+  final CacheService _cacheService = CacheService();
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -49,6 +51,8 @@ class AuthProvider with ChangeNotifier {
       );
 
       if (result['success']) {
+        // Clear any cached data
+        _cacheService.clear();
         notifyListeners();
         return true;
       } else {
@@ -78,6 +82,8 @@ class AuthProvider with ChangeNotifier {
       );
 
       if (result['success']) {
+        // Clear any cached data from previous user
+        _cacheService.invalidateUserData();
         notifyListeners();
         return true;
       } else {
@@ -97,6 +103,8 @@ class AuthProvider with ChangeNotifier {
     _setLoading(true);
     try {
       await _authService.logout();
+      // Clear all cached data on logout
+      _cacheService.clear();
       notifyListeners();
     } catch (e) {
       _setError('Logout failed: $e');
@@ -137,6 +145,21 @@ class AuthProvider with ChangeNotifier {
       _setError('Failed to update nickname: $e');
       return false;
     }
+  }
+
+  // Check if user has permission to create routes
+  bool get canCreateRoutes {
+    return currentUser?.canCreateRoutes ?? false;
+  }
+
+  // Check if user is an admin
+  bool get isAdmin {
+    return currentUser?.isAdmin ?? false;
+  }
+
+  // Check if user is a route setter
+  bool get isRouteSetter {
+    return currentUser?.isRouteSetter ?? false;
   }
 
   // Private methods

@@ -403,4 +403,17 @@ class ApiService {
       throw Exception('Failed to load user projects');
     }
   }
+
+  // User permissions
+  Future<Map<String, dynamic>> getUserPermissions() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/auth/permissions'),
+      headers: _headers,
+    );
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Failed to load user permissions');
+    }
+  }
 }
