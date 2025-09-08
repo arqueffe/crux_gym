@@ -386,7 +386,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                                 : Colors.red,
                             size: 16),
                         const SizedBox(width: 4),
-                        Text(l10n.topRope + ' Send'), // Will fix this later
+                        Text('${l10n.topRope} Send'), // Will fix this later
                         if (_tickData!['top_rope_flash'] == true)
                           const Text(' (Flash)',
                               style: TextStyle(

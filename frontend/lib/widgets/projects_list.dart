@@ -111,7 +111,7 @@ class ProjectsList extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: Theme.of(context)
                                   .colorScheme
-                                  .surfaceVariant
+                                  .surfaceContainerHighest
                                   .withOpacity(0.5),
                               borderRadius: BorderRadius.circular(6),
                             ),
