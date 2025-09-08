@@ -22,20 +22,40 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late TabController _tabController;
+  late FocusNode _focusNode;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
+    _focusNode = FocusNode();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ProfileProvider>().loadProfile();
     });
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // Refresh profile data when app becomes active again
+      _refreshProfileData();
+    }
+  }
+
+  void _refreshProfileData() {
+    if (mounted) {
+      context.read<ProfileProvider>().refresh();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _focusNode.dispose();
     _tabController.dispose();
     super.dispose();
   }
@@ -128,270 +148,153 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
+  void _showLogoutDialog(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-
-    return Scaffold(
-      appBar: CustomAppBar(
-        title: l10n.profileTitle,
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.logoutConfirmTitle),
+        content: Text(l10n.logoutConfirmMessage),
         actions: [
-          // Language selector
-          const LanguageSelector(),
-          // Time filter dropdown
-          Consumer<ProfileProvider>(
-            builder: (context, profileProvider, child) {
-              return Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: DropdownButton<ProfileTimeFilter>(
-                  value: profileProvider.timeFilter,
-                  underline: Container(),
-                  items: ProfileTimeFilter.values.map((filter) {
-                    return DropdownMenuItem(
-                      value: filter,
-                      child: Text(
-                        _getTimeFilterDisplayName(filter, l10n),
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (filter) {
-                    if (filter != null) {
-                      profileProvider.setTimeFilter(filter);
-                    }
-                  },
-                ),
-              );
-            },
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l10n.cancel),
           ),
-          // Logout button
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: l10n.logout,
+          ElevatedButton(
             onPressed: () {
-              showDialog(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: Text(l10n.logoutConfirmTitle),
-                  content: Text(l10n.logoutConfirmMessage),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(ctx).pop(),
-                      child: Text(l10n.cancel),
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(ctx).pop();
-                        context.read<AuthProvider>().logout();
-                      },
-                      child: Text(l10n.logout),
-                    ),
-                  ],
-                ),
-              );
+              Navigator.of(ctx).pop();
+              context.read<AuthProvider>().logout();
             },
+            child: Text(l10n.logout),
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: [
-            Tab(
-              icon: const Icon(Icons.analytics),
-              text: l10n.performanceTab,
-            ),
-            Tab(
-              icon: const Icon(Icons.map),
-              text: l10n.routesTab,
-            ),
-          ],
-        ),
-      ),
-      body: Consumer2<ProfileProvider, AuthProvider>(
-        builder: (context, profileProvider, authProvider, child) {
-          final l10n = AppLocalizations.of(context);
-
-          if (profileProvider.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (profileProvider.error != null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text(
-                    '${l10n.error}: ${profileProvider.error}',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => profileProvider.loadProfile(),
-                    child: Text(l10n.retry),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return Column(
-            children: [
-              // User Info Header
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  border: Border(
-                    bottom: BorderSide(
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 32,
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      child: Text(
-                        (authProvider.currentUser?.nickname ?? 'U')[0]
-                            .toUpperCase(),
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onPrimary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 24,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  authProvider.currentUser?.nickname ??
-                                      'Unknown',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineSmall
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                ),
-                              ),
-                              IconButton(
-                                tooltip: l10n.editNicknameTooltip,
-                                icon: const Icon(Icons.edit_outlined),
-                                onPressed: () => _promptEditNickname(context),
-                              ),
-                            ],
-                          ),
-                          Text(
-                            authProvider.currentUser?.email ?? '',
-                            style: TextStyle(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onPrimaryContainer
-                                  .withOpacity(0.7),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            l10n.memberSince(_formatDate(
-                                authProvider.currentUser?.createdAt)),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onPrimaryContainer
-                                  .withOpacity(0.7),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          // Dark mode toggle and Language settings
-                          Consumer<ThemeProvider>(
-                            builder: (context, themeProvider, child) {
-                              return Column(
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.brightness_6,
-                                        size: 16,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onPrimaryContainer
-                                            .withOpacity(0.7),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        l10n.darkMode,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onPrimaryContainer
-                                              .withOpacity(0.7),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Switch(
-                                        value: themeProvider.isDarkMode,
-                                        onChanged: (value) {
-                                          themeProvider.toggleTheme();
-                                        },
-                                        materialTapTargetSize:
-                                            MaterialTapTargetSize.shrinkWrap,
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  // Language settings tile
-                                  const LanguageListTile(),
-                                ],
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Tab content
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    // Performance Tab
-                    RefreshIndicator(
-                      onRefresh: () => profileProvider.refresh(),
-                      child: const PerformanceTab(),
-                    ),
-                    // Routes Tab
-                    RefreshIndicator(
-                      onRefresh: () => profileProvider.refresh(),
-                      child: const RoutesTab(),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          );
-        },
       ),
     );
   }
 
-  String _formatDate(DateTime? date) {
-    if (date == null) return 'Unknown';
-    return '${date.day}/${date.month}/${date.year}';
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Focus(
+      focusNode: _focusNode,
+      onFocusChange: (hasFocus) {
+        if (hasFocus) {
+          // Refresh data when the screen gains focus (returns from navigation)
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _refreshProfileData();
+          });
+        }
+      },
+      child: Scaffold(
+        appBar: CustomAppBar(
+          title: l10n.profileTitle,
+          actions: [
+            // Time filter dropdown
+            Consumer<ProfileProvider>(
+              builder: (context, profileProvider, child) {
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: DropdownButton<ProfileTimeFilter>(
+                    value: profileProvider.timeFilter,
+                    underline: Container(),
+                    items: ProfileTimeFilter.values.map((filter) {
+                      return DropdownMenuItem(
+                        value: filter,
+                        child: Text(
+                          _getTimeFilterDisplayName(filter, l10n),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (filter) {
+                      if (filter != null) {
+                        profileProvider.setTimeFilter(filter);
+                      }
+                    },
+                  ),
+                );
+              },
+            ),
+          ],
+          bottom: TabBar(
+            controller: _tabController,
+            tabs: [
+              Tab(
+                icon: const Icon(Icons.analytics),
+                text: l10n.performanceTab,
+              ),
+              Tab(
+                icon: const Icon(Icons.map),
+                text: l10n.routesTab,
+              ),
+              Tab(
+                icon: const Icon(Icons.settings),
+                text: l10n.settingsTab,
+              ),
+            ],
+          ),
+        ),
+        body: Consumer2<ProfileProvider, AuthProvider>(
+          builder: (context, profileProvider, authProvider, child) {
+            final l10n = AppLocalizations.of(context);
+
+            if (profileProvider.isLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (profileProvider.error != null) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline,
+                        size: 64, color: Colors.red),
+                    const SizedBox(height: 16),
+                    Text(
+                      '${l10n.error}: ${profileProvider.error}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => profileProvider.loadProfile(),
+                      child: Text(l10n.retry),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return TabBarView(
+              controller: _tabController,
+              children: [
+                // Performance Tab
+                RefreshIndicator(
+                  onRefresh: () => profileProvider.refresh(),
+                  child: const PerformanceTab(),
+                ),
+                // Routes Tab
+                RefreshIndicator(
+                  onRefresh: () => profileProvider.refresh(),
+                  child: RoutesTab(
+                    onRouteReturn: () => _refreshProfileData(),
+                  ),
+                ),
+                // Settings Tab
+                RefreshIndicator(
+                  onRefresh: () => profileProvider.refresh(),
+                  child: SettingsTab(
+                    onEditNickname: () => _promptEditNickname(context),
+                    onLogout: () => _showLogoutDialog(context),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
   }
 
   String _getTimeFilterDisplayName(
@@ -463,26 +366,36 @@ class PerformanceTab extends StatelessWidget {
 }
 
 class RoutesTab extends StatefulWidget {
-  const RoutesTab({super.key});
+  final VoidCallback? onRouteReturn;
+
+  const RoutesTab({
+    super.key,
+    this.onRouteReturn,
+  });
 
   @override
   State<RoutesTab> createState() => _RoutesTabState();
 }
 
-class _RoutesTabState extends State<RoutesTab>
-    with SingleTickerProviderStateMixin {
-  late TabController _routesTabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _routesTabController = TabController(length: 3, vsync: this);
-  }
+class _RoutesTabState extends State<RoutesTab> {
+  int _selectedIndex = 0;
+  final PageController _pageController = PageController();
 
   @override
   void dispose() {
-    _routesTabController.dispose();
+    _pageController.dispose();
     super.dispose();
+  }
+
+  void _onSegmentTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   @override
@@ -491,174 +404,502 @@ class _RoutesTabState extends State<RoutesTab>
 
     return Column(
       children: [
-        // Sub-tabs for Routes
+        // Modern segmented control
         Container(
-          color: Theme.of(context).colorScheme.surface,
-          child: TabBar(
-            controller: _routesTabController,
-            tabs: [
-              Tab(
-                icon: const Icon(Icons.check_circle),
-                text: l10n.ticksTab,
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: _buildSegmentButton(
+                  context: context,
+                  index: 0,
+                  icon: Icons.check_circle,
+                  label: l10n.ticksTab,
+                  isSelected: _selectedIndex == 0,
+                ),
               ),
-              Tab(
-                icon: const Icon(Icons.favorite),
-                text: l10n.likesTab,
+              Expanded(
+                child: _buildSegmentButton(
+                  context: context,
+                  index: 1,
+                  icon: Icons.favorite,
+                  label: l10n.likesTab,
+                  isSelected: _selectedIndex == 1,
+                ),
               ),
-              Tab(
-                icon: const Icon(Icons.flag),
-                text: l10n.projectsTab,
+              Expanded(
+                child: _buildSegmentButton(
+                  context: context,
+                  index: 2,
+                  icon: Icons.flag,
+                  label: l10n.projectsTab,
+                  isSelected: _selectedIndex == 2,
+                ),
               ),
             ],
           ),
         ),
-        // Sub-tab content
+        // Content
         Expanded(
-          child: TabBarView(
-            controller: _routesTabController,
+          child: PageView(
+            controller: _pageController,
+            onPageChanged: (index) {
+              setState(() {
+                _selectedIndex = index;
+              });
+            },
             children: [
               // Ticks
-              Consumer<ProfileProvider>(
-                builder: (context, profileProvider, child) {
-                  final l10n = AppLocalizations.of(context);
-                  final ticks = profileProvider.filteredTicks;
-
-                  if (ticks.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.check_circle_outline,
-                              size: 64,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant),
-                          const SizedBox(height: 16),
-                          Text(
-                            l10n.noTicksFound,
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            l10n.noTicksDescription,
-                            style: TextStyle(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  return TicksList(
-                    ticks: ticks,
-                    gradeColors: context.read<RouteProvider>().gradeColors,
-                  );
-                },
-              ),
+              _buildTicksContent(),
               // Likes
-              Consumer<ProfileProvider>(
-                builder: (context, profileProvider, child) {
-                  final l10n = AppLocalizations.of(context);
-                  final likes = profileProvider.filteredLikes;
-
-                  if (likes.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.favorite_outline,
-                              size: 64,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant),
-                          const SizedBox(height: 16),
-                          Text(
-                            l10n.noLikesFound,
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            l10n.noLikesDescription,
-                            style: TextStyle(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  return LikesList(
-                    likes: likes,
-                    gradeColors: context.read<RouteProvider>().gradeColors,
-                  );
-                },
-              ),
+              _buildLikesContent(),
               // Projects
-              Consumer<ProfileProvider>(
-                builder: (context, profileProvider, child) {
-                  final l10n = AppLocalizations.of(context);
-                  final projects = profileProvider.filteredProjects;
-
-                  if (projects.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.flag_outlined,
-                              size: 64,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant),
-                          const SizedBox(height: 16),
-                          Text(
-                            l10n.noProjectsFound,
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            l10n.noProjectsDescription,
-                            style: TextStyle(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  return ProjectsList(
-                    projects: projects,
-                    gradeColors: context.read<RouteProvider>().gradeColors,
-                  );
-                },
-              ),
+              _buildProjectsContent(),
             ],
           ),
         ),
       ],
     );
+  }
+
+  Widget _buildSegmentButton({
+    required BuildContext context,
+    required int index,
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+  }) {
+    return GestureDetector(
+      onTap: () => _onSegmentTapped(index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Theme.of(context).colorScheme.surface
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color:
+                        Theme.of(context).colorScheme.shadow.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isSelected
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTicksContent() {
+    return Consumer<ProfileProvider>(
+      builder: (context, profileProvider, child) {
+        final l10n = AppLocalizations.of(context);
+        final ticks = profileProvider.filteredTicks;
+
+        if (ticks.isEmpty) {
+          return _buildEmptyState(
+            icon: Icons.check_circle_outline,
+            title: l10n.noTicksFound,
+            description: l10n.noTicksDescription,
+          );
+        }
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Stats summary card
+              _buildStatsCard(
+                title: '${ticks.length} ${l10n.ticksTab}',
+                icon: Icons.check_circle,
+                color: Colors.green,
+              ),
+              const SizedBox(height: 16),
+              // List
+              Expanded(
+                child: TicksList(
+                  ticks: ticks,
+                  gradeColors: context.read<RouteProvider>().gradeColors,
+                  onRouteSelected: widget.onRouteReturn,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLikesContent() {
+    return Consumer<ProfileProvider>(
+      builder: (context, profileProvider, child) {
+        final l10n = AppLocalizations.of(context);
+        final likes = profileProvider.filteredLikes;
+
+        if (likes.isEmpty) {
+          return _buildEmptyState(
+            icon: Icons.favorite_outline,
+            title: l10n.noLikesFound,
+            description: l10n.noLikesDescription,
+          );
+        }
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Stats summary card
+              _buildStatsCard(
+                title: '${likes.length} ${l10n.likesTab}',
+                icon: Icons.favorite,
+                color: Colors.red,
+              ),
+              const SizedBox(height: 16),
+              // List
+              Expanded(
+                child: LikesList(
+                  likes: likes,
+                  gradeColors: context.read<RouteProvider>().gradeColors,
+                  onRouteSelected: widget.onRouteReturn,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildProjectsContent() {
+    return Consumer<ProfileProvider>(
+      builder: (context, profileProvider, child) {
+        final l10n = AppLocalizations.of(context);
+        final projects = profileProvider.filteredProjects;
+
+        if (projects.isEmpty) {
+          return _buildEmptyState(
+            icon: Icons.flag_outlined,
+            title: l10n.noProjectsFound,
+            description: l10n.noProjectsDescription,
+          );
+        }
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Stats summary card
+              _buildStatsCard(
+                title: '${projects.length} ${l10n.projectsTab}',
+                icon: Icons.flag,
+                color: Colors.orange,
+              ),
+              const SizedBox(height: 16),
+              // List
+              Expanded(
+                child: ProjectsList(
+                  projects: projects,
+                  gradeColors: context.read<RouteProvider>().gradeColors,
+                  onRouteSelected: widget.onRouteReturn,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyState({
+    required IconData icon,
+    required String title,
+    required String description,
+  }) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 48,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              description,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatsCard({
+    required String title,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              size: 20,
+              color: color,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class SettingsTab extends StatelessWidget {
+  final VoidCallback onEditNickname;
+  final VoidCallback onLogout;
+
+  const SettingsTab({
+    super.key,
+    required this.onEditNickname,
+    required this.onLogout,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Consumer2<AuthProvider, ThemeProvider>(
+      builder: (context, authProvider, themeProvider, child) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // User Info Header
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 32,
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      child: Text(
+                        (authProvider.currentUser?.nickname ?? 'U')[0]
+                            .toUpperCase(),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 24,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  authProvider.currentUser?.nickname ??
+                                      l10n.unknown,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineSmall
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                ),
+                              ),
+                              IconButton(
+                                tooltip: l10n.editNicknameTooltip,
+                                icon: const Icon(Icons.edit_outlined),
+                                onPressed: onEditNickname,
+                              ),
+                            ],
+                          ),
+                          Text(
+                            authProvider.currentUser?.email ?? '',
+                            style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onPrimaryContainer
+                                  .withOpacity(0.7),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            l10n.memberSince(_formatDate(
+                                authProvider.currentUser?.createdAt, l10n)),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onPrimaryContainer
+                                  .withOpacity(0.7),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Settings Section
+              Text(
+                l10n.appSettings,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 16),
+
+              // Dark Mode Setting
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.brightness_6),
+                  title: Text(l10n.darkMode),
+                  trailing: Switch(
+                    value: themeProvider.isDarkMode,
+                    onChanged: (value) {
+                      themeProvider.toggleTheme();
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // Language Setting
+              Card(
+                child: const LanguageListTile(),
+              ),
+              const SizedBox(height: 24),
+
+              // Account Section
+              Text(
+                l10n.account,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 16),
+
+              // Logout Setting
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.logout, color: Colors.red),
+                  title: Text(
+                    l10n.logout,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                  trailing:
+                      const Icon(Icons.arrow_forward_ios, color: Colors.red),
+                  onTap: onLogout,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatDate(DateTime? date, AppLocalizations l10n) {
+    if (date == null) return l10n.unknown;
+    return '${date.day}/${date.month}/${date.year}';
   }
 }

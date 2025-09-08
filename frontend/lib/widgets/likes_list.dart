@@ -7,11 +7,13 @@ import '../widgets/grade_chip.dart';
 class LikesList extends StatelessWidget {
   final List<UserLike> likes;
   final Map<String, String>? gradeColors;
+  final VoidCallback? onRouteSelected;
 
   const LikesList({
     super.key,
     required this.likes,
     this.gradeColors,
+    this.onRouteSelected,
   });
 
   @override
@@ -26,8 +28,8 @@ class LikesList extends StatelessWidget {
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           child: InkWell(
-            onTap: () {
-              Navigator.push(
+            onTap: () async {
+              await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => RouteDetailScreen(
@@ -35,6 +37,8 @@ class LikesList extends StatelessWidget {
                   ),
                 ),
               );
+              // Call the callback when returning from route detail
+              onRouteSelected?.call();
             },
             borderRadius: BorderRadius.circular(12),
             child: Padding(

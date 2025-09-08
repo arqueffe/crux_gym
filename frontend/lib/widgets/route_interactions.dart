@@ -354,8 +354,6 @@ class _RouteInteractionsState extends State<RouteInteractions> {
   }
 
   void _showTickManagementDialog() {
-    final l10n = AppLocalizations.of(context);
-
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(

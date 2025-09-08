@@ -401,6 +401,18 @@ abstract class AppLocalizations {
   /// **'Language'**
   String get languageSettings;
 
+  /// No description provided for @appSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'App Settings'**
+  String get appSettings;
+
+  /// No description provided for @account.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get account;
+
   /// No description provided for @performanceTab.
   ///
   /// In en, this message translates to:
@@ -412,6 +424,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Routes'**
   String get routesTab;
+
+  /// No description provided for @settingsTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settingsTab;
 
   /// No description provided for @ticksTab.
   ///

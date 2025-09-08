@@ -164,10 +164,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String get languageSettings => 'Langue';
 
   @override
+  String get appSettings => 'Paramètres de l\'application';
+
+  @override
+  String get account => 'Compte';
+
+  @override
   String get performanceTab => 'Performance';
 
   @override
   String get routesTab => 'Voies';
+
+  @override
+  String get settingsTab => 'Paramètres';
 
   @override
   String get ticksTab => 'Réalisations';

@@ -164,10 +164,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languageSettings => 'Language';
 
   @override
+  String get appSettings => 'App Settings';
+
+  @override
+  String get account => 'Account';
+
+  @override
   String get performanceTab => 'Performance';
 
   @override
   String get routesTab => 'Routes';
+
+  @override
+  String get settingsTab => 'Settings';
 
   @override
   String get ticksTab => 'Ticks';
