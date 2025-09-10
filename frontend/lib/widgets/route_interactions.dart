@@ -28,15 +28,14 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     _checkIfProject();
   }
 
-  void _checkIfLiked() {
+  void _checkIfLiked() async {
     final authProvider = context.read<AuthProvider>();
     final currentUser = authProvider.currentUser;
     if (currentUser == null) return;
 
-    final isLiked = widget.route.likes?.any(
-          (like) => like.userId == currentUser.id,
-        ) ??
-        false;
+    final routeProvider = context.read<RouteProvider>();
+
+    final isLiked = await routeProvider.getUserLikeStatus(widget.route.id);
 
     if (mounted && _isLiked != isLiked) {
       setState(() {
@@ -45,18 +44,17 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     }
   }
 
+  // {id: 2, user_id: 1, route_id: 4, attempts: 1, top_rope_send: 1, lead_send: 0, top_rope_flash: 0, lead_flash: 0, flash: 0, notes: , created_at: 2025-09-10 13:50:52, updated_at: 2025-09-10 13:50:52}
+
   void _checkIfTicked() async {
     if (!mounted) return;
     final routeProvider = context.read<RouteProvider>();
     final tickStatus = await routeProvider.getUserTickStatus(widget.route.id);
     if (mounted) {
       setState(() {
-        _tickData = tickStatus?['tick'];
-        // Consider as "ticked" if there are any attempts or sends
-        _isTicked = _tickData != null &&
-            ((_tickData!['attempts'] ?? 0) > 0 ||
-                (_tickData!['top_rope_send'] ?? false) ||
-                (_tickData!['lead_send'] ?? false));
+        _isTicked = tickStatus != null &&
+            ((tickStatus['top_rope_send'] ?? false) ||
+                (tickStatus['lead_send'] ?? false));
       });
     }
   }
@@ -64,10 +62,11 @@ class _RouteInteractionsState extends State<RouteInteractions> {
   void _checkIfProject() async {
     if (!mounted) return;
     final routeProvider = context.read<RouteProvider>();
-    final projectStatus = await routeProvider.getProjectStatus(widget.route.id);
+    final projectsStatus = await routeProvider.getUserProjects();
     if (mounted) {
       setState(() {
-        _isProject = projectStatus?['is_project'] ?? false;
+        _isProject =
+            projectsStatus.any((project) => project.routeId == widget.route.id);
       });
     }
   }
@@ -87,191 +86,198 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     final l10n = AppLocalizations.of(context);
 
     return SizedBox(
-        width: double.infinity,
-        child: Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.interactions,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 16),
+      width: double.infinity,
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.interactions,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 16),
 
-                // Action Buttons
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: () => _toggleLike(),
-                      icon: Icon(
-                        _isLiked ? Icons.favorite : Icons.favorite_border,
-                        color: _isLiked ? Colors.red : null,
-                      ),
-                      label: Text(_isLiked ? l10n.unlikeRoute : l10n.likeRoute),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _isLiked
-                            ? Colors.red.shade50
-                            : Theme.of(context).colorScheme.primaryContainer,
-                      ),
+              // Action Buttons
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () => _toggleLike(),
+                    icon: Icon(
+                      _isLiked ? Icons.favorite : Icons.favorite_border,
+                      color: _isLiked ? Colors.red : null,
                     ),
-                    ElevatedButton.icon(
-                      onPressed: () => _showTickDialog(),
-                      icon: Icon(
-                        _isTicked
-                            ? Icons.check_circle
-                            : Icons.check_circle_outline,
-                        color: _isTicked ? Colors.green : null,
-                      ),
-                      label: Text(_isTicked ? l10n.progress : l10n.track),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _isTicked
-                            ? Colors.green.shade50
-                            : Theme.of(context).colorScheme.primaryContainer,
-                      ),
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: () => _toggleProject(),
-                      icon: Icon(
-                        _isProject ? Icons.flag : Icons.flag_outlined,
-                        color: _isProject ? Colors.blue : null,
-                      ),
-                      label: Text(
-                          _isProject ? l10n.removeProject : l10n.projectRoute),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _isProject
-                            ? Colors.blue.shade50
-                            : Theme.of(context).colorScheme.primaryContainer,
-                      ),
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: () => _showCommentDialog(),
-                      icon: const Icon(Icons.comment),
-                      label: Text(l10n.comment),
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: () => _showGradeProposalDialog(),
-                      icon: const Icon(Icons.grade),
-                      label: Text(l10n.proposeGrade),
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: () => _showWarningDialog(),
-                      icon: const Icon(Icons.warning),
-                      label: Text(l10n.reportIssue),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange.shade50,
-                        foregroundColor: Colors.orange.shade700,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // Tick information if route has progress
-                if (_isTicked && _tickData != null)
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Theme.of(context)
-                              .colorScheme
-                              .primary
-                              .withOpacity(0.1)
-                          : Theme.of(context)
-                              .colorScheme
-                              .primary
-                              .withOpacity(0.05),
-                      border: Border.all(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .primary
-                            .withOpacity(0.3),
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.trending_up,
-                                color: Theme.of(context).colorScheme.primary),
-                            const SizedBox(width: 8),
-                            Text(
-                              l10n.yourProgress,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text('Attempts: ${_tickData!['attempts'] ?? 0}'),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(
-                              _tickData!['top_rope_send'] == true
-                                  ? Icons.check
-                                  : Icons.close,
-                              color: _tickData!['top_rope_send'] == true
-                                  ? Colors.green
-                                  : Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(l10n.topRope),
-                            if (_tickData!['top_rope_flash'] == true)
-                              const Text(' (Flash)',
-                                  style: TextStyle(
-                                      color: Colors.orange,
-                                      fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(
-                              _tickData!['lead_send'] == true
-                                  ? Icons.check
-                                  : Icons.close,
-                              color: _tickData!['lead_send'] == true
-                                  ? Colors.green
-                                  : Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(l10n.lead),
-                            if (_tickData!['lead_flash'] == true)
-                              const Text(' (Flash)',
-                                  style: TextStyle(
-                                      color: Colors.orange,
-                                      fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                        if (_tickData!['notes'] != null &&
-                            _tickData!['notes'].toString().isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            'Notes: ${_tickData!['notes']}',
-                            style: const TextStyle(fontStyle: FontStyle.italic),
-                          ),
-                        ],
-                      ],
+                    label: Text(_isLiked ? l10n.unlikeRoute : l10n.likeRoute),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _isLiked
+                          ? Colors.red.shade50
+                          : Theme.of(context).colorScheme.primaryContainer,
                     ),
                   ),
-              ],
-            ),
+                  ElevatedButton.icon(
+                    onPressed: () => _showTickDialog(),
+                    icon: Icon(
+                      _isTicked
+                          ? Icons.check_circle
+                          : Icons.check_circle_outline,
+                      color: _isTicked ? Colors.green : null,
+                    ),
+                    label: Text(_isTicked ? l10n.progress : l10n.track),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _isTicked
+                          ? Colors.green.shade50
+                          : Theme.of(context).colorScheme.primaryContainer,
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () => _toggleProject(),
+                    icon: Icon(
+                      _isProject ? Icons.flag : Icons.flag_outlined,
+                      color: _isProject ? Colors.blue : null,
+                    ),
+                    label: Text(
+                      _isProject ? l10n.removeProject : l10n.projectRoute,
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _isProject
+                          ? Colors.blue.shade50
+                          : Theme.of(context).colorScheme.primaryContainer,
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () => _showCommentDialog(),
+                    icon: const Icon(Icons.comment),
+                    label: Text(l10n.comment),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () => _showGradeProposalDialog(),
+                    icon: const Icon(Icons.grade),
+                    label: Text(l10n.proposeGrade),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () => _showWarningDialog(),
+                    icon: const Icon(Icons.warning),
+                    label: Text(l10n.reportIssue),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange.shade50,
+                      foregroundColor: Colors.orange.shade700,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Tick information if route has progress
+              if (_isTicked && _tickData != null)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Theme.of(
+                            context,
+                          ).colorScheme.primary.withOpacity(0.1)
+                        : Theme.of(
+                            context,
+                          ).colorScheme.primary.withOpacity(0.05),
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withOpacity(0.3),
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.trending_up,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            l10n.yourProgress,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text('Attempts: ${_tickData!['attempts'] ?? 0}'),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            _tickData!['top_rope_send'] == true
+                                ? Icons.check
+                                : Icons.close,
+                            color: _tickData!['top_rope_send'] == true
+                                ? Colors.green
+                                : Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(l10n.topRope),
+                          if (_tickData!['top_rope_flash'] == true)
+                            const Text(
+                              ' (Flash)',
+                              style: TextStyle(
+                                color: Colors.orange,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            _tickData!['lead_send'] == true
+                                ? Icons.check
+                                : Icons.close,
+                            color: _tickData!['lead_send'] == true
+                                ? Colors.green
+                                : Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(l10n.lead),
+                          if (_tickData!['lead_flash'] == true)
+                            const Text(
+                              ' (Flash)',
+                              style: TextStyle(
+                                color: Colors.orange,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                        ],
+                      ),
+                      if (_tickData!['notes'] != null &&
+                          _tickData!['notes'].toString().isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'Notes: ${_tickData!['notes']}',
+                          style: const TextStyle(fontStyle: FontStyle.italic),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+            ],
           ),
-        ));
+        ),
+      ),
+    );
   }
 
   Future<void> _toggleLike() async {
@@ -312,7 +318,8 @@ class _RouteInteractionsState extends State<RouteInteractions> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                  'Cannot mark sent routes as projects. You have already lead sent this route.'),
+                'Cannot mark sent routes as projects. You have already lead sent this route.',
+              ),
               backgroundColor: Colors.orange,
             ),
           );
@@ -329,7 +336,8 @@ class _RouteInteractionsState extends State<RouteInteractions> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-              _isProject ? 'Project removed!' : 'Route added to projects!'),
+            _isProject ? 'Project removed!' : 'Route added to projects!',
+          ),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -368,55 +376,69 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                 children: [
                   // Current tick information
                   if (_tickData != null) ...[
-                    const Text('Current Progress:', // Add to ARB
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text(
+                      'Current Progress:', // Add to ARB
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 8),
-                    Text('${l10n.attempts}: ${_tickData!['attempts'] ?? 0}'),
+                    Text(
+                      '${l10n.attempts}: ${_tickData!['attempts'] ?? 0}',
+                    ),
                     const SizedBox(height: 4),
                     Row(
                       children: [
                         Icon(
-                            _tickData!['top_rope_send'] == true
-                                ? Icons.check
-                                : Icons.close,
-                            color: _tickData!['top_rope_send'] == true
-                                ? Colors.green
-                                : Colors.red,
-                            size: 16),
+                          _tickData!['top_rope_send'] == true
+                              ? Icons.check
+                              : Icons.close,
+                          color: _tickData!['top_rope_send'] == true
+                              ? Colors.green
+                              : Colors.red,
+                          size: 16,
+                        ),
                         const SizedBox(width: 4),
                         Text('${l10n.topRope} Send'), // Will fix this later
                         if (_tickData!['top_rope_flash'] == true)
-                          const Text(' (Flash)',
-                              style: TextStyle(
-                                  color: Colors.orange,
-                                  fontWeight: FontWeight.bold)),
+                          const Text(
+                            ' (Flash)',
+                            style: TextStyle(
+                              color: Colors.orange,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Row(
                       children: [
                         Icon(
-                            _tickData!['lead_send'] == true
-                                ? Icons.check
-                                : Icons.close,
-                            color: _tickData!['lead_send'] == true
-                                ? Colors.green
-                                : Colors.red,
-                            size: 16),
+                          _tickData!['lead_send'] == true
+                              ? Icons.check
+                              : Icons.close,
+                          color: _tickData!['lead_send'] == true
+                              ? Colors.green
+                              : Colors.red,
+                          size: 16,
+                        ),
                         const SizedBox(width: 4),
                         Text(l10n.leadSend),
                         if (_tickData!['lead_flash'] == true)
-                          const Text(' (Flash)',
-                              style: TextStyle(
-                                  color: Colors.orange,
-                                  fontWeight: FontWeight.bold)),
+                          const Text(
+                            ' (Flash)',
+                            style: TextStyle(
+                              color: Colors.orange,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                       ],
                     ),
                     if (_tickData!['notes'] != null &&
                         _tickData!['notes'].isNotEmpty) ...[
                       const SizedBox(height: 8),
-                      const Text('Notes:',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      const Text(
+                        'Notes:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       Text(_tickData!['notes']),
                     ],
                     const SizedBox(height: 16),
@@ -441,8 +463,10 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                   Navigator.pop(context);
                   _showRemoveTickDialog();
                 },
-                child: Text(l10n.removeTick,
-                    style: const TextStyle(color: Colors.red)),
+                child: Text(
+                  l10n.removeTick,
+                  style: const TextStyle(color: Colors.red),
+                ),
               ),
             ],
           );
@@ -543,7 +567,8 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                               notesController.selection =
                                   TextSelection.fromPosition(
                                 TextPosition(
-                                    offset: notesController.text.length),
+                                  offset: notesController.text.length,
+                                ),
                               );
                             },
                           )
@@ -563,7 +588,9 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                 onPressed: () {
                   Navigator.pop(context);
                   _addAttempts(
-                      attempts: attempts, notes: notesController.text.trim());
+                    attempts: attempts,
+                    notes: notesController.text.trim(),
+                  );
                 },
                 child: Text(l10n.add),
               ),
@@ -599,7 +626,9 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                   ),
                   items: [
                     DropdownMenuItem(
-                        value: 'top_rope', child: Text(l10n.topRope)),
+                      value: 'top_rope',
+                      child: Text(l10n.topRope),
+                    ),
                     DropdownMenuItem(value: 'lead', child: Text(l10n.lead)),
                   ],
                   onChanged: (value) {
@@ -631,7 +660,8 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                               notesController.selection =
                                   TextSelection.fromPosition(
                                 TextPosition(
-                                    offset: notesController.text.length),
+                                  offset: notesController.text.length,
+                                ),
                               );
                             },
                           )
@@ -651,7 +681,9 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                 onPressed: () {
                   Navigator.pop(context);
                   _markSend(
-                      sendType: sendType, notes: notesController.text.trim());
+                    sendType: sendType,
+                    notes: notesController.text.trim(),
+                  );
                 },
                 child: Text(l10n.markSend),
               ),
@@ -703,7 +735,8 @@ class _RouteInteractionsState extends State<RouteInteractions> {
         return AlertDialog(
           title: Text(l10n.removeTick),
           content: const Text(
-              'Are you sure you want to remove all progress for this route?'),
+            'Are you sure you want to remove all progress for this route?',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -714,8 +747,10 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                 Navigator.pop(context);
                 _untickRoute();
               },
-              child:
-                  Text(l10n.remove, style: const TextStyle(color: Colors.red)),
+              child: Text(
+                l10n.remove,
+                style: const TextStyle(color: Colors.red),
+              ),
             ),
           ],
         );
@@ -731,15 +766,15 @@ class _RouteInteractionsState extends State<RouteInteractions> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content:
-                  Text('Added $attempts attempt${attempts == 1 ? '' : 's'}')),
+            content: Text('Added $attempts attempt${attempts == 1 ? '' : 's'}'),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to add attempts: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to add attempts: $e')));
       }
     }
   }
@@ -756,14 +791,15 @@ class _RouteInteractionsState extends State<RouteInteractions> {
         final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(l10n.markedSend(sendType.replaceAll('_', ' ')))),
+            content: Text(l10n.markedSend(sendType.replaceAll('_', ' '))),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to mark send: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to mark send: $e')));
       }
     }
   }
@@ -863,24 +899,27 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     }
 
     // Check if user already has a proposal for this route
-    final existingProposal =
-        await routeProvider.getUserGradeProposal(widget.route.id);
+    final existingProposal = await routeProvider.getUserGradeProposal(
+      widget.route.id,
+    );
 
     // Get grades from route provider, sorted by difficulty order
     final grades = routeProvider.gradeDefinitions
         .map((gradeDefinition) => gradeDefinition['grade'] as String)
         .toList()
       ..sort((a, b) {
-        final aOrder = routeProvider.gradeDefinitions
-            .firstWhere((g) => g['grade'] == a)['difficulty_order'] as int;
-        final bOrder = routeProvider.gradeDefinitions
-            .firstWhere((g) => g['grade'] == b)['difficulty_order'] as int;
+        final aOrder = routeProvider.gradeDefinitions.firstWhere(
+          (g) => g['grade'] == a,
+        )['difficulty_order'] as int;
+        final bOrder = routeProvider.gradeDefinitions.firstWhere(
+          (g) => g['grade'] == b,
+        )['difficulty_order'] as int;
         return aOrder.compareTo(bOrder);
       });
 
     // Set selected grade, ensuring it exists in the grades list
     String? selectedGrade = existingProposal?.proposedGrade;
-    if (selectedGrade != null && !grades.contains(selectedGrade)) {
+    if (!grades.contains(selectedGrade)) {
       // If the existing grade is not in our list, don't pre-select it
       selectedGrade = null;
     }
@@ -897,9 +936,11 @@ class _RouteInteractionsState extends State<RouteInteractions> {
         builder: (context, setState) {
           final l10n = AppLocalizations.of(context);
           return AlertDialog(
-            title: Text(existingProposal != null
-                ? 'Update Grade Proposal'
-                : 'Propose Grade'),
+            title: Text(
+              existingProposal != null
+                  ? 'Update Grade Proposal'
+                  : 'Propose Grade',
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -913,7 +954,11 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.info, color: Colors.blue.shade700, size: 20),
+                        Icon(
+                          Icons.info,
+                          color: Colors.blue.shade700,
+                          size: 20,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -941,10 +986,12 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                   ),
                   value: selectedGrade,
                   items: grades
-                      .map((grade) => DropdownMenuItem(
-                            value: grade,
-                            child: Text(grade),
-                          ))
+                      .map(
+                        (grade) => DropdownMenuItem(
+                          value: grade,
+                          child: Text(grade),
+                        ),
+                      )
                       .toList(),
                   onChanged: (value) {
                     setState(() {
@@ -981,7 +1028,9 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                               : reasoningController.text.trim(),
                         );
                       },
-                child: Text(existingProposal != null ? 'Update' : 'Propose'),
+                child: Text(
+                  existingProposal != null ? 'Update' : 'Propose',
+                ),
               ),
             ],
           );
@@ -1026,7 +1075,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
       'safety_issue',
       'needs_cleaning',
       'loose_hold',
-      'other'
+      'other',
     ];
 
     final warningLabels = {
@@ -1034,7 +1083,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
       'safety_issue': 'Safety Issue',
       'needs_cleaning': 'Needs Cleaning',
       'loose_hold': 'Loose Hold',
-      'other': 'Other'
+      'other': 'Other',
     };
 
     showDialog(
@@ -1052,10 +1101,12 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                 ),
                 value: selectedWarningType,
                 items: warningTypes
-                    .map((type) => DropdownMenuItem(
-                          value: type,
-                          child: Text(warningLabels[type] ?? type),
-                        ))
+                    .map(
+                      (type) => DropdownMenuItem(
+                        value: type,
+                        child: Text(warningLabels[type] ?? type),
+                      ),
+                    )
                     .toList(),
                 onChanged: (value) {
                   setState(() {
@@ -1085,8 +1136,10 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                   ? null
                   : () {
                       Navigator.pop(context);
-                      _addWarning(selectedWarningType!,
-                          descriptionController.text.trim());
+                      _addWarning(
+                        selectedWarningType!,
+                        descriptionController.text.trim(),
+                      );
                     },
               child: const Text('Report'),
             ),

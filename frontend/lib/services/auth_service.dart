@@ -1,11 +1,11 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:jwt_decoder/jwt_decoder.dart';
 import '../models/user_models.dart';
+import '../services/js_auth_service.dart';
 
 class AuthService {
-  static const String baseUrl = 'http://localhost:5000/api';
+  // WordPress API endpoint (same-origin)
+  static const String baseUrl = '/crux-climbing-gym/wp-json/crux/v1';
   static const String _tokenKey = 'auth_token';
   static const String _userKey = 'user_data';
 
@@ -15,191 +15,239 @@ class AuthService {
   // Getters
   String? get token => _token;
   User? get currentUser => _currentUser;
-  bool get isAuthenticated => _token != null && !_isTokenExpired();
+  bool get isAuthenticated => _currentUser != null;
 
   // Initialize auth service
   Future<void> initialize() async {
+    print('🚀 Initializing AuthService with JavaScript interop');
+
     final prefs = await SharedPreferences.getInstance();
     _token = prefs.getString(_tokenKey);
 
     final userJson = prefs.getString(_userKey);
     if (userJson != null) {
       _currentUser = User.fromJson(json.decode(userJson));
+      print('📁 Loaded cached user: ${_currentUser?.username}');
     }
 
-    // Check if token is expired
-    if (_token != null && _isTokenExpired()) {
-      await logout();
-    }
-  }
-
-  // Register a new user
-  Future<Map<String, dynamic>> register({
-    required String username,
-    required String nickname,
-    required String email,
-    required String password,
-  }) async {
+    // Try JavaScript authentication for WordPress cookies
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/register'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'username': username,
-          'nickname': nickname,
-          'email': email,
-          'password': password,
-        }),
-      );
+      print('🌐 Attempting JavaScript cookie authentication...');
+      Map<String, dynamic>? jsUserResponse =
+          await JSAuthService.getCurrentUser();
+      if (jsUserResponse != null) {
+        print('🔍 Received JS response: $jsUserResponse');
 
-      final data = json.decode(response.body);
+        // Handle different response formats - check for nested user object
+        dynamic responseData = jsUserResponse['data'];
+        Map<String, dynamic>? parsedData;
 
-      if (response.statusCode == 201) {
-        await _saveAuthData(data['access_token'], data['user']);
-        return {'success': true, 'message': data['message']};
+        // If data is a string, parse it as JSON
+        if (responseData is String) {
+          try {
+            parsedData = json.decode(responseData) as Map<String, dynamic>;
+            print('📝 Parsed JSON string data');
+          } catch (e) {
+            print('❌ Failed to parse JSON string: $e');
+            parsedData = null;
+          }
+        } else if (responseData is Map<String, dynamic>) {
+          parsedData = responseData;
+          print('📦 Data already parsed as Map');
+        }
+
+        Map<String, dynamic>? userData;
+        if (parsedData != null) {
+          if (parsedData['user'] != null) {
+            userData = parsedData['user'] as Map<String, dynamic>;
+            print('📦 Found user data in nested "user" object');
+          } else if (parsedData['id'] != null) {
+            userData = parsedData;
+            print('📦 Found user data at top level');
+          }
+        }
+
+        if (userData != null && userData['id'] != null) {
+          _currentUser = User.fromJson(userData);
+
+          // Save to local storage
+          await prefs.setString(_userKey, jsonEncode(_currentUser!.toJson()));
+
+          print(
+              '✅ JavaScript authentication successful: ${_currentUser?.username}');
+          return;
+        } else {
+          print('❌ No valid user data found in JS response');
+        }
       } else {
-        return {'success': false, 'message': data['error']};
+        print('❌ JavaScript authentication failed - null response');
       }
     } catch (e) {
-      return {'success': false, 'message': 'Network error: $e'};
+      print('❌ JavaScript authentication error: $e');
+    }
+
+    // Fallback: check if we have a valid cached user
+    if (_currentUser == null) {
+      print('❌ No valid authentication found');
+      await _clearAuth();
     }
   }
 
-  // Login user
-  Future<Map<String, dynamic>> login({
-    required String username,
-    required String password,
-  }) async {
+  // Check authentication status
+  Future<bool> checkAuth() async {
+    if (_currentUser != null) {
+      return true;
+    }
+
+    // Try to refresh authentication
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'username': username,
-          'password': password,
-        }),
-      );
+      final jsUserResponse = await JSAuthService.getCurrentUser();
+      if (jsUserResponse != null) {
+        // Handle different response formats - check for nested user object
+        dynamic responseData = jsUserResponse['data'];
+        Map<String, dynamic>? parsedData;
 
-      final data = json.decode(response.body);
+        // If data is a string, parse it as JSON
+        if (responseData is String) {
+          try {
+            parsedData = json.decode(responseData) as Map<String, dynamic>;
+          } catch (e) {
+            print('❌ Failed to parse JSON string in checkAuth: $e');
+            parsedData = null;
+          }
+        } else if (responseData is Map<String, dynamic>) {
+          parsedData = responseData;
+        }
 
-      if (response.statusCode == 200) {
-        await _saveAuthData(data['access_token'], data['user']);
-        return {'success': true, 'message': data['message']};
-      } else {
-        return {'success': false, 'message': data['error']};
+        Map<String, dynamic>? userData;
+        if (parsedData != null) {
+          if (parsedData['user'] != null) {
+            userData = parsedData['user'] as Map<String, dynamic>;
+          } else if (parsedData['id'] != null) {
+            userData = parsedData;
+          }
+        }
+
+        if (userData != null && userData['id'] != null) {
+          _currentUser = User.fromJson(userData);
+
+          // Save to local storage
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(_userKey, jsonEncode(_currentUser!.toJson()));
+
+          return true;
+        }
       }
     } catch (e) {
-      return {'success': false, 'message': 'Network error: $e'};
+      print('❌ Auth check error: $e');
     }
-  }
 
-  // Logout user
-  Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_tokenKey);
-    await prefs.remove(_userKey);
-    _token = null;
-    _currentUser = null;
+    return false;
   }
 
   // Get current user from server
   Future<Map<String, dynamic>> getCurrentUser() async {
-    if (!isAuthenticated) {
-      return {'success': false, 'message': 'Not authenticated'};
-    }
-
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/auth/me'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_token',
-        },
-      );
+      print('🔍 Getting current user via JavaScript interop...');
 
-      final data = json.decode(response.body);
+      final response = await JSAuthService.getCurrentUser();
+      if (response != null) {
+        // Handle different response formats - check for nested user object
+        dynamic responseData = response['data'];
+        Map<String, dynamic>? parsedData;
 
-      if (response.statusCode == 200) {
-        _currentUser = User.fromJson(data['user']);
-        await _saveUserData(data['user']);
-        return {'success': true, 'user': _currentUser};
-      } else {
-        if (response.statusCode == 401) {
-          await logout();
+        // If data is a string, parse it as JSON
+        if (responseData is String) {
+          try {
+            parsedData = json.decode(responseData) as Map<String, dynamic>;
+          } catch (e) {
+            print('❌ Failed to parse JSON string in getCurrentUser: $e');
+            parsedData = null;
+          }
+        } else if (responseData is Map<String, dynamic>) {
+          parsedData = responseData;
         }
-        return {'success': false, 'message': data['error']};
+
+        Map<String, dynamic>? userData;
+        if (parsedData != null) {
+          if (parsedData['user'] != null) {
+            userData = parsedData['user'] as Map<String, dynamic>;
+          } else if (parsedData['id'] != null) {
+            userData = parsedData;
+          }
+        }
+
+        if (userData != null && userData['id'] != null) {
+          _currentUser = User.fromJson(userData);
+          await _saveUserData(userData);
+          return {'success': true, 'user': _currentUser};
+        }
       }
+
+      // If we get here, authentication failed
+      await _clearAuth();
+      return {'success': false, 'message': 'Not authenticated'};
     } catch (e) {
-      return {'success': false, 'message': 'Network error: $e'};
+      print('❌ Get current user error: $e');
+      return {'success': false, 'message': 'Authentication error: $e'};
     }
   }
 
   Future<Map<String, dynamic>> updateNickname(String nickname) async {
-    if (!isAuthenticated) {
-      return {'success': false, 'message': 'Not authenticated'};
-    }
     try {
-      final response = await http.put(
-        Uri.parse('$baseUrl/user/nickname'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (_token != null) 'Authorization': 'Bearer $_token',
-        },
-        body: json.encode({'nickname': nickname}),
+      print('🔄 Updating nickname via JavaScript interop...');
+
+      final response = await JSAuthService.makeJSRequest(
+        '$baseUrl/user/update-nickname',
+        method: 'POST',
+        body: {'nickname': nickname},
       );
-      final data = json.decode(response.body);
-      if (response.statusCode == 200) {
-        // Update current user and persist
-        _currentUser = User.fromJson(data['user']);
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(_userKey, json.encode(data['user']));
+
+      if (response != null && response['success'] == true) {
+        // Update current user locally
+        if (_currentUser != null) {
+          _currentUser = _currentUser!.copyWith(nickname: nickname);
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(_userKey, jsonEncode(_currentUser!.toJson()));
+        }
+
         return {
           'success': true,
-          'message': data['message'],
-          'user': _currentUser
-        };
-      } else {
-        return {
-          'success': false,
-          'message': data['error'] ?? 'Failed to update nickname'
+          'message': response['message'] ?? 'Nickname updated successfully'
         };
       }
+
+      return {
+        'success': false,
+        'message': response?['message'] ?? 'Failed to update nickname'
+      };
     } catch (e) {
-      return {'success': false, 'message': 'Network error: $e'};
+      print('❌ Update nickname error: $e');
+      return {'success': false, 'message': 'Update error: $e'};
     }
   }
 
-  // Get headers with authorization
+  // Get headers with authorization (for cookie-based auth, headers are simpler)
   Map<String, String> getAuthHeaders() {
     return {
       'Content-Type': 'application/json',
-      if (_token != null) 'Authorization': 'Bearer $_token',
+      // For cookie-based auth, we don't need to include tokens in headers
+      // The cookies are sent automatically by the browser
     };
   }
 
   // Private methods
-  Future<void> _saveAuthData(
-      String token, Map<String, dynamic> userData) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_tokenKey, token);
-    await prefs.setString(_userKey, json.encode(userData));
-
-    _token = token;
-    _currentUser = User.fromJson(userData);
-  }
-
   Future<void> _saveUserData(Map<String, dynamic> userData) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_userKey, json.encode(userData));
   }
 
-  bool _isTokenExpired() {
-    if (_token == null) return true;
-
-    try {
-      return JwtDecoder.isExpired(_token!);
-    } catch (e) {
-      return true;
-    }
+  // Clear authentication data
+  Future<void> _clearAuth() async {
+    _token = null;
+    _currentUser = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_tokenKey);
+    await prefs.remove(_userKey);
   }
 }

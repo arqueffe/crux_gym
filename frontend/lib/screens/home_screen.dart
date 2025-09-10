@@ -39,11 +39,6 @@ class _HomeScreenState extends State<HomeScreen> {
           Consumer<AuthProvider>(
             builder: (context, authProvider, child) {
               return PopupMenuButton<String>(
-                onSelected: (value) async {
-                  if (value == 'logout') {
-                    await authProvider.logout();
-                  }
-                },
                 itemBuilder: (context) => [
                   PopupMenuItem(
                     enabled: false,

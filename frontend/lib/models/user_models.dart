@@ -41,6 +41,27 @@ class User {
     };
   }
 
+  // Create a new User instance with updated fields
+  User copyWith({
+    int? id,
+    String? username,
+    String? nickname,
+    String? email,
+    DateTime? createdAt,
+    bool? isActive,
+    String? role,
+  }) {
+    return User(
+      id: id ?? this.id,
+      username: username ?? this.username,
+      nickname: nickname ?? this.nickname,
+      email: email ?? this.email,
+      createdAt: createdAt ?? this.createdAt,
+      isActive: isActive ?? this.isActive,
+      role: role ?? this.role,
+    );
+  }
+
   // Role-based permission methods
   bool get isAdmin => role == 'admin';
   bool get isRouteSetter => role == 'route_setter';

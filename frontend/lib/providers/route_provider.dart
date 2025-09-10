@@ -71,36 +71,59 @@ class RouteProvider extends ChangeNotifier {
 
   // Load initial data
   Future<void> loadInitialData({bool forceRefresh = false}) async {
-    await Future.wait([
-      loadRoutes(forceRefresh: forceRefresh),
-      loadWallSections(forceRefresh: forceRefresh),
-      loadGrades(forceRefresh: forceRefresh),
-      loadLanes(forceRefresh: forceRefresh),
-      loadRouteSetters(),
-      loadGradeDefinitions(forceRefresh: forceRefresh),
-      loadHoldColors(forceRefresh: forceRefresh),
-      loadGradeColors(forceRefresh: forceRefresh),
-    ]);
+    print('🔧 RouteProvider.loadInitialData() called');
+    try {
+      await Future.wait([
+        loadRoutes(forceRefresh: forceRefresh),
+        loadWallSections(forceRefresh: forceRefresh),
+        loadGrades(forceRefresh: forceRefresh),
+        loadLanes(forceRefresh: forceRefresh),
+        loadRouteSetters(),
+        loadGradeDefinitions(forceRefresh: forceRefresh),
+        loadHoldColors(forceRefresh: forceRefresh),
+        loadGradeColors(forceRefresh: forceRefresh),
+      ]);
+      print('✅ RouteProvider.loadInitialData() completed successfully');
+    } catch (e) {
+      print('❌ RouteProvider.loadInitialData() error: $e');
+      print('❌ Error type: ${e.runtimeType}');
+      print('❌ Stack trace: ${StackTrace.current}');
+      rethrow;
+    }
   }
 
   // Load routes with optional filtering
   Future<void> loadRoutes({bool forceRefresh = false}) async {
+    print('🔧 RouteProvider.loadRoutes() called');
     _setLoading(true);
     try {
       // Always fetch all routes first to ensure we have the complete dataset
+      print('🔧 Calling _apiService.getRoutes()...');
       _routes = await _apiService.getRoutes(forceRefresh: forceRefresh);
+      print('✅ _apiService.getRoutes() returned ${_routes.length} routes');
 
       // Apply client-side filters
+      print('🔧 Applying client-side filters...');
       _applyClientSideFilters();
+      print(
+          '✅ Client-side filters applied, ${_currentRoutes.length} routes after filtering');
 
       // Apply sorting
+      print('🔧 Applying sorting...');
       _sortRoutes();
+      print('✅ Sorting applied');
 
       // Update route setters list after loading routes
+      print('🔧 Loading route setters...');
       await loadRouteSetters();
+      print('✅ Route setters loaded');
 
       _error = null;
+      print('✅ RouteProvider.loadRoutes() completed successfully');
     } catch (e) {
+      print('❌ RouteProvider.loadRoutes() error: $e');
+      print('❌ Error type: ${e.runtimeType}');
+      print('❌ Stack trace: ${StackTrace.current}');
       _error = e.toString();
     }
     _setLoading(false);
@@ -235,16 +258,12 @@ class RouteProvider extends ChangeNotifier {
   // Like/Unlike route
   Future<bool> toggleLike(int routeId) async {
     try {
-      // First, refresh the route data to get the current like status
-      await loadRoute(routeId);
-
-      final route =
-          _selectedRoute ?? _routes.firstWhere((r) => r.id == routeId);
       final currentUser = _authProvider.currentUser;
       if (currentUser == null) return false;
 
-      final isLiked =
-          route.likes?.any((like) => like.userId == currentUser.id) ?? false;
+      bool status = await getUserLikeStatus(routeId);
+
+      final isLiked = status;
 
       if (isLiked) {
         await _apiService.unlikeRoute(routeId);
@@ -264,6 +283,19 @@ class RouteProvider extends ChangeNotifier {
     }
   }
 
+  // Check if user has liked a route
+  Future<bool> getUserLikeStatus(int routeId) async {
+    try {
+      final currentUser = _authProvider.currentUser;
+      if (currentUser == null) return false;
+
+      final isLiked = await _apiService.getUserLikeStatus(routeId);
+      return isLiked;
+    } catch (e) {
+      return false;
+    }
+  }
+
   // Tick/Untick route
   Future<bool> toggleTick(
     int routeId, {
@@ -277,7 +309,7 @@ class RouteProvider extends ChangeNotifier {
       final isTicked = tickStatus['ticked'] ?? false;
 
       if (isTicked) {
-        await _apiService.untickRoute(routeId);
+        // await _apiService.untickRoute(routeId);
       } else {
         await _apiService.tickRoute(
           routeId,
@@ -411,10 +443,16 @@ class RouteProvider extends ChangeNotifier {
 
   // Load wall sections
   Future<void> loadWallSections({bool forceRefresh = false}) async {
+    print('🔧 RouteProvider.loadWallSections() called');
     try {
+      print('🔧 Calling _apiService.getWallSections()...');
       _wallSections =
           await _apiService.getWallSections(forceRefresh: forceRefresh);
+      print(
+          '✅ _apiService.getWallSections() returned ${_wallSections.length} sections: $_wallSections');
     } catch (e) {
+      print('❌ RouteProvider.loadWallSections() error: $e');
+      print('❌ Error type: ${e.runtimeType}');
       _error = e.toString();
     }
     notifyListeners();
@@ -422,9 +460,15 @@ class RouteProvider extends ChangeNotifier {
 
   // Load grades
   Future<void> loadGrades({bool forceRefresh = false}) async {
+    print('🔧 RouteProvider.loadGrades() called');
     try {
+      print('🔧 Calling _apiService.getGrades()...');
       _grades = await _apiService.getGrades(forceRefresh: forceRefresh);
+      print(
+          '✅ _apiService.getGrades() returned ${_grades.length} grades: $_grades');
     } catch (e) {
+      print('❌ RouteProvider.loadGrades() error: $e');
+      print('❌ Error type: ${e.runtimeType}');
       _error = e.toString();
     }
     notifyListeners();
@@ -432,9 +476,15 @@ class RouteProvider extends ChangeNotifier {
 
   // Load lanes
   Future<void> loadLanes({bool forceRefresh = false}) async {
+    print('🔧 RouteProvider.loadLanes() called');
     try {
+      print('🔧 Calling _apiService.getLanes()...');
       _lanes = await _apiService.getLanes(forceRefresh: forceRefresh);
+      print(
+          '✅ _apiService.getLanes() returned ${_lanes.length} lanes: $_lanes');
     } catch (e) {
+      print('❌ RouteProvider.loadLanes() error: $e');
+      print('❌ Error type: ${e.runtimeType}');
       _error = e.toString();
     }
     notifyListeners();
@@ -477,10 +527,16 @@ class RouteProvider extends ChangeNotifier {
 
   // Load grade colors mapping
   Future<void> loadGradeColors({bool forceRefresh = false}) async {
+    print('🔧 RouteProvider.loadGradeColors() called');
     try {
+      print('🔧 Calling _apiService.getGradeColors()...');
       _gradeColors =
           await _apiService.getGradeColors(forceRefresh: forceRefresh);
+      print(
+          '✅ _apiService.getGradeColors() returned ${_gradeColors.length} grade colors');
     } catch (e) {
+      print('❌ RouteProvider.loadGradeColors() error: $e');
+      print('❌ Error type: ${e.runtimeType}');
       _error = e.toString();
     }
     notifyListeners();
@@ -643,16 +699,6 @@ class RouteProvider extends ChangeNotifier {
       _error = e.toString();
       notifyListeners();
       return false;
-    }
-  }
-
-  Future<Map<String, dynamic>?> getProjectStatus(int routeId) async {
-    try {
-      return await _apiService.getProjectStatus(routeId);
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return null;
     }
   }
 

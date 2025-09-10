@@ -148,30 +148,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
-  void _showLogoutDialog(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.logoutConfirmTitle),
-        content: Text(l10n.logoutConfirmMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(l10n.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              context.read<AuthProvider>().logout();
-            },
-            child: Text(l10n.logout),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -286,7 +262,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                   onRefresh: () => profileProvider.refresh(),
                   child: SettingsTab(
                     onEditNickname: () => _promptEditNickname(context),
-                    onLogout: () => _showLogoutDialog(context),
                   ),
                 ),
               ],
@@ -739,12 +714,10 @@ class _RoutesTabState extends State<RoutesTab> {
 
 class SettingsTab extends StatelessWidget {
   final VoidCallback onEditNickname;
-  final VoidCallback onLogout;
 
   const SettingsTab({
     super.key,
     required this.onEditNickname,
-    required this.onLogout,
   });
 
   @override
@@ -864,8 +837,8 @@ class SettingsTab extends StatelessWidget {
               const SizedBox(height: 8),
 
               // Language Setting
-              Card(
-                child: const LanguageListTile(),
+              const Card(
+                child: LanguageListTile(),
               ),
               const SizedBox(height: 24),
 
@@ -877,20 +850,6 @@ class SettingsTab extends StatelessWidget {
                     ),
               ),
               const SizedBox(height: 16),
-
-              // Logout Setting
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.logout, color: Colors.red),
-                  title: Text(
-                    l10n.logout,
-                    style: const TextStyle(color: Colors.red),
-                  ),
-                  trailing:
-                      const Icon(Icons.arrow_forward_ios, color: Colors.red),
-                  onTap: onLogout,
-                ),
-              ),
             ],
           ),
         );
