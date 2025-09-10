@@ -128,7 +128,7 @@ class Crux_Activator {
             route_setter varchar(100) NOT NULL,
             wall_section varchar(50) NOT NULL,
             lane_id mediumint(9) NOT NULL,
-            hold_color varchar(50) NOT NULL,
+            hold_color_id mediumint(9) NOT NULL,
             description text,
             active tinyint(1) DEFAULT 1,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
@@ -136,7 +136,7 @@ class Crux_Activator {
             KEY grade_id (grade_id),
             KEY lane_id (lane_id),
             KEY wall_section (wall_section),
-            KEY hold_color (hold_color)
+            KEY hold_color_id (hold_color_id)
         ) $charset_collate;";
         
         $result = dbDelta($sql);

@@ -458,19 +458,11 @@ class Crux_API
     {
         $data = $request->get_json_params();
         
-        $required_fields = array('name', 'grade_id', 'route_setter', 'wall_section', 'lane_id', 'hold_color');
+        $required_fields = array('name', 'grade_id', 'route_setter', 'wall_section', 'lane_id', 'hold_color_id');
         foreach ($required_fields as $field) {
             if (!isset($data[$field])) {
                 return new WP_Error('missing_field', "Missing required field: $field", array('status' => 400));
             }
-        }
-
-        // Handle hold_color - if it's a string, store it directly, if it's an ID, convert it
-        $hold_color = $data['hold_color'];
-        if (is_numeric($hold_color)) {
-            // It's an ID, get the color name
-            $color_obj = Crux_Hold_Colors::get_by_id($hold_color);
-            $hold_color = $color_obj ? $color_obj['name'] : $hold_color;
         }
 
         $route_data = array(
@@ -479,7 +471,7 @@ class Crux_API
             'route_setter' => sanitize_text_field($data['route_setter']),
             'wall_section' => sanitize_text_field($data['wall_section']),
             'lane_id' => intval($data['lane_id']),
-            'hold_color' => sanitize_text_field($hold_color),
+            'hold_color_id' => intval($data['hold_color_id']),
             'description' => isset($data['description']) ? sanitize_textarea_field($data['description']) : ''
         );
 

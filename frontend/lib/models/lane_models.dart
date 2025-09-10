@@ -17,8 +17,10 @@ class Lane {
     return Lane(
       id: json['id'],
       number: json['number'],
-      name: json['name'],
-      isActive: json['is_active'] ?? true,
+      name: json['name'] ??
+          'Lane ${json['number']}', // Provide fallback if name is null
+      isActive: json['is_active'] == 1 ||
+          json['is_active'] == true, // Handle both boolean and int
       createdAt: DateTime.parse(json['created_at']),
     );
   }

@@ -156,6 +156,25 @@ class Crux_User {
             $stats['average_grade'] = null;
         }
         
+        // Get hardest grade
+        $hardest_grade = $wpdb->get_row($wpdb->prepare("
+            SELECT g.french_name as grade, g.color
+            FROM $ticks_table t
+            JOIN $routes_table r ON t.route_id = r.id
+            JOIN $grades_table g ON r.grade_id = g.id
+            WHERE t.user_id = %d
+            ORDER BY g.value DESC
+            LIMIT 1
+        ", $user_id));
+        
+        if ($hardest_grade) {
+            $stats['hardest_grade'] = $hardest_grade->grade;
+            $stats['hardest_grade_color'] = $hardest_grade->color;
+        } else {
+            $stats['hardest_grade'] = null;
+            $stats['hardest_grade_color'] = null;
+        }
+        
         return $stats;
     }
     

@@ -12,11 +12,9 @@ class Crux_Route {
         global $wpdb;
         
         $routes_table = $wpdb->prefix . 'crux_routes';
-        $grades_table = $wpdb->prefix . 'crux_grades';
         
-        $sql = "SELECT r.*, g.french_name as grade, g.color as grade_color
+        $sql = "SELECT r.*
                 FROM $routes_table r
-                LEFT JOIN $grades_table g ON r.grade_id = g.id
                 WHERE r.active = 1";
         
         $params = array();
@@ -53,12 +51,10 @@ class Crux_Route {
         global $wpdb;
         
         $routes_table = $wpdb->prefix . 'crux_routes';
-        $grades_table = $wpdb->prefix . 'crux_grades';
         
         $sql = $wpdb->prepare("
-            SELECT r.*, g.french_name as grade, g.color as grade_color
+            SELECT r.*
             FROM $routes_table r
-            LEFT JOIN $grades_table g ON r.grade_id = g.id
             WHERE r.id = %d
         ", $id);
         
@@ -81,12 +77,12 @@ class Crux_Route {
                 'route_setter' => $data['route_setter'],
                 'wall_section' => $data['wall_section'],
                 'lane_id' => $data['lane_id'],
-                'hold_color' => $data['hold_color'],
+                'hold_color_id' => $data['hold_color_id'],
                 'description' => $data['description'],
                 'active' => 1,
                 'created_at' => current_time('mysql')
             ),
-            array('%s', '%d', '%s', '%s', '%d', '%s', '%s', '%d', '%s')
+            array('%s', '%d', '%s', '%s', '%d', '%d', '%s', '%d', '%s')
         );
         
         if ($result === false) {

@@ -53,20 +53,23 @@ class Route {
     return Route(
       id: json['id'],
       name: json['name'],
-      grade: json['grade'],
-      gradeColor: json['grade_color'],
+      grade: json['grade_id']?.toString() ??
+          '', // Backend sends grade_id, frontend will map this
+      gradeColor: null, // Will be populated by frontend mapping
       routeSetter: json['route_setter'],
       wallSection: json['wall_section'],
-      lane: json['lane'],
-      laneName: json['lane_name'],
-      color: json['color'],
-      colorHex: json['color_hex'],
+      lane: json['lane_id'], // Backend sends lane_id, not lane
+      laneName:
+          json['lane_name'], // May be null if not provided by backend JOIN
+      color: json['hold_color_id']
+          ?.toString(), // Backend sends hold_color_id, frontend will map this
+      colorHex: null, // Will be populated by frontend mapping
       description: json['description'],
       createdAt: DateTime.parse(json['created_at']),
-      likesCount: json['likes_count'],
-      commentsCount: json['comments_count'],
-      gradeProposalsCount: json['grade_proposals_count'],
-      warningsCount: json['warnings_count'],
+      likesCount: json['likes_count'] ?? 0,
+      commentsCount: json['comments_count'] ?? 0,
+      gradeProposalsCount: json['grade_proposals_count'] ?? 0,
+      warningsCount: json['warnings_count'] ?? 0,
       ticksCount: json['ticks_count'] ?? 0,
       projectsCount: json['projects_count'] ?? 0,
       likes: json['likes'] != null
@@ -95,8 +98,9 @@ class Route {
       'grade': grade,
       'route_setter': routeSetter,
       'wall_section': wallSection,
-      'lane': lane,
-      'color': color,
+      'lane_id': lane, // Backend expects lane_id, not lane
+      'hold_color_id':
+          color, // Backend expects hold_color_id (assuming color contains the ID when creating)
       'description': description,
     };
   }

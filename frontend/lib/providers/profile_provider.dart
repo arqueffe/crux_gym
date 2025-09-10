@@ -99,8 +99,13 @@ class ProfileProvider extends ChangeNotifier {
     // Use route provider's grade definitions if available
     if (_routeProvider != null && _routeProvider!.gradeDefinitions.isNotEmpty) {
       for (final gradeDefinition in _routeProvider!.gradeDefinitions) {
-        if (gradeDefinition['grade'] == grade) {
-          return gradeDefinition['difficulty_order'] as int;
+        if (gradeDefinition['french_name'] == grade) {
+          final value = gradeDefinition['value'];
+          if (value is String) {
+            return double.tryParse(value)?.toInt() ?? 0;
+          } else if (value is num) {
+            return value.toInt();
+          }
         }
       }
     }

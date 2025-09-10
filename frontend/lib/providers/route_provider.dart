@@ -74,13 +74,13 @@ class RouteProvider extends ChangeNotifier {
     print('🔧 RouteProvider.loadInitialData() called');
     try {
       await Future.wait([
-        loadRoutes(forceRefresh: forceRefresh),
+        loadRoutes(
+            forceRefresh:
+                forceRefresh), // This will handle grade definitions and hold colors
         loadWallSections(forceRefresh: forceRefresh),
         loadGrades(forceRefresh: forceRefresh),
         loadLanes(forceRefresh: forceRefresh),
         loadRouteSetters(),
-        loadGradeDefinitions(forceRefresh: forceRefresh),
-        loadHoldColors(forceRefresh: forceRefresh),
         loadGradeColors(forceRefresh: forceRefresh),
       ]);
       print('✅ RouteProvider.loadInitialData() completed successfully');
@@ -101,6 +101,19 @@ class RouteProvider extends ChangeNotifier {
       print('🔧 Calling _apiService.getRoutes()...');
       _routes = await _apiService.getRoutes(forceRefresh: forceRefresh);
       print('✅ _apiService.getRoutes() returned ${_routes.length} routes');
+
+      // Ensure grade definitions and hold colors are loaded before populating route data
+      print('🔧 Ensuring grade definitions and hold colors are loaded...');
+      await Future.wait([
+        loadGradeDefinitions(forceRefresh: forceRefresh),
+        loadHoldColors(forceRefresh: forceRefresh),
+      ]);
+      print('✅ Grade definitions and hold colors loaded');
+
+      // Populate route information (colors and grades) for routes
+      print('🔧 Populating route data (colors and grades)...');
+      _populateRouteData();
+      print('✅ Route data populated');
 
       // Apply client-side filters
       print('🔧 Applying client-side filters...');
@@ -232,6 +245,18 @@ class RouteProvider extends ChangeNotifier {
     try {
       _selectedRoute =
           await _apiService.getRoute(routeId, forceRefresh: forceRefresh);
+
+      // Ensure grade definitions and hold colors are loaded before populating route data
+      await Future.wait([
+        loadGradeDefinitions(forceRefresh: forceRefresh),
+        loadHoldColors(forceRefresh: forceRefresh),
+      ]);
+
+      // Populate route information (colors and grades) for the selected route
+      if (_selectedRoute != null) {
+        _selectedRoute = _populateRouteDataForSingleRoute(_selectedRoute!);
+      }
+
       _error = null;
     } catch (e) {
       _error = e.toString();
@@ -554,6 +579,7 @@ class RouteProvider extends ChangeNotifier {
   }
 
   void setLaneFilter(int? lane) {
+    print('Setting lane filter to: $lane');
     _selectedLane = lane;
     _applyFiltersAndSort();
   }
@@ -730,5 +756,119 @@ class RouteProvider extends ChangeNotifier {
   /// Get cache statistics for debugging
   Map<String, dynamic> getCacheStats() {
     return _apiService.getCacheStats();
+  }
+
+  /// Get hold color info by ID
+  Map<String, String>? getHoldColorById(String? holdColorId) {
+    if (holdColorId == null || holdColorId.isEmpty) return null;
+
+    try {
+      final colorObj = _holdColors.firstWhere(
+        (color) => color['id']?.toString() == holdColorId,
+      );
+      return {
+        'name': colorObj['name']?.toString() ?? '',
+        'hex_code': colorObj['hex_code']?.toString() ?? '',
+      };
+    } catch (e) {
+      // Color not found
+      return null;
+    }
+  }
+
+  /// Get grade info by ID
+  Map<String, String>? getGradeById(String? gradeId) {
+    if (gradeId == null || gradeId.isEmpty) return null;
+
+    try {
+      final gradeObj = _gradeDefinitions.firstWhere(
+        (grade) => grade['id']?.toString() == gradeId,
+      );
+      return {
+        'french_name': gradeObj['french_name']?.toString() ?? '',
+        'color': gradeObj['color']?.toString() ?? '',
+      };
+    } catch (e) {
+      // Grade not found
+      return null;
+    }
+  }
+
+  /// Populate route information (colors and grades) for routes after loading
+  void _populateRouteData() {
+    for (int i = 0; i < _routes.length; i++) {
+      final route = _routes[i];
+
+      // Get color information
+      final colorInfo = getHoldColorById(route.color);
+
+      // Get grade information
+      final gradeInfo = getGradeById(route.grade);
+
+      // Create a new route with populated information
+      _routes[i] = Route(
+        id: route.id,
+        name: route.name,
+        grade: gradeInfo?['french_name'] ??
+            route.grade, // Now contains the grade name
+        gradeColor: gradeInfo?['color'], // Now contains the grade color
+        routeSetter: route.routeSetter,
+        wallSection: route.wallSection,
+        lane: route.lane,
+        laneName: route.laneName,
+        color: colorInfo?['name'] ?? route.color, // Now contains the color name
+        colorHex: colorInfo?['hex_code'], // Now contains the hex code
+        description: route.description,
+        createdAt: route.createdAt,
+        likesCount: route.likesCount,
+        commentsCount: route.commentsCount,
+        gradeProposalsCount: route.gradeProposalsCount,
+        warningsCount: route.warningsCount,
+        ticksCount: route.ticksCount,
+        projectsCount: route.projectsCount,
+        likes: route.likes,
+        comments: route.comments,
+        gradeProposals: route.gradeProposals,
+        warnings: route.warnings,
+        ticks: route.ticks,
+      );
+    }
+  }
+
+  /// Populate route information (colors and grades) for a single route
+  Route _populateRouteDataForSingleRoute(Route route) {
+    // Get color information
+    final colorInfo = getHoldColorById(route.color);
+
+    // Get grade information
+    final gradeInfo = getGradeById(route.grade);
+
+    // Create a new route with populated information
+    return Route(
+      id: route.id,
+      name: route.name,
+      grade: gradeInfo?['french_name'] ??
+          route.grade, // Now contains the grade name
+      gradeColor: gradeInfo?['color'], // Now contains the grade color
+      routeSetter: route.routeSetter,
+      wallSection: route.wallSection,
+      lane: route.lane,
+      laneName: route.laneName,
+      color: colorInfo?['name'] ?? route.color, // Now contains the color name
+      colorHex: colorInfo?['hex_code'], // Now contains the hex code
+      description: route.description,
+      createdAt: route.createdAt,
+      likesCount: route.likesCount,
+      commentsCount: route.commentsCount,
+      gradeProposalsCount: route.gradeProposalsCount,
+      warningsCount: route.warningsCount,
+      ticksCount: route.ticksCount,
+      projectsCount: route.projectsCount,
+      likes: route.likes,
+      comments: route.comments,
+      gradeProposals: route.gradeProposals,
+      warnings: route.warnings,
+      ticks: route.ticks,
+    );
   }
 }

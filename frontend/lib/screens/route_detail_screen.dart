@@ -22,9 +22,10 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final routeProvider = context.read<RouteProvider>();
-      routeProvider.loadGradeDefinitions(); // Load grade definitions first
-      routeProvider.loadRoute(widget.routeId);
-      routeProvider.loadGradeColors();
+      routeProvider
+          .loadRoute(widget.routeId); // This now handles all dependencies
+      routeProvider
+          .loadGradeColors(); // Still needed for other grade color operations
     });
   }
 

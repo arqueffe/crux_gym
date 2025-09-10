@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/profile_models.dart';
+import '../providers/route_provider.dart';
 import '../generated/l10n/app_localizations.dart';
 
 class GradeStatisticsChart extends StatelessWidget {
@@ -13,6 +15,7 @@ class GradeStatisticsChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final routeProvider = context.read<RouteProvider>();
 
     if (gradeStats.isEmpty) {
       return Center(
@@ -51,7 +54,8 @@ class GradeStatisticsChart extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: gradeStats
-                  .map((stat) => _buildGradeBar(context, stat, maxTicks, l10n))
+                  .map((stat) => _buildGradeBar(
+                      context, stat, maxTicks, l10n, routeProvider))
                   .toList(),
             ),
           ),
@@ -60,7 +64,7 @@ class GradeStatisticsChart extends StatelessWidget {
         const SizedBox(height: 16),
 
         // Summary table
-        _buildSummaryTable(context, l10n),
+        _buildSummaryTable(context, l10n, routeProvider),
       ],
     );
   }
@@ -87,7 +91,7 @@ class GradeStatisticsChart extends StatelessWidget {
   }
 
   Widget _buildGradeBar(BuildContext context, GradeStatistics stat,
-      int maxTicks, AppLocalizations l10n) {
+      int maxTicks, AppLocalizations l10n, RouteProvider routeProvider) {
     // Calculate available height for the bar (total - other elements)
     const totalHeight = 280.0;
     const indicatorHeight = 16.0;
@@ -188,7 +192,7 @@ class GradeStatisticsChart extends StatelessWidget {
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
-                color: _getGradeColor(stat.grade),
+                color: _getGradeColor(stat.grade, routeProvider),
               ),
             ),
           ],
@@ -197,7 +201,8 @@ class GradeStatisticsChart extends StatelessWidget {
     );
   }
 
-  Widget _buildSummaryTable(BuildContext context, AppLocalizations l10n) {
+  Widget _buildSummaryTable(BuildContext context, AppLocalizations l10n,
+      RouteProvider routeProvider) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -230,7 +235,8 @@ class GradeStatisticsChart extends StatelessWidget {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: _getGradeColor(stat.grade),
+                                  color:
+                                      _getGradeColor(stat.grade, routeProvider),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
@@ -305,8 +311,23 @@ class GradeStatisticsChart extends StatelessWidget {
     );
   }
 
-  Color _getGradeColor(String grade) {
-    // Simple color coding based on grade difficulty
+  Color _getGradeColor(String grade, RouteProvider routeProvider) {
+    // Try to get color from route provider
+    final gradeColorHex = routeProvider.getGradeColor(grade);
+
+    if (gradeColorHex != null && gradeColorHex.isNotEmpty) {
+      try {
+        // Parse hex color (with or without #)
+        String hexColor = gradeColorHex.replaceAll('#', '');
+        if (hexColor.length == 6) {
+          return Color(int.parse('FF$hexColor', radix: 16));
+        }
+      } catch (e) {
+        // Fall through to default colors if parsing fails
+      }
+    }
+
+    // Fallback to simple color coding based on grade difficulty
     if (grade.contains('V0') || grade.contains('V1')) return Colors.green;
     if (grade.contains('V2') || grade.contains('V3')) {
       return Colors.yellow.shade700;
