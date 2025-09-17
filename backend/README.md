@@ -1,1032 +1,275 @@
-# Crux Backend - Flask REST API
+# Crux Climbing Gym Backend
 
-Flask-based REST API for climbing gym route management with JWT authentication.
+A comprehensive WordPress-based backend system for managing climbing gym operations, including route tracking, user interactions, and performance analytics.
 
-## Quick Start
+## Architecture Overview
 
-```bash
-pip install -r requirements.txt
-python app.py
+The backend is built as a **WordPress plugin** (`crux-climbing-gym`) that provides:
+
+- **REST API endpoints** for mobile/web frontend communication
+- **Admin interface** for gym management
+- **Database schema** for climbing gym data
+- **User authentication** via WordPress cookie system
+- **Role-based access control** (Admin, Route Setter, Member)
+
+### Key Components
+
 ```
-API available at `http://localhost:5000`
-
-## CLI Tool
-
-Manage database from command line:
-```bash
-# Users
-python cli.py users list
-python cli.py users add --username john --nickname Johnny --email john@test.com --password Pass123!
-
-# Routes  
-python cli.py routes list
-python cli.py routes add --name "Test Route" --grade 6a+ --setter "John" --wall "Main Wall" --lane 1
-
-# Initialize sample data
-python cli.py db init
+backend/
+├── wp-content/plugins/crux-climbing-gym/    # Main WordPress plugin
+│   ├── crux-climbing-gym.php               # Plugin entry point
+│   ├── includes/                           # Core classes
+│   │   ├── class-crux.php                 # Main plugin class
+│   │   ├── class-crux-api.php             # REST API endpoints
+│   │   ├── class-crux-activator.php       # Database setup
+│   │   └── models/                        # Data models
+│   │       ├── class-crux-route.php       # Route model
+│   │       ├── class-crux-user.php        # User model
+│   │       ├── class-crux-grade.php       # Grade model
+│   │       └── class-crux-hold-colors.php # Hold colors model
+│   ├── admin/                             # Admin interface
+│   │   ├── class-crux-admin.php           # Admin controller
+│   │   └── partials/                      # Admin page templates
+│   └── public/                            # Public-facing functionality
+├── requirements.txt                        # Python dependencies (legacy)
+├── uploads.ini                            # PHP upload configuration
+└── .gitignore                             # Git ignore rules
 ```
 
-## Key API Endpoints
+## Database Schema
+
+The plugin creates 13 database tables with `crux_` prefix:
+
+### Core Tables
+- **`crux_routes`** - Climbing routes with grade, setter, wall section, lane
+- **`crux_grades`** - French climbing grades (3a-9c) with difficulty values and colors
+- **`crux_lanes`** - Lane numbers for route positioning
+- **`crux_hold_colors`** - Available hold colors for routes
+
+### User Interaction Tables
+- **`crux_ticks`** - User completions (attempts, sends, flashes for top-rope and lead)
+- **`crux_likes`** - Route likes from users
+- **`crux_comments`** - Route comments
+- **`crux_projects`** - Routes users are working on
+- **`crux_warnings`** - Safety warnings for routes
+- **`crux_grade_proposals`** - User-suggested grade changes
+
+### User Management Tables
+- **`crux_roles`** - Role definitions with capabilities
+- **`crux_user_roles`** - User-role assignments
+- **`crux_user_nicknames`** - Custom user nicknames
+
+## REST API Endpoints
+
+Base URL: `/wp-json/crux/v1/`
 
 ### Authentication
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/login` - User login
-- `GET /api/auth/me` - Current user info
+- `GET /auth/me` - Get current user information
+- `GET /auth/permissions` - Get user permissions
 
 ### Routes
-- `GET /api/routes` - List routes (with filtering)
-- `GET /api/routes/{id}` - Route details
-- `POST /api/routes` - Create route
+- `GET /routes` - Get all routes (with filtering by wall_section, grade, lane)
+- `GET /routes/{id}` - Get route details with comments, warnings, grade proposals
+- `POST /routes` - Create new route (route setter/admin only)
 
-### Interactions
-- `POST /api/routes/{id}/like` - Like route
-- `POST /api/routes/{id}/comments` - Add comment
-- `POST /api/routes/{id}/ticks` - Log climbing attempt
-- `POST /api/routes/{id}/grade-proposals` - Suggest grade
-- `POST /api/routes/{id}/warnings` - Report issue
+### Route Interactions
+- `POST /routes/{id}/like` - Like a route
+- `DELETE /routes/{id}/unlike` - Unlike a route
+- `POST /routes/{id}/ticks` - Tick a route (mark as completed)
+- `DELETE /routes/{id}/ticks` - Remove tick
+- `POST /routes/{id}/attempts` - Add attempts without completing
+- `POST /routes/{id}/send` - Mark specific send type (top_rope, lead, flash, lead_flash)
+- `POST /routes/{id}/unsend` - Remove specific send type
+- `POST /routes/{id}/comments` - Add comment
+- `POST /routes/{id}/grade-proposals` - Propose grade change
+- `POST /routes/{id}/projects` - Add to projects
+- `DELETE /routes/{id}/projects` - Remove from projects
+- `POST /routes/{id}/warnings` - Report safety warning
 
-### Profile
-- `GET /api/user/ticks` - User's completed routes
-- `GET /api/user/stats` - Climbing statistics
-- `PUT /api/user/nickname` - Update display name
+### User Data
+- `GET /user/ticks` - User's completed routes
+- `GET /user/likes` - User's liked routes  
+- `GET /user/projects` - User's project routes
+- `GET /user/stats` - Comprehensive climbing statistics
+- `GET /user/nickname` - Get user's display nickname
+- `PUT /user/nickname` - Update user's display nickname
 
-## Database Models
+### Reference Data
+- `GET /grades` - Available French climbing grades
+- `GET /grade-definitions` - Full grade definitions with colors
+- `GET /grade-colors` - Grade-to-color mapping
+- `GET /wall-sections` - Available wall sections
+- `GET /lanes` - Available lanes
+- `GET /hold-colors` - Available hold colors
 
-- **User**: Authentication and profile (username, nickname, email)
-- **Route**: Climbing routes (name, grade, setter, wall section, lane)
-- **Tick**: Climbing progress (attempts, sends by type, flashes)
-- **Like/Comment/Warning/GradeProposal**: User interactions
+## User Statistics
 
-## Sample Data
+The API provides comprehensive climbing statistics including:
 
-**Users**: `admin/admin123`, `alice_johnson/password123`
-**Routes**: 6 sample routes from V1 to V6
+- **Totals**: ticks, sends, attempts, likes, comments, projects
+- **Send Types**: top-rope sends/flashes, lead sends/flashes
+- **Performance**: average attempts per send, favorite grade, hardest grade
+- **Averages**: calculated average grade climbed
 
-## Dependencies
-
-- Flask 2.3.3 - Web framework
-- SQLAlchemy 3.0.5 - Database ORM  
-- JWT-Extended 4.5.3 - Authentication
-- Bcrypt 1.0.1 - Password hashing
-- CORS 4.0.0 - Cross-origin support
-- **Sample Data**: Automatic initialization with realistic test data
-
-### Security & Performance
-- Password hashing with Flask-Bcrypt
-- JWT token validation and expiration handling
-- CORS support for cross-origin requests
-- Comprehensive error handling and logging
-- Request/response logging middleware
-
-## Quick Start
+## Setup Instructions
 
 ### Prerequisites
-- Python 3.8 or higher
-- pip (Python package installer)
+- WordPress 5.0+ installation
+- PHP 7.4+ with MySQL/MariaDB
+- Web server (Apache/Nginx)
 
 ### Installation
 
-1. **Clone the repository** (if not already done):
+1. **Install WordPress**
    ```bash
-   git clone <repository-url>
-   cd Crux/backend
+   # Follow standard WordPress installation
+   # Configure wp-config.php with database settings
    ```
 
-2. **Install dependencies**:
+2. **Install Plugin**
    ```bash
-   pip install -r requirements.txt
+   # Copy plugin to WordPress plugins directory
+   cp -r wp-content/plugins/crux-climbing-gym /path/to/wordpress/wp-content/plugins/
    ```
 
-3. **Run the application**:
+3. **Activate Plugin**
+   - Log into WordPress admin
+   - Go to Plugins → Installed Plugins
+   - Activate "Crux Climbing Gym Management"
+
+4. **Configure Upload Settings** (if needed)
    ```bash
-   python app.py
+   # Copy upload configuration
+   cp uploads.ini /path/to/php/conf.d/
+   # Or add to php.ini:
+   # file_uploads = On
+   # memory_limit = 256M
+   # upload_max_filesize = 64M
+   # post_max_size = 64M
+   # max_execution_time = 300
    ```
 
-The API will be available at `http://localhost:5000` with automatic database initialization and sample data.
+### Database Setup
 
-### Backend CLI (Database management)
-A simple CLI is available to add, remove and modify data in the database without writing ad-hoc scripts.
+The plugin automatically creates all necessary tables on activation with sample data:
 
-- Location: `backend/cli.py`
-- Run from the `backend` folder
-- Windows PowerShell examples:
-  ```powershell
-  # Show help
-  python .\cli.py --help
-  python .\cli.py users --help
+- **34 French climbing grades** (1 to 9c) with colors
+- **10 hold colors** (Red, Blue, Green, Yellow, Orange, Purple, Pink, Black, White, Gray)
+- **20 lanes** (numbered 1-20)
+- **3 user roles** (Admin, Route Setter, Member)
 
-  # Users
-  python .\cli.py users list
-  python .\cli.py users add --username john --nickname Johnny --email john@example.com --password Secret123!
-  python .\cli.py users set-password --username john --password NewP@ssw0rd
-  python .\cli.py users set-nickname --username john --nickname J_Doe
-  python .\cli.py users activate --username john
-  python .\cli.py users deactivate --username john
-  python .\cli.py users delete --username john
+## Admin Interface
 
-  # Routes
-  python .\cli.py routes list --grade 6a+
-  python .\cli.py routes add --name "New Route" --grade 6a+ --setter "John Doe" --wall "Steep Wall" --lane 3 --color Red --description "Fun route"
-  python .\cli.py routes update --id 5 --name "Renamed" --grade 6b --lane 4 --color Blue
-  python .\cli.py routes delete --id 5
+Access via WordPress admin: **Climbing Gym** menu
 
-  # Reference data
-  python .\cli.py grades list
-  python .\cli.py colors list
+### Pages Available:
+- **Routes** - View and manage all climbing routes
+- **Add Route** - Create new climbing routes
+- **Climbers** - Manage users and view climbing statistics  
+- **Statistics** - Overall gym analytics and popular routes
+- **Settings** - Plugin configuration
 
-  # DB utilities
-  python .\cli.py db init               # Seed grades/colors/sample users/routes
-  python .\cli.py db migrate-nickname   # Add/backfill nickname column if missing
-  python .\cli.py db create-tables      # Ensure tables exist
-  ```
+## User Roles & Permissions
 
-Notes:
-- Nickname validation matches the API (3–20 chars, [A-Za-z0-9_], case-insensitive uniqueness).
-- The CLI uses the same SQLite database configured in `app.py`.
-- Deleting users may fail if related records exist; use `--force` only after reviewing related data.
+### Admin (Role ID: 1)
+- Full access to all features
+- User management, route creation/editing/deletion
+- View analytics and manage warnings
 
-### Database Migration (For Existing Installations)
+### Route Setter (Role ID: 2)  
+- Create and edit own routes
+- All member capabilities
 
-If you have an existing database and want to upgrade to include user nicknames and the advanced tick system:
+### Member (Role ID: 3)
+- View routes, like/comment/tick routes
+- Track personal progress and projects
+- Propose grade changes and report warnings
 
-```bash
-# Run the migration scripts
-python migrate_add_nickname.py
-python migrate_db.py
-```
+## Authentication
 
-This migration will:
-- Add new column `nickname` to the `user` table and backfill it with `username` for existing users
-- Add new columns for `top_rope_send`, `lead_send`, `top_rope_flash`, `lead_flash`, and `updated_at`
-- Migrate existing tick data to the new format
-- Preserve all existing user progress
+Uses **WordPress cookie-based authentication**:
 
-You can also run the nickname migration via the CLI:
-```powershell
-python .\cli.py db migrate-nickname
-```
-
-### Environment Variables (Optional)
-```bash
-export JWT_SECRET_KEY="your-production-secret-key"
-export FLASK_ENV="development"  # or "production"
-```
-
-## Database Models
-
-### User Model
-```python
-class User:
-    id: Integer (Primary Key)
-    username: String (Unique, Required)     # Private login identifier
-    nickname: String (Required)             # Public display name
-    email: String (Unique, Required)
-    password_hash: String (Required)
-    created_at: DateTime
-    is_active: Boolean
-```
-
-### Route Model
-```python
-class Route:
-    id: Integer (Primary Key)
-    name: String (Required)
-    grade: String (Required)           # French climbing grades: "3a", "5c", "6a+", "7b", etc.
-    grade_color: String                # Color associated with the grade (auto-assigned)
-    route_setter: String (Required)
-    wall_section: String (Required)    # e.g., "Overhang Wall"
-    lane: Integer (Required)
-    color: String (Optional)           # Hold color from predefined list
-    description: Text (Optional)
-    created_at: DateTime
-    
-    # Relationships
-    likes: List[Like]
-    comments: List[Comment]
-    grade_proposals: List[GradeProposal]
-    warnings: List[Warning]
-    ticks: List[Tick]
-```
-
-### Interaction Models
-```python
-class Like:
-    id: Integer (Primary Key)
-    user_id: Integer (Foreign Key)
-    route_id: Integer (Foreign Key)
-    created_at: DateTime
-
-class Comment:
-    id: Integer (Primary Key)
-    user_id: Integer (Foreign Key)
-    route_id: Integer (Foreign Key)
-    content: Text (Required)
-    created_at: DateTime
-
-class GradeProposal:
-    id: Integer (Primary Key)
-    user_id: Integer (Foreign Key)
-    route_id: Integer (Foreign Key)
-    proposed_grade: String (Required)
-    reasoning: Text (Optional)
-    created_at: DateTime
-
-class Warning:
-    id: Integer (Primary Key)
-    user_id: Integer (Foreign Key)
-    route_id: Integer (Foreign Key)
-    warning_type: String (Required)    # "broken_hold", "safety_issue", etc.
-    description: Text (Required)
-    status: String                     # "open", "acknowledged", "resolved"
-    created_at: DateTime
-
-class Tick:
-    id: Integer (Primary Key)
-    user_id: Integer (Foreign Key)
-    route_id: Integer (Foreign Key)
-    attempts: Integer                  # Total number of attempts
-    top_rope_send: Boolean             # Successfully sent on top rope
-    lead_send: Boolean                 # Successfully sent on lead
-    top_rope_flash: Boolean            # Top rope flash (first try)
-    lead_flash: Boolean                # Lead flash (first try)
-    flash: Boolean                     # Legacy field (for backward compatibility)
-    notes: Text (Optional)
-    created_at: DateTime
-    updated_at: DateTime
-
-class Project:
-    id: Integer (Primary Key)
-    user_id: Integer (Foreign Key)
-    route_id: Integer (Foreign Key)
-    notes: Text (Optional)             # Optional notes about the project goals
-    created_at: DateTime
-    updated_at: DateTime
-
-class Grade:
-    id: Integer (Primary Key)
-    grade: String (Unique, Required)   # e.g., "6a+", "7b"
-    difficulty_order: Integer          # For sorting grades by difficulty
-    color: String (Required)           # Hex color code for the grade (e.g., "#FF6347")
-    created_at: DateTime
-
-class HoldColor:
-    id: Integer (Primary Key)
-    name: String (Unique, Required)    # e.g., "Red", "Blue", "Yellow"
-    hex_code: String (Optional)        # Hex color representation (e.g., "#FF0000")
-    created_at: DateTime
-```
-
-## API Endpoints
-
-### Authentication Endpoints
-
-#### Register User
-```http
-POST /api/auth/register
-Content-Type: application/json
-
-{
-    "username": "string",          // private login
-    "nickname": "string",          // public display name (3-20 chars, [A-Za-z0-9_])
-    "email": "string",
-    "password": "string"
-}
-
-Response (201):
-{
-    "message": "User registered successfully",
-    "access_token": "jwt_token",
-    "user": {
-        "id": 1,
-        "username": "username",
-        "nickname": "DisplayName",
-        "email": "email@example.com",
-        "created_at": "2025-01-01T00:00:00",
-        "is_active": true
-    }
-}
-```
-
-#### Login User
-```http
-POST /api/auth/login
-Content-Type: application/json
-
-{
-    "username": "string",
-    "password": "string"
-}
-
-Response (200):
-{
-    "message": "Login successful",
-    "access_token": "jwt_token",
-    "user": { ... }
-}
-```
-
-#### Get Current User
-```http
-GET /api/auth/me
-Authorization: Bearer <jwt_token>
-
-Response (200):
-{
-    "user": { ... }
-}
-```
-
-### Route Endpoints
-
-#### Get All Routes
-```http
-GET /api/routes
-Authorization: Bearer <jwt_token>
-
-# Optional query parameters:
-# ?wall_section=Overhang Wall
-# ?grade=V4
-# ?lane=2
-
-Response (200):
-[
-    {
-        "id": 1,
-        "name": "Crimpy Goodness",
-        "grade": "V4",
-        "route_setter": "Alice Johnson",
-        "wall_section": "Overhang Wall",
-        "lane": 1,
-        "color": "Red",
-        "description": "Technical crimps with a dynamic finish",
-        "created_at": "2025-01-01T00:00:00",
-        "likes_count": 5,
-        "comments_count": 3,
-        "grade_proposals_count": 1,
-        "warnings_count": 0,
-        "ticks_count": 8
-    }
-]
-```
-
-#### Get Specific Route
-```http
-GET /api/routes/{route_id}
-Authorization: Bearer <jwt_token>
-
-Response (200):
-{
-    "id": 1,
-    "name": "Crimpy Goodness",
-    # ... basic route info
-    "likes": [...],           # Array of like objects
-    "comments": [...],        # Array of comment objects
-    "grade_proposals": [...], # Array of grade proposal objects
-    "warnings": [...],        # Array of warning objects
-    "ticks": [...]           # Array of tick objects
-}
-```
-
-#### Create Route
-```http
-POST /api/routes
-Authorization: Bearer <jwt_token>
-Content-Type: application/json
-
-{
-    "name": "New Route",
-    "grade": "6a+",
-    "route_setter": "John Doe",
-    "wall_section": "Steep Wall",
-    "lane": 3,
-    "color": "Blue",
-    "description": "Optional description"
-}
-
-Response (201):
-{
-    # ... created route object
-}
-```
-
-### Route Interaction Endpoints
-
-Note: In all interaction payloads, the JSON field `user_name` contains the user's public nickname for display. This is not a unique identifier; use `user_id` for identity.
-
-#### Like/Unlike Route
-```http
-POST /api/routes/{route_id}/like
-Authorization: Bearer <jwt_token>
-
-DELETE /api/routes/{route_id}/unlike
-Authorization: Bearer <jwt_token>
-```
-
-#### Add Comment
-```http
-POST /api/routes/{route_id}/comments
-Authorization: Bearer <jwt_token>
-Content-Type: application/json
-
-{
-    "content": "Great route! Really enjoyed the technical moves."
-}
-```
-
-#### Propose Grade
-```http
-POST /api/routes/{route_id}/grade-proposals
-Authorization: Bearer <jwt_token>
-Content-Type: application/json
-
-{
-    "proposed_grade": "6b",
-    "reasoning": "Feels harder than 6a+ due to the dynamic move"
-}
-```
-
-#### Report Warning
-```http
-POST /api/routes/{route_id}/warnings
-Authorization: Bearer <jwt_token>
-Content-Type: application/json
-
-{
-    "warning_type": "broken_hold",
-    "description": "The large red hold on move 3 is loose"
-}
-```
-
-#### Track Progress & Sends
-```http
-# Add/Update tick record with attempts and sends
-POST /api/routes/{route_id}/ticks
-Authorization: Bearer <jwt_token>
-Content-Type: application/json
-
-{
-    "attempts": 3,                    # Total attempts (optional)
-    "add_attempts": 2,                # Add attempts to existing count (optional)
-    "top_rope_send": true,            # Mark top rope send (optional)
-    "lead_send": false,               # Mark lead send (optional)
-    "top_rope_flash": false,          # Mark top rope flash (optional)
-    "lead_flash": false,              # Mark lead flash (optional)
-    "notes": "Great route, tricky sequence"
-}
-
-# Add attempts only (without marking sends)
-POST /api/routes/{route_id}/attempts
-Authorization: Bearer <jwt_token>
-Content-Type: application/json
-
-{
-    "attempts": 2,                    # Number of attempts to add
-    "notes": "Working on the crux move"
-}
-
-# Mark a specific send type
-POST /api/routes/{route_id}/send
-Authorization: Bearer <jwt_token>
-Content-Type: application/json
-
-{
-    "send_type": "top_rope",          # "top_rope" or "lead"
-    "notes": "Finally got it!"
-}
-
-# Remove all progress
-DELETE /api/routes/{route_id}/ticks
-Authorization: Bearer <jwt_token>
-```
-
-#### Check User Progress Status
-```http
-GET /api/routes/{route_id}/ticks/me
-Authorization: Bearer <jwt_token>
-
-Response (200):
-{
-    "ticked": true,
-    "tick": {
-        "id": 1,
-        "user_id": 2,
-        "user_name": "alice_johnson",
-        "route_id": 1,
-        "attempts": 5,
-        "top_rope_send": true,
-        "lead_send": false,
-        "top_rope_flash": false,
-        "lead_flash": false,
-        "flash": false,
-        "has_any_send": true,
-        "has_any_flash": false,
-        "notes": "Great route! Took several attempts to get the sequence",
-        "created_at": "2025-01-01T00:00:00",
-        "updated_at": "2025-01-01T12:30:00"
-    }
-}
-```
-
-### Project Management Endpoints
-
-#### Add Route to Projects
-```http
-POST /api/routes/{route_id}/projects
-Authorization: Bearer <jwt_token>
-Content-Type: application/json
-
-{
-    "notes": "My goal route for this month"  # Optional
-}
-
-Response (201):
-{
-    "id": 1,
-    "user_id": 2,
-    "user_name": "alice_johnson",
-    "route_id": 1,
-    "route_name": "Crimpy Goodness",
-    "route_grade": "6b",
-    "route_wall_section": "Overhang Wall",
-    "notes": "My goal route for this month",
-    "created_at": "2025-01-01T00:00:00",
-    "updated_at": "2025-01-01T00:00:00"
-}
-
-Error (400):
-{
-    "error": "Cannot mark sent routes as projects. You have already lead sent this route."
-}
-```
-
-#### Remove Route from Projects
-```http
-DELETE /api/routes/{route_id}/projects
-Authorization: Bearer <jwt_token>
-
-Response (200):
-{
-    "message": "Project removed successfully"
-}
-```
-
-#### Check User Project Status
-```http
-GET /api/routes/{route_id}/projects/me
-Authorization: Bearer <jwt_token>
-
-Response (200):
-{
-    "is_project": true,
-    "project": {
-        "id": 1,
-        "user_id": 2,
-        "user_name": "alice_johnson",
-        "route_id": 1,
-        "route_name": "Crimpy Goodness",
-        "route_grade": "6b",
-        "route_wall_section": "Overhang Wall",
-        "notes": "My goal route for this month",
-        "created_at": "2025-01-01T00:00:00",
-        "updated_at": "2025-01-01T00:00:00"
-    }
-}
-
-# If not a project
-Response (200):
-{
-    "is_project": false
-}
-```
-
-#### Get User's All Projects
-```http
-GET /api/user/projects
-Authorization: Bearer <jwt_token>
-
-Response (200):
-[
-    {
-        "id": 1,
-        "user_id": 2,
-        "user_name": "alice_johnson",
-        "route_id": 1,
-        "route_name": "Crimpy Goodness",
-        "route_grade": "6b",
-        "route_wall_section": "Overhang Wall",
-        "notes": "My goal route for this month",
-        "created_at": "2025-01-01T00:00:00",
-        "updated_at": "2025-01-01T00:00:00"
-    }
-]
-```
-
-### Configuration Endpoints
-
-#### Get Grade Definitions
-```http
-GET /api/grade-definitions
-
-Response (200):
-[
-    {
-        "grade": "3a",
-        "color": "green"
-    },
-    {
-        "grade": "5c", 
-        "color": "yellow"
-    },
-    {
-        "grade": "6a+",
-        "color": "orange"
-    }
-    // ... all French climbing grades with their colors
-]
-```
-
-#### Get Hold Colors
-```http
-GET /api/hold-colors
-
-Response (200):
-[
-    "Red", "Blue", "Green", "Yellow", "Orange", "Purple", 
-    "Pink", "Black", "White", "Cyan", "Teal", "Lime", 
-    "Indigo", "Brown", "Amber", "DeepOrange", "LightBlue", "LightGreen"
-]
-```
-
-#### Get Grade Colors
-```http
-GET /api/grade-colors
-
-Response (200):
-{
-    "3a": "green",
-    "3b": "green", 
-    "3c": "green",
-    "4a": "green",
-    "4b": "green",
-    "4c": "green",
-    "5a": "yellow",
-    "5b": "yellow",
-    "5c": "yellow",
-    "6a": "orange",
-    "6a+": "orange",
-    "6b": "orange",
-    "6b+": "orange",
-    "6c": "orange",
-    "6c+": "orange",
-    "7a": "red",
-    "7a+": "red",
-    "7b": "red",
-    "7b+": "red",
-    "7c": "red",
-    "7c+": "red",
-    "8a": "purple",
-    "8a+": "purple",
-    "8b": "purple",
-    "8b+": "purple",
-    "8c": "purple",
-    "8c+": "purple",
-    "9a": "purple",
-    "9a+": "purple",
-    "9b": "purple",
-    "9b+": "purple",
-    "9c": "purple"
-}
-```
-
-### User Profile Endpoints
-
-#### Get User's Ticks
-```http
-GET /api/user/ticks
-Authorization: Bearer <jwt_token>
-
-Response (200):
-[
-    {
-        "id": 1,
-        "route_id": 1,
-        "route_name": "Crimpy Goodness",
-        "route_grade": "V4",
-        "wall_section": "Overhang Wall",
-        "attempts": 3,
-        "flash": false,
-        "notes": "...",
-        "created_at": "2025-01-01T00:00:00"
-    }
-]
-```
-
-#### Get User's Likes
-```http
-GET /api/user/likes
-Authorization: Bearer <jwt_token>
-# Similar format to ticks
-```
-
-#### Get User Statistics
-```http
-GET /api/user/stats
-Authorization: Bearer <jwt_token>
-
-Response (200):
-{
-    "total_ticks": 15,
-    "total_likes": 8,
-    "total_comments": 12,
-    "total_attempts": 45,
-    "average_attempts": 3.0,
-    "total_projects": 3,
-    
-    "total_sends": 12,
-    "top_rope_sends": 10,
-    "lead_sends": 4,
-    
-    "total_flashes": 3,
-    "top_rope_flashes": 2,
-    "lead_flashes": 1,
-    "legacy_flashes": 3,
-    
-    "hardest_grade": "6c",
-    "hardest_top_rope_grade": "6c",
-    "hardest_lead_grade": "6a+",
-    "achieved_grades": ["5a", "5b", "5c", "6a", "6a+", "6b", "6b+", "6c"],
-    "unique_wall_sections": 4
-}
-```
-
-#### Update Nickname
-```http
-PUT /api/user/nickname
-Authorization: Bearer <jwt_token>
-Content-Type: application/json
-
-{
-  "nickname": "NewDisplayName"
-}
-
-Response (200):
-{
-  "message": "Nickname updated",
-  "user": {
-    "id": 1,
-    "username": "username",
-    "nickname": "NewDisplayName",
-    "email": "email@example.com",
-    "created_at": "2025-01-01T00:00:00",
-    "is_active": true
-  }
-}
-
-Errors (400):
-- "Nickname is required"
-- "Nickname must be between 3 and 20 characters"
-- "Nickname can contain only letters, numbers, and underscores"
-- "Nickname already taken"
-```
-
-### Utility Endpoints
-
-#### Get Wall Sections
-```http
-GET /api/wall-sections
-Authorization: Bearer <jwt_token>
-
-Response (200):
-["Overhang Wall", "Slab Wall", "Steep Wall", "Vertical Wall"]
-```
-
-#### Get Available Grades
-```http
-GET /api/grades
-Authorization: Bearer <jwt_token>
-
-Response (200):
-["3a", "3b", "3c", "4a", "4b", "4c", "5a", "5b", "5c", "6a", "6a+", "6b", "6b+", "6c", "6c+", "7a", "7a+", "7b", "7b+", "7c", "7c+", "8a", "8a+", "8b", "8b+", "8c", "8c+", "9a", "9a+", "9b", "9b+", "9c"]
-```
-
-#### Get Grade Definitions with Colors
-```http
-GET /api/grade-definitions
-Authorization: Bearer <jwt_token>
-
-Response (200):
-[
-    {
-        "id": 1,
-        "grade": "6a",
-        "difficulty_order": 40,
-        "color": "#FFD700",
-        "created_at": "2025-01-01T00:00:00"
-    },
-    ...
-]
-```
-
-#### Get Hold Colors
-```http
-GET /api/hold-colors
-Authorization: Bearer <jwt_token>
-
-Response (200):
-[
-    {
-        "id": 1,
-        "name": "Red",
-        "hex_code": "#FF0000",
-        "created_at": "2025-01-01T00:00:00"
-    },
-    {
-        "id": 2,
-        "name": "Blue", 
-        "hex_code": "#0000FF",
-        "created_at": "2025-01-01T00:00:00"
-    },
-    ...
-]
-```
-
-#### Get Grade Colors Mapping
-```http
-GET /api/grade-colors
-Authorization: Bearer <jwt_token>
-
-Response (200):
-{
-    "3a": "#90EE90",
-    "3b": "#90EE90", 
-    "3c": "#90EE90",
-    "4a": "#98FB98",
-    "4b": "#98FB98",
-    "4c": "#98FB98",
-    "5a": "#FFFF00",
-    "5b": "#FFFF00",
-    "5c": "#FFFF00",
-    "6a": "#FFD700",
-    "6a+": "#FFD700",
-    "6b": "#FFA500",
-    ...
-}
-```
-
-#### Get Lane Numbers
-```http
-GET /api/lanes
-Authorization: Bearer <jwt_token>
-
-Response (200):
-[1, 2, 3, 4, 5, 6]
-```
-
-## Error Handling
-
-The API returns consistent error responses:
-
-```json
-{
-    "error": "Error message description",
-    "details": "Additional error details (optional)"
-}
-```
-
-Common HTTP status codes:
-- `200`: Success
-- `201`: Created
-- `400`: Bad Request (validation errors)
-- `401`: Unauthorized (invalid/missing token)
-- `404`: Not Found
-- `422`: Unprocessable Entity (invalid token format)
-- `500`: Internal Server Error
-
-## Sample Data
-
-The application automatically initializes with sample data:
-
-### Sample Users
-- **admin** / **admin123** (Administrator)
-- **alice_johnson** / **password123**
-- **bob_smith** / **password123**
-- **charlie_brown** / **password123**
-
-### Sample Routes
-1. **Crimpy Goodness** (V4) - Overhang Wall, Lane 1, Red
-2. **Slab Master** (V2) - Slab Wall, Lane 3, Blue
-3. **Power House** (V6) - Steep Wall, Lane 2, Yellow
-4. **Finger Torture** (V5) - Overhang Wall, Lane 4, Green
-5. **Beginner's Delight** (V1) - Vertical Wall, Lane 1, Orange
-6. **The Gaston** (V3) - Vertical Wall, Lane 2, Purple
+- Supports standard WordPress logged-in cookies
+- Custom header support: `X-WordPress-Cookie` or `Authorization: WordPress <cookie>`
+- Automatic role assignment (defaults to Member if no role set)
+- Session validation against WordPress user sessions
 
 ## Configuration
 
-### Database Configuration
-- **Development**: SQLite database (`climbing_gym.db`)
-- **Production**: Configure `SQLALCHEMY_DATABASE_URI` environment variable
+### WordPress Settings
+Standard WordPress configuration in `wp-config.php`
 
-### JWT Configuration
-- **Secret Key**: Set `JWT_SECRET_KEY` environment variable
-- **Token Expiration**: 24 hours (configurable)
-- **Algorithm**: HS256
+### Plugin Settings  
+Available via admin interface:
+- Gym name
+- Public registration settings
+- Routes per page display
 
-### CORS Configuration
-- **Allowed Origins**: `http://localhost:3000`, `http://127.0.0.1:3000`
-- **Allowed Methods**: GET, POST, PUT, DELETE, OPTIONS
-- **Allowed Headers**: Content-Type, Authorization
-
-## Development Features
-
-### Logging
-- Request/response logging with authorization header masking
-- Debug level logging in development mode
-- Error tracking and monitoring
-
-### Database Management
-- Automatic table creation on first run
-- Sample data initialization for testing
-- SQLAlchemy ORM with relationship management
-
-### Security Features
-- Password hashing with Bcrypt
-- JWT token validation with expiration
-- CORS protection
-- Input validation and sanitization
-
-## Testing
-
-Test the API using the sample authentication:
-
-```bash
-# Register or login to get token
-curl -X POST http://localhost:5000/api/auth/login 
-  -H "Content-Type: application/json" 
-  -d '{"username": "admin", "password": "admin123"}'
-
-# Use token for authenticated requests
-curl -X GET http://localhost:5000/api/routes 
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+### PHP Configuration
+Recommended `uploads.ini` settings for file uploads:
+```ini
+file_uploads = On
+memory_limit = 256M  
+upload_max_filesize = 64M
+post_max_size = 64M
+max_execution_time = 300
 ```
 
-## Performance Considerations
+## Development Notes
 
-- Database queries optimized with proper indexing
-- Relationship loading optimized to prevent N+1 queries
-- JSON responses include only necessary data
-- Pagination recommended for large datasets (future enhancement)
+### Legacy Python Components
+The `requirements.txt` contains Flask dependencies from a previous architecture:
+- Flask 2.3.3, Flask-SQLAlchemy, Flask-JWT-Extended, etc.
+- These are no longer used in the current WordPress-based system
+- The compiled `app.cpython-312.pyc` file exists but the source is not present
 
-## Deployment
+### Database Migrations
+The plugin handles schema updates automatically via `dbDelta()` and includes migration logic for older table structures.
 
-### Development
+### Error Logging
+Plugin logs activation and setup steps to WordPress debug log when `WP_DEBUG_LOG` is enabled.
+
+## API Usage Examples
+
+### Get Routes with Filtering
 ```bash
-python app.py
+# Get all routes
+curl -X GET "https://yoursite.com/wp-json/crux/v1/routes" \
+  -H "X-WordPress-Cookie: wordpress_logged_in_hash=user|exp|token|hmac"
+
+# Filter by wall section
+curl -X GET "https://yoursite.com/wp-json/crux/v1/routes?wall_section=Main Wall"
+
+# Filter by grade  
+curl -X GET "https://yoursite.com/wp-json/crux/v1/routes?grade=6a%2B"
 ```
 
-### Production
+### Create Route (Route Setter/Admin)
 ```bash
-export FLASK_ENV=production
-export JWT_SECRET_KEY=your-secure-secret-key
-gunicorn app:app
+curl -X POST "https://yoursite.com/wp-json/crux/v1/routes" \
+  -H "Content-Type: application/json" \
+  -H "X-WordPress-Cookie: wordpress_logged_in_hash=user|exp|token|hmac" \
+  -d '{
+    "name": "Crimpy Goodness",
+    "grade_id": 15,
+    "route_setter": "John Doe", 
+    "wall_section": "Main Wall",
+    "lane_id": 5,
+    "hold_color_id": 1,
+    "description": "Technical route with small holds"
+  }'
 ```
 
-## Future Enhancements
+### Tick a Route
+```bash
+curl -X POST "https://yoursite.com/wp-json/crux/v1/routes/123/ticks" \
+  -H "Content-Type: application/json" \
+  -H "X-WordPress-Cookie: wordpress_logged_in_hash=user|exp|token|hmac" \
+  -d '{
+    "attempts": 3,
+    "flash": false,
+    "notes": "Great route, pumpy finish!"
+  }'
+```
 
-- Database migration system with Alembic
-- Advanced filtering with complex queries
-- File upload support for route photos
-- Email notifications for warnings
-- Admin dashboard endpoints
-- Rate limiting and API quotas
-- Database connection pooling
-- Caching layer (Redis)
-- API versioning
-- OpenAPI/Swagger documentation
-
-## Contributing
-
-1. Follow PEP 8 style guidelines
-2. Add type hints for new functions
-3. Include docstrings for all public methods
-4. Test all endpoints with various scenarios
-5. Update this README for any API changes
-
-## Dependencies
-
-- **Flask 2.3.3**: Web framework
-- **Flask-SQLAlchemy 3.0.5**: Database ORM
-- **Flask-JWT-Extended 4.5.3**: JWT authentication
-- **Flask-Bcrypt 1.0.1**: Password hashing
-- **Flask-CORS 4.0.0**: Cross-origin support
-- **python-dotenv 1.0.0**: Environment variable management
-- **Werkzeug 2.3.7**: WSGI utilities
-
-## License
-
-This project is licensed under the MIT License. See the LICENSE file for details.
-
----
-
-**Current Version**: 0.3.1  
-**API Base URL**: `http://localhost:5000/api`  
-**Last Updated**: August 2025
+This WordPress-based backend provides a robust, scalable foundation for climbing gym management with comprehensive API support for mobile and web applications.
