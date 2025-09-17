@@ -27,6 +27,7 @@ class CachedApiService {
     Map<String, dynamic>? params,
     Duration? cacheDuration,
     bool forceRefresh = false,
+    bool isPermanentCache = false,
   }) async {
     final cacheKey = CacheService.generateKey(endpoint, params);
     final duration = cacheDuration ?? CacheService.defaultCacheDuration;
@@ -68,7 +69,11 @@ class CachedApiService {
           };
 
           // Cache the successful response
-          _cacheService.put(cacheKey, responseData);
+          if (isPermanentCache) {
+            _cacheService.putPermanent(cacheKey, responseData);
+          } else {
+            _cacheService.put(cacheKey, responseData);
+          }
 
           return responseData;
         } else {
@@ -106,7 +111,11 @@ class CachedApiService {
           };
 
           // Cache the successful response
-          _cacheService.put(cacheKey, responseData);
+          if (isPermanentCache) {
+            _cacheService.putPermanent(cacheKey, responseData);
+          } else {
+            _cacheService.put(cacheKey, responseData);
+          }
 
           return responseData;
         } else {
@@ -435,9 +444,13 @@ class CachedApiService {
     }
   }
 
-  /// Get grades with caching
+  /// Get grades with permanent caching (never expires)
   Future<List<String>> getGrades({bool forceRefresh = false}) async {
-    final response = await get('/grades', forceRefresh: forceRefresh);
+    final response = await get(
+      '/grades',
+      forceRefresh: forceRefresh,
+      isPermanentCache: true,
+    );
 
     if (response['success']) {
       final data = response['data'];
@@ -451,10 +464,14 @@ class CachedApiService {
     }
   }
 
-  /// Get lanes with caching
+  /// Get lanes with permanent caching (never expires)
   Future<List<Lane>> getLanes({bool forceRefresh = false}) async {
     print('🔧 CachedApiService.getLanes() called');
-    final response = await get('/lanes', forceRefresh: forceRefresh);
+    final response = await get(
+      '/lanes',
+      forceRefresh: forceRefresh,
+      isPermanentCache: true,
+    );
     print(
         '✅ get("/lanes") returned: success=${response['success']}, data type=${response['data'].runtimeType}');
 
@@ -470,7 +487,8 @@ class CachedApiService {
             print('🔧 Converting lane $i: ${data[i].runtimeType}');
             final lane = Lane.fromJson(data[i]);
             lanes.add(lane);
-            print('✅ Lane $i converted successfully: ${lane.number}');
+            print(
+                '✅ Lane $i converted successfully: ${lane.id} - ${lane.name}');
           } catch (e) {
             print('❌ Error converting lane $i: $e');
             print('❌ Lane data: ${data[i]}');
@@ -489,11 +507,14 @@ class CachedApiService {
     }
   }
 
-  /// Get grade definitions with caching
+  /// Get grade definitions with permanent caching (never expires)
   Future<List<Map<String, dynamic>>> getGradeDefinitions(
       {bool forceRefresh = false}) async {
-    final response =
-        await get('/grade-definitions', forceRefresh: forceRefresh);
+    final response = await get(
+      '/grade-definitions',
+      forceRefresh: forceRefresh,
+      isPermanentCache: true,
+    );
 
     if (response['success']) {
       final data = response['data'];
@@ -507,10 +528,14 @@ class CachedApiService {
     }
   }
 
-  /// Get hold colors with caching
+  /// Get hold colors with permanent caching (never expires)
   Future<List<Map<String, dynamic>>> getHoldColors(
       {bool forceRefresh = false}) async {
-    final response = await get('/hold-colors', forceRefresh: forceRefresh);
+    final response = await get(
+      '/hold-colors',
+      forceRefresh: forceRefresh,
+      isPermanentCache: true,
+    );
 
     if (response['success']) {
       final data = response['data'];
@@ -524,10 +549,14 @@ class CachedApiService {
     }
   }
 
-  /// Get grade colors with caching
+  /// Get grade colors with permanent caching (never expires)
   Future<Map<String, String>> getGradeColors(
       {bool forceRefresh = false}) async {
-    final response = await get('/grade-colors', forceRefresh: forceRefresh);
+    final response = await get(
+      '/grade-colors',
+      forceRefresh: forceRefresh,
+      isPermanentCache: true,
+    );
 
     if (response['success']) {
       final data = response['data'];
@@ -645,6 +674,25 @@ class CachedApiService {
     }
   }
 
+  /// Remove a specific send type from a route
+  Future<void> unmarkSend(int routeId, String sendType) async {
+    final body = {
+      'send_type': sendType,
+    };
+
+    final response = await post('/routes/$routeId/unsend', body,
+        invalidatePatterns: [
+          '/user/ticks',
+          '/user/stats',
+          '/routes/$routeId',
+          '/routes'
+        ]);
+
+    if (!response['success']) {
+      throw Exception(response['error'] ?? 'Failed to unmark send');
+    }
+  }
+
   /// Add a comment to a route
   Future<void> addComment(int routeId, String content) async {
     final body = {'content': content};
@@ -679,7 +727,13 @@ class CachedApiService {
 
     if (response['success']) {
       final data = response['data'];
-      return data != null ? GradeProposal.fromJson(data) : null;
+      // Check if data is null, empty object, or doesn't have required fields
+      if (data == null ||
+          data is Map<String, dynamic> &&
+              (data.isEmpty || data['id'] == null)) {
+        return null;
+      }
+      return GradeProposal.fromJson(data);
     } else {
       throw Exception(response['error'] ?? 'Failed to get grade proposal');
     }
@@ -832,6 +886,16 @@ class CachedApiService {
   /// Clear route-specific cache
   void clearRouteCache() {
     _cacheService.invalidateRouteData();
+  }
+
+  /// Clear permanent cache for all static data
+  void clearPermanentCache() {
+    _cacheService.clearPermanentCache();
+  }
+
+  /// Remove specific cache entry
+  void removeCacheEntry(String key) {
+    _cacheService.remove(key);
   }
 
   /// Get cache statistics for debugging

@@ -35,59 +35,59 @@ class Crux_API
         register_rest_route($namespace, '/routes', array(
             'methods' => 'GET',
             'callback' => array($this, 'get_routes'),
-            'permission_callback' => '__return_true'
+            'permission_callback' => array($this, 'check_user_permissions')
         ));
 
         register_rest_route($namespace, '/routes', array(
             'methods' => 'POST',
             'callback' => array($this, 'create_route'),
-            'permission_callback' => array($this, 'check_admin_permissions')
+            'permission_callback' => array($this, 'check_route_setter_permissions')
         ));
 
         register_rest_route($namespace, '/routes/(?P<id>\d+)', array(
             'methods' => 'GET',
             'callback' => array($this, 'get_route'),
-            'permission_callback' => '__return_true'
+            'permission_callback' => array($this, 'check_user_permissions')
         ));
 
         // Wall sections endpoint
         register_rest_route($namespace, '/wall-sections', array(
             'methods' => 'GET',
             'callback' => array($this, 'get_wall_sections'),
-            'permission_callback' => '__return_true'
+            'permission_callback' => array($this, 'check_user_permissions')
         ));
 
         // Grades endpoints
         register_rest_route($namespace, '/grades', array(
             'methods' => 'GET',
             'callback' => array($this, 'get_grades'),
-            'permission_callback' => '__return_true'
+            'permission_callback' => array($this, 'check_user_permissions')
         ));
 
         register_rest_route($namespace, '/grade-definitions', array(
             'methods' => 'GET',
             'callback' => array($this, 'get_grade_definitions'),
-            'permission_callback' => '__return_true'
+            'permission_callback' => array($this, 'check_user_permissions')
         ));
 
         register_rest_route($namespace, '/grade-colors', array(
             'methods' => 'GET',
             'callback' => array($this, 'get_grade_colors'),
-            'permission_callback' => '__return_true'
+            'permission_callback' => array($this, 'check_user_permissions')
         ));
 
         // Hold colors endpoint
         register_rest_route($namespace, '/hold-colors', array(
             'methods' => 'GET',
             'callback' => array($this, 'get_hold_colors'),
-            'permission_callback' => '__return_true'
+            'permission_callback' => array($this, 'check_user_permissions')
         ));
 
         // Lanes endpoint
         register_rest_route($namespace, '/lanes', array(
             'methods' => 'GET',
             'callback' => array($this, 'get_lanes'),
-            'permission_callback' => '__return_true'
+            'permission_callback' => array($this, 'check_user_permissions')
         ));
 
         // User interaction endpoints
@@ -152,6 +152,12 @@ class Crux_API
             'permission_callback' => array($this, 'check_user_permissions')
         ));
 
+        register_rest_route($namespace, '/routes/(?P<id>\d+)/unsend', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'unmark_send'),
+            'permission_callback' => array($this, 'check_user_permissions')
+        ));
+
         register_rest_route($namespace, '/routes/(?P<id>\d+)/like', array(
             'methods' => 'POST',
             'callback' => array($this, 'like_route'),
@@ -199,22 +205,65 @@ class Crux_API
             'callback' => array($this, 'add_warning'),
             'permission_callback' => array($this, 'check_user_permissions')
         ));
+
+        // User nickname endpoints
+        register_rest_route($namespace, '/user/nickname', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_user_nickname'),
+            'permission_callback' => array($this, 'check_user_permissions')
+        ));
+
+        register_rest_route($namespace, '/user/nickname', array(
+            'methods' => 'PUT',
+            'callback' => array($this, 'update_user_nickname'),
+            'permission_callback' => array($this, 'check_user_permissions')
+        ));
+
+        // Admin-only cleanup endpoint
+        register_rest_route($namespace, '/admin/fix-flash-data', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'fix_flash_data'),
+            'permission_callback' => array($this, 'check_admin_permissions')
+        ));
     }
 
+
     /**
-     * Check if user is logged in via WordPress cookies
+     * Check if user is authenticated (any role)
      */
     public function check_user_permissions($request = null)
     {
-        return $this->determine_user_from_cookie();
+        $user_id = $this->determine_user_from_cookie();
+        if (!$user_id) {
+            return false;
+        }
+        return true;
     }
 
     /**
-     * Check if user has admin permissions
+     * Check if user is admin (role_id 1)
      */
-    public function check_admin_permissions()
+    public function check_admin_permissions($request = null)
     {
-        return current_user_can('manage_options') || current_user_can('edit_posts');
+        $user_id = $this->determine_user_from_cookie();
+        if (!$user_id) {
+            return false;
+        }
+        $role_id = $this->get_user_primary_role_id($user_id);
+        return $role_id === 1;
+    }
+
+    /**
+     * Check if user is route setter (role_id 2) or admin (role_id 1)
+     */
+    public function check_route_setter_permissions($request = null)
+    {
+        $user_id = $this->determine_user_from_cookie();
+        if (!$user_id) {
+            return false;
+        }
+        $role_id = $this->get_user_primary_role_id($user_id);
+        return in_array($role_id, array(1, 2));
     }
 
     /**
@@ -343,16 +392,19 @@ class Crux_API
     {
         $current_user = $this->_get_current_user();
 
+        // Ensure user has a role assigned (auto-assign member role if none)
+        $this->ensure_user_has_role($current_user->ID);
+
         // Return user data wrapped in 'user' key for backward compatibility
         return array(
             'user' => array(
                 'id' => $current_user->ID,
                 'username' => $current_user->user_login,
-                'nickname' => get_user_meta($current_user->ID, 'nickname', true) ?: $current_user->display_name,
+                'nickname' => $this->get_user_display_nickname($current_user->ID),
                 'email' => $current_user->user_email,
                 'created_at' => $current_user->user_registered,
                 'is_active' => true,
-                'role' => $current_user->roles[0] ?? 'subscriber'
+                'role' => $this->get_user_primary_role_slug($current_user->ID) ?: 'member'
             )
         );
     }
@@ -440,6 +492,102 @@ class Crux_API
         $route->grade_proposals_count = intval($stats['grade_proposals_count']);
         $route->projects_count = intval($stats['projects_count']);
 
+        // Add comments data
+        global $wpdb;
+        $comments_table = $wpdb->prefix . 'crux_comments';
+        $users_table = $wpdb->users;
+        
+        $comments = $wpdb->get_results($wpdb->prepare("
+            SELECT c.*, u.display_name as user_name
+            FROM $comments_table c
+            LEFT JOIN $users_table u ON c.user_id = u.ID
+            WHERE c.route_id = %d
+            ORDER BY c.created_at DESC
+        ", $route_id));
+        
+        // Add warnings data
+        $warnings_table = $wpdb->prefix . 'crux_warnings';
+        
+        $warnings = $wpdb->get_results($wpdb->prepare("
+            SELECT w.*, u.display_name as user_name
+            FROM $warnings_table w
+            LEFT JOIN $users_table u ON w.user_id = u.ID
+            WHERE w.route_id = %d
+            ORDER BY w.created_at DESC
+        ", $route_id));
+        
+        // Add grade proposals data
+        $proposals_table = $wpdb->prefix . 'crux_grade_proposals';
+        $grades_table = $wpdb->prefix . 'crux_grades';
+        
+        $grade_proposals = $wpdb->get_results($wpdb->prepare("
+            SELECT p.*, u.display_name as user_name, g.french_name as proposed_grade
+            FROM $proposals_table p
+            LEFT JOIN $users_table u ON p.user_id = u.ID
+            LEFT JOIN $grades_table g ON p.proposed_grade_id = g.id
+            WHERE p.route_id = %d
+            ORDER BY p.created_at DESC
+        ", $route_id));
+        
+        // Get all user IDs for nickname lookup
+        $all_user_ids = array();
+        if ($comments) {
+            foreach ($comments as $comment) {
+                if ($comment->user_id) $all_user_ids[] = $comment->user_id;
+            }
+        }
+        if ($warnings) {
+            foreach ($warnings as $warning) {
+                if ($warning->user_id) $all_user_ids[] = $warning->user_id;
+            }
+        }
+        if ($grade_proposals) {
+            foreach ($grade_proposals as $proposal) {
+                if ($proposal->user_id) $all_user_ids[] = $proposal->user_id;
+            }
+        }
+        
+        // Get all nicknames at once
+        $nicknames = $this->get_user_display_nicknames($all_user_ids);
+        
+        // Update user names in comments
+        if ($comments) {
+            foreach ($comments as &$comment) {
+                if (isset($nicknames[$comment->user_id])) {
+                    $comment->user_name = $nicknames[$comment->user_id];
+                }
+            }
+        }
+        
+        // Update user names in warnings
+        if ($warnings) {
+            foreach ($warnings as &$warning) {
+                if (isset($nicknames[$warning->user_id])) {
+                    $warning->user_name = $nicknames[$warning->user_id];
+                }
+            }
+        }
+        
+        // Update user names in grade proposals
+        if ($grade_proposals) {
+            foreach ($grade_proposals as &$proposal) {
+                if (isset($nicknames[$proposal->user_id])) {
+                    $proposal->user_name = $nicknames[$proposal->user_id];
+                }
+                // Convert date fields to ISO 8601
+                if (isset($proposal->created_at) && $proposal->created_at) {
+                    $proposal->created_at = str_replace(' ', 'T', $proposal->created_at);
+                }
+                if (isset($proposal->updated_at) && $proposal->updated_at) {
+                    $proposal->updated_at = str_replace(' ', 'T', $proposal->updated_at);
+                }
+            }
+        }
+        
+        $route->comments = $comments ?: array();
+        $route->warnings = $warnings ?: array();
+        $route->grade_proposals = $grade_proposals ?: array();
+
         // Add user-specific data if user is authenticated
         $current_user = $this->_get_current_user();
         if ($current_user && $current_user->ID > 0) {
@@ -458,7 +606,7 @@ class Crux_API
     {
         $data = $request->get_json_params();
         
-        $required_fields = array('name', 'grade_id', 'route_setter', 'wall_section', 'lane_id', 'hold_color_id');
+        $required_fields = array('name', 'grade_id', 'route_setter', 'wall_section', 'lane_id');
         foreach ($required_fields as $field) {
             if (!isset($data[$field])) {
                 return new WP_Error('missing_field', "Missing required field: $field", array('status' => 400));
@@ -471,7 +619,7 @@ class Crux_API
             'route_setter' => sanitize_text_field($data['route_setter']),
             'wall_section' => sanitize_text_field($data['wall_section']),
             'lane_id' => intval($data['lane_id']),
-            'hold_color_id' => intval($data['hold_color_id']),
+            'hold_color_id' => isset($data['hold_color_id']) && $data['hold_color_id'] !== null ? intval($data['hold_color_id']) : null,
             'description' => isset($data['description']) ? sanitize_textarea_field($data['description']) : ''
         );
 
@@ -538,7 +686,7 @@ class Crux_API
         global $wpdb;
         
         $table_name = $wpdb->prefix . 'crux_lanes';
-        $sql = "SELECT * FROM $table_name ORDER BY number ASC";
+        $sql = "SELECT * FROM $table_name ORDER BY id ASC";
         
         return $wpdb->get_results($sql);
     }
@@ -641,6 +789,9 @@ class Crux_API
         $flash = isset($data['flash']) ? (bool)$data['flash'] : false;
         $notes = isset($data['notes']) ? sanitize_textarea_field($data['notes']) : '';
         
+        // Flash is only valid if attempts = 1
+        $is_flash = $flash && $attempts == 1;
+        
         $table_name = $wpdb->prefix . 'crux_ticks';
         
         // Check if tick already exists
@@ -656,7 +807,7 @@ class Crux_API
                 array(
                     'attempts' => $attempts,
                     'notes' => $notes,
-                    'top_rope_flash' => $flash ? 1 : 0,
+                    'top_rope_flash' => $is_flash ? 1 : 0,
                     'top_rope_send' => 1,
                     'updated_at' => current_time('mysql')
                 ),
@@ -673,7 +824,7 @@ class Crux_API
                     'route_id' => $route_id,
                     'attempts' => $attempts,
                     'notes' => $notes,
-                    'top_rope_flash' => $flash ? 1 : 0,
+                    'top_rope_flash' => $is_flash ? 1 : 0,
                     'top_rope_send' => 1,
                     'created_at' => current_time('mysql'),
                     'updated_at' => current_time('mysql')
@@ -738,15 +889,24 @@ class Crux_API
         
         if ($existing) {
             // Update existing tick - add attempts without marking as sent
+            $new_attempts = $existing->attempts + $attempts;
+            $update_data = array(
+                'attempts' => $new_attempts,
+                'notes' => $notes,
+                'updated_at' => current_time('mysql')
+            );
+            
+            // If attempts become > 1, remove any flash status
+            if ($new_attempts > 1) {
+                $update_data['top_rope_flash'] = 0;
+                $update_data['lead_flash'] = 0;
+            }
+            
             $result = $wpdb->update(
                 $table_name,
-                array(
-                    'attempts' => $existing->attempts + $attempts,
-                    'notes' => $notes,
-                    'updated_at' => current_time('mysql')
-                ),
+                $update_data,
                 array('user_id' => $current_user->ID, 'route_id' => $route_id),
-                array('%d', '%s', '%s'),
+                array('%d', '%s', '%s', '%d', '%d'),
                 array('%d', '%d')
             );
         } else {
@@ -841,6 +1001,60 @@ class Crux_API
         
         if ($result === false) {
             return new WP_Error('send_failed', 'Failed to mark send', array('status' => 500));
+        }
+        
+        return array('success' => true);
+    }
+
+    /**
+     * Remove a specific send type from a route
+     */
+    public function unmark_send($request)
+    {
+        global $wpdb;
+        
+        $route_id = intval($request['id']);
+        $current_user = $this->_get_current_user();
+        $data = $request->get_json_params();
+        
+        $send_type = sanitize_text_field($data['send_type']);
+        
+        $table_name = $wpdb->prefix . 'crux_ticks';
+        
+        // Check if tick exists
+        $existing = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table_name WHERE user_id = %d AND route_id = %d", 
+            $current_user->ID, $route_id
+        ));
+        
+        if (!$existing) {
+            return new WP_Error('no_tick', 'No tick found to unmark', array('status' => 404));
+        }
+        
+        // Determine which send flag to unset based on send type
+        $unsend_data = array();
+        switch ($send_type) {
+            case 'top_rope':
+                $unsend_data['top_rope_send'] = 0;
+                $unsend_data['top_rope_flash'] = 0; // Also remove flash if it exists
+                break;
+            case 'lead':
+                $unsend_data['lead_send'] = 0;
+                $unsend_data['lead_flash'] = 0; // Also remove flash if it exists
+                break;
+        }
+        
+        $unsend_data['updated_at'] = current_time('mysql');
+        
+        // Update existing tick to remove the send
+        $result = $wpdb->update(
+            $table_name,
+            $unsend_data,
+            array('user_id' => $current_user->ID, 'route_id' => $route_id)
+        );
+        
+        if ($result === false) {
+            return new WP_Error('unsend_failed', 'Failed to unmark send', array('status' => 500));
         }
         
         return array('success' => true);
@@ -1029,6 +1243,17 @@ class Crux_API
         $proposed_grade = sanitize_text_field($data['proposed_grade']);
         $reasoning = sanitize_textarea_field($data['reasoning']);
         
+        // Find the grade ID from the grade name
+        $grades_table = $wpdb->prefix . 'crux_grades';
+        $grade_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM $grades_table WHERE french_name = %s", 
+            $proposed_grade
+        ));
+        
+        if (!$grade_id) {
+            return new WP_Error('invalid_grade', 'Invalid grade provided', array('status' => 400));
+        }
+        
         $table_name = $wpdb->prefix . 'crux_grade_proposals';
         
         // Check if user already has a proposal for this route
@@ -1042,12 +1267,12 @@ class Crux_API
             $result = $wpdb->update(
                 $table_name,
                 array(
-                    'proposed_grade' => $proposed_grade,
+                    'proposed_grade_id' => $grade_id,
                     'reasoning' => $reasoning,
                     'updated_at' => current_time('mysql')
                 ),
                 array('user_id' => $current_user->ID, 'route_id' => $route_id),
-                array('%s', '%s', '%s'),
+                array('%d', '%s', '%s'),
                 array('%d', '%d')
             );
         } else {
@@ -1057,12 +1282,12 @@ class Crux_API
                 array(
                     'user_id' => $current_user->ID,
                     'route_id' => $route_id,
-                    'proposed_grade' => $proposed_grade,
+                    'proposed_grade_id' => $grade_id,
                     'reasoning' => $reasoning,
                     'created_at' => current_time('mysql'),
                     'updated_at' => current_time('mysql')
                 ),
-                array('%d', '%d', '%s', '%s', '%s', '%s')
+                array('%d', '%d', '%d', '%s', '%s', '%s')
             );
         }
         
@@ -1083,18 +1308,33 @@ class Crux_API
         $route_id = intval($request['id']);
         $current_user = $this->_get_current_user();
         
-        $table_name = $wpdb->prefix . 'crux_grade_proposals';
+        $proposals_table = $wpdb->prefix . 'crux_grade_proposals';
+        $users_table = $wpdb->users;
+        $grades_table = $wpdb->prefix . 'crux_grades';
         
         $proposal = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM $table_name WHERE user_id = %d AND route_id = %d", 
+            "SELECT p.*, u.display_name as user_name, g.french_name as proposed_grade
+            FROM $proposals_table p
+            LEFT JOIN $users_table u ON p.user_id = u.ID
+            LEFT JOIN $grades_table g ON p.proposed_grade_id = g.id
+            WHERE p.user_id = %d AND p.route_id = %d",
             $current_user->ID, $route_id
         ), ARRAY_A);
-        
-        if (!$proposal) {
-            return null;
+
+        // Convert date fields to ISO 8601 if present
+        if ($proposal) {
+            if (isset($proposal['created_at']) && $proposal['created_at']) {
+                $proposal['created_at'] = str_replace(' ', 'T', $proposal['created_at']);
+            }
+            if (isset($proposal['updated_at']) && $proposal['updated_at']) {
+                $proposal['updated_at'] = str_replace(' ', 'T', $proposal['updated_at']);
+            }
         }
-        
-        return $proposal;
+
+        return array(
+            'success' => true,
+            'data' => $proposal ?: (object)[] // Return empty object if no proposal exists
+        );
     }
 
     /**
@@ -1132,7 +1372,191 @@ class Crux_API
         return array('success' => true, 'warning_id' => $wpdb->insert_id);
     }
 
+    // ===== NICKNAME MANAGEMENT METHODS =====
+
+    /**
+     * Get user's current nickname
+     */
+    public function get_user_nickname($request)
+    {
+        global $wpdb;
+        
+        $current_user = $this->_get_current_user();
+        
+        $table_name = $wpdb->prefix . 'crux_user_nicknames';
+        $nickname = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table_name WHERE user_id = %d",
+            $current_user->ID
+        ), ARRAY_A);
+        
+        if (!$nickname) {
+            // Fall back to WordPress nickname if no custom nickname exists
+            $wp_nickname = get_user_meta($current_user->ID, 'nickname', true);
+            return array(
+                'success' => true,
+                'data' => array(
+                    'nickname' => $wp_nickname ?: $current_user->display_name,
+                    'source' => 'wordpress'
+                )
+            );
+        }
+        
+        return array(
+            'success' => true,
+            'data' => array(
+                'nickname' => $nickname['nickname'],
+                'source' => 'custom',
+                'updated_at' => $nickname['updated_at']
+            )
+        );
+    }
+
+    /**
+     * Update user's nickname
+     */
+    public function update_user_nickname($request)
+    {
+        global $wpdb;
+        
+        $current_user = $this->_get_current_user();
+        $data = $request->get_json_params();
+        
+        if (!isset($data['nickname']) || empty(trim($data['nickname']))) {
+            return new WP_Error('empty_nickname', 'Nickname cannot be empty', array('status' => 400));
+        }
+        
+        $nickname = sanitize_text_field(trim($data['nickname']));
+        
+        // Validate nickname length (3-100 characters)
+        if (strlen($nickname) < 3) {
+            return new WP_Error('nickname_too_short', 'Nickname must be at least 3 characters long', array('status' => 400));
+        }
+        
+        if (strlen($nickname) > 100) {
+            return new WP_Error('nickname_too_long', 'Nickname must be less than 100 characters long', array('status' => 400));
+        }
+        
+        // Check for profanity or inappropriate content (basic check)
+        $inappropriate_words = array('admin', 'administrator', 'root', 'moderator', 'staff');
+        $nickname_lower = strtolower($nickname);
+        foreach ($inappropriate_words as $word) {
+            if (strpos($nickname_lower, $word) !== false) {
+                return new WP_Error('inappropriate_nickname', 'This nickname is not allowed', array('status' => 400));
+            }
+        }
+        
+        $table_name = $wpdb->prefix . 'crux_user_nicknames';
+        
+        // Check if nickname already exists for this user
+        $existing = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table_name WHERE user_id = %d",
+            $current_user->ID
+        ));
+        
+        if ($existing) {
+            // Update existing nickname
+            $result = $wpdb->update(
+                $table_name,
+                array('nickname' => $nickname),
+                array('user_id' => $current_user->ID),
+                array('%s'),
+                array('%d')
+            );
+        } else {
+            // Insert new nickname
+            $result = $wpdb->insert(
+                $table_name,
+                array(
+                    'user_id' => $current_user->ID,
+                    'nickname' => $nickname
+                ),
+                array('%d', '%s')
+            );
+        }
+        
+        if ($result === false) {
+            return new WP_Error('update_failed', 'Failed to update nickname', array('status' => 500));
+        }
+        
+        return array(
+            'success' => true,
+            'data' => array(
+                'nickname' => $nickname,
+                'message' => 'Nickname updated successfully'
+            )
+        );
+    }
+
     // Helper methods
+
+    /**
+     * Get user's display nickname from custom table or WordPress meta
+     */
+    private function get_user_display_nickname($user_id)
+    {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'crux_user_nicknames';
+        $custom_nickname = $wpdb->get_var($wpdb->prepare(
+            "SELECT nickname FROM $table_name WHERE user_id = %d",
+            $user_id
+        ));
+        
+        if ($custom_nickname) {
+            return $custom_nickname;
+        }
+        
+        // Fall back to WordPress nickname
+        $wp_nickname = get_user_meta($user_id, 'nickname', true);
+        if ($wp_nickname) {
+            return $wp_nickname;
+        }
+        
+        // Final fallback to display_name
+        $user = get_user_by('id', $user_id);
+        return $user ? $user->display_name : 'User';
+    }
+
+    /**
+     * Get display nicknames for multiple users at once
+     */
+    private function get_user_display_nicknames($user_ids)
+    {
+        if (empty($user_ids)) {
+            return array();
+        }
+        
+        global $wpdb;
+        
+        $user_ids = array_unique(array_map('intval', $user_ids));
+        $placeholders = implode(',', array_fill(0, count($user_ids), '%d'));
+        
+        $nicknames_table = $wpdb->prefix . 'crux_user_nicknames';
+        $users_table = $wpdb->users;
+        
+        // Get all nicknames in one query with fallback to WordPress data
+        $results = $wpdb->get_results($wpdb->prepare("
+            SELECT 
+                u.ID as user_id,
+                COALESCE(
+                    cn.nickname,
+                    um.meta_value,
+                    u.display_name,
+                    'User'
+                ) as display_nickname
+            FROM $users_table u
+            LEFT JOIN $nicknames_table cn ON u.ID = cn.user_id
+            LEFT JOIN {$wpdb->usermeta} um ON u.ID = um.user_id AND um.meta_key = 'nickname'
+            WHERE u.ID IN ($placeholders)
+        ", ...$user_ids), ARRAY_A);
+        
+        $nicknames = array();
+        foreach ($results as $result) {
+            $nicknames[intval($result['user_id'])] = $result['display_nickname'];
+        }
+        
+        return $nicknames;
+    }
 
     /**
      * Check if user has liked a route
@@ -1180,6 +1604,563 @@ class Crux_API
         ));
         
         return $count > 0;
+    }
+
+    // ===== ROLE MANAGEMENT METHODS =====
+
+    /**
+     * Check if user has a specific capability
+     */
+    public function user_has_capability($user_id, $capability)
+    {
+        global $wpdb;
+        
+        $user_roles_table = $wpdb->prefix . 'crux_user_roles';
+        $roles_table = $wpdb->prefix . 'crux_roles';
+        
+        $roles = $wpdb->get_results($wpdb->prepare(
+            "SELECT r.capabilities 
+            FROM $user_roles_table ur 
+            JOIN $roles_table r ON ur.role_id = r.id 
+            WHERE ur.user_id = %d AND ur.is_active = 1 AND r.is_active = 1",
+            $user_id
+        ), ARRAY_A);
+        
+        foreach ($roles as $role) {
+            $capabilities = json_decode($role['capabilities'], true);
+            if (is_array($capabilities) && in_array($capability, $capabilities)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Get all roles
+     */
+    public function get_roles($request)
+    {
+        global $wpdb;
+        
+        $roles_table = $wpdb->prefix . 'crux_roles';
+        
+        $roles = $wpdb->get_results(
+            "SELECT * FROM $roles_table WHERE is_active = 1 ORDER BY name",
+            ARRAY_A
+        );
+        
+        // Decode capabilities JSON
+        foreach ($roles as &$role) {
+            $role['capabilities'] = json_decode($role['capabilities'], true) ?: [];
+            $role['created_at'] = str_replace(' ', 'T', $role['created_at']);
+        }
+        
+        return array(
+            'success' => true,
+            'data' => $roles
+        );
+    }
+
+    /**
+     * Create a new role
+     */
+    public function create_role($request)
+    {
+        global $wpdb;
+        
+        $params = $request->get_params();
+        
+        if (empty($params['name']) || empty($params['slug'])) {
+            return new WP_Error('missing_parameters', 'Name and slug are required', array('status' => 400));
+        }
+        
+        $roles_table = $wpdb->prefix . 'crux_roles';
+        
+        $capabilities = isset($params['capabilities']) ? json_encode($params['capabilities']) : json_encode([]);
+        
+        $result = $wpdb->insert(
+            $roles_table,
+            array(
+                'name' => sanitize_text_field($params['name']),
+                'slug' => sanitize_text_field($params['slug']),
+                'description' => sanitize_textarea_field($params['description'] ?? ''),
+                'capabilities' => $capabilities
+            ),
+            array('%s', '%s', '%s', '%s')
+        );
+        
+        if ($result === false) {
+            return new WP_Error('role_creation_failed', 'Failed to create role', array('status' => 500));
+        }
+        
+        return array(
+            'success' => true,
+            'data' => array(
+                'id' => $wpdb->insert_id,
+                'name' => $params['name'],
+                'slug' => $params['slug'],
+                'description' => $params['description'] ?? '',
+                'capabilities' => json_decode($capabilities, true)
+            )
+        );
+    }
+
+    /**
+     * Update a role
+     */
+    public function update_role($request)
+    {
+        global $wpdb;
+        
+        $role_id = intval($request['id']);
+        $params = $request->get_params();
+        
+        $roles_table = $wpdb->prefix . 'crux_roles';
+        
+        $update_data = array();
+        $update_format = array();
+        
+        if (isset($params['name'])) {
+            $update_data['name'] = sanitize_text_field($params['name']);
+            $update_format[] = '%s';
+        }
+        
+        if (isset($params['description'])) {
+            $update_data['description'] = sanitize_textarea_field($params['description']);
+            $update_format[] = '%s';
+        }
+        
+        if (isset($params['capabilities'])) {
+            $update_data['capabilities'] = json_encode($params['capabilities']);
+            $update_format[] = '%s';
+        }
+        
+        if (empty($update_data)) {
+            return new WP_Error('no_data', 'No data to update', array('status' => 400));
+        }
+        
+        $result = $wpdb->update(
+            $roles_table,
+            $update_data,
+            array('id' => $role_id),
+            $update_format,
+            array('%d')
+        );
+        
+        if ($result === false) {
+            return new WP_Error('role_update_failed', 'Failed to update role', array('status' => 500));
+        }
+        
+        return array('success' => true);
+    }
+
+    /**
+     * Delete a role
+     */
+    public function delete_role($request)
+    {
+        global $wpdb;
+        
+        $role_id = intval($request['id']);
+        
+        $roles_table = $wpdb->prefix . 'crux_roles';
+        
+        // Soft delete by setting is_active to 0
+        $result = $wpdb->update(
+            $roles_table,
+            array('is_active' => 0),
+            array('id' => $role_id),
+            array('%d'),
+            array('%d')
+        );
+        
+        if ($result === false) {
+            return new WP_Error('role_deletion_failed', 'Failed to delete role', array('status' => 500));
+        }
+        
+        return array('success' => true);
+    }
+
+    /**
+     * Get user's roles
+     */
+    public function get_user_roles($request)
+    {
+        global $wpdb;
+        
+        $user_id = intval($request['user_id']);
+        
+        $user_roles_table = $wpdb->prefix . 'crux_user_roles';
+        $roles_table = $wpdb->prefix . 'crux_roles';
+        
+        $roles = $wpdb->get_results($wpdb->prepare(
+            "SELECT r.*, ur.assigned_at, ur.is_active as user_role_active
+            FROM $user_roles_table ur 
+            JOIN $roles_table r ON ur.role_id = r.id 
+            WHERE ur.user_id = %d AND ur.is_active = 1 AND r.is_active = 1
+            ORDER BY r.name",
+            $user_id
+        ), ARRAY_A);
+        
+        // Decode capabilities JSON
+        foreach ($roles as &$role) {
+            $role['capabilities'] = json_decode($role['capabilities'], true) ?: [];
+            $role['created_at'] = str_replace(' ', 'T', $role['created_at']);
+            $role['assigned_at'] = str_replace(' ', 'T', $role['assigned_at']);
+        }
+        
+        return array(
+            'success' => true,
+            'data' => $roles
+        );
+    }
+
+    /**
+     * Assign role to user
+     */
+    public function assign_user_role($request)
+    {
+        global $wpdb;
+        
+        $user_id = intval($request['user_id']);
+        $params = $request->get_params();
+        
+        if (empty($params['role_id'])) {
+            return new WP_Error('missing_role_id', 'Role ID is required', array('status' => 400));
+        }
+        
+        $role_id = intval($params['role_id']);
+        $current_user = $this->_get_current_user();
+        
+        $user_roles_table = $wpdb->prefix . 'crux_user_roles';
+        
+        $result = $wpdb->insert(
+            $user_roles_table,
+            array(
+                'user_id' => $user_id,
+                'role_id' => $role_id,
+                'assigned_by' => $current_user->ID
+            ),
+            array('%d', '%d', '%d')
+        );
+        
+        if ($result === false) {
+            return new WP_Error('role_assignment_failed', 'Failed to assign role', array('status' => 500));
+        }
+        
+        return array('success' => true);
+    }
+
+    /**
+     * Remove role from user
+     */
+    public function remove_user_role($request)
+    {
+        global $wpdb;
+        
+        $user_id = intval($request['user_id']);
+        $role_id = intval($request['role_id']);
+        
+        $user_roles_table = $wpdb->prefix . 'crux_user_roles';
+        
+        $result = $wpdb->update(
+            $user_roles_table,
+            array('is_active' => 0),
+            array('user_id' => $user_id, 'role_id' => $role_id),
+            array('%d'),
+            array('%d', '%d')
+        );
+        
+        if ($result === false) {
+            return new WP_Error('role_removal_failed', 'Failed to remove role', array('status' => 500));
+        }
+        
+        return array('success' => true);
+    }
+
+    /**
+     * Get current user's roles
+     */
+    public function get_current_user_roles($request)
+    {
+        $current_user = $this->_get_current_user();
+        
+        $fake_request = new stdClass();
+        $fake_request->user_id = $current_user->ID;
+        $fake_request_array['user_id'] = $current_user->ID;
+        
+        // Create a proper request object
+        $user_request = new WP_REST_Request('GET', '/crux/v1/users/' . $current_user->ID . '/roles');
+        $user_request->set_url_params(array('user_id' => $current_user->ID));
+        
+        return $this->get_user_roles($user_request);
+    }
+
+    /**
+     * Get current user's capabilities
+     */
+    public function get_current_user_capabilities($request)
+    {
+        $current_user = $this->_get_current_user();
+        
+        global $wpdb;
+        
+        $user_roles_table = $wpdb->prefix . 'crux_user_roles';
+        $roles_table = $wpdb->prefix . 'crux_roles';
+        
+        $roles = $wpdb->get_results($wpdb->prepare(
+            "SELECT r.capabilities 
+            FROM $user_roles_table ur 
+            JOIN $roles_table r ON ur.role_id = r.id 
+            WHERE ur.user_id = %d AND ur.is_active = 1 AND r.is_active = 1",
+            $current_user->ID
+        ), ARRAY_A);
+        
+        $all_capabilities = array();
+        
+        foreach ($roles as $role) {
+            $capabilities = json_decode($role['capabilities'], true);
+            if (is_array($capabilities)) {
+                $all_capabilities = array_merge($all_capabilities, $capabilities);
+            }
+        }
+        
+        $all_capabilities = array_unique($all_capabilities);
+        
+        return array(
+            'success' => true,
+            'data' => $all_capabilities
+        );
+    }
+
+    // ===== USER ROLE HELPER METHODS =====
+
+    /**
+     * Ensure user has at least the member role
+     */
+    public function ensure_user_has_role($user_id)
+    {
+        global $wpdb;
+        
+        $user_roles_table = $wpdb->prefix . 'crux_user_roles';
+        $roles_table = $wpdb->prefix . 'crux_roles';
+        
+        // Check if user already has any active role
+        $existing_role = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) 
+            FROM $user_roles_table ur 
+            JOIN $roles_table r ON ur.role_id = r.id 
+            WHERE ur.user_id = %d AND ur.is_active = 1 AND r.is_active = 1",
+            $user_id
+        ));
+        
+        // If no role assigned, assign member role
+        if (!$existing_role) {
+            $member_role = $wpdb->get_var(
+                "SELECT id FROM $roles_table WHERE slug = 'member' AND is_active = 1"
+            );
+            
+            if ($member_role) {
+                $wpdb->insert(
+                    $user_roles_table,
+                    array(
+                        'user_id' => $user_id,
+                        'role_id' => $member_role,
+                        'assigned_by' => $user_id // Self-assigned
+                    ),
+                    array('%d', '%d', '%d')
+                );
+            }
+        }
+    }
+
+    /**
+     * Get user's primary role slug
+     */
+    public function get_user_primary_role_slug($user_id)
+    {
+        global $wpdb;
+        
+        $user_roles_table = $wpdb->prefix . 'crux_user_roles';
+        $roles_table = $wpdb->prefix . 'crux_roles';
+        
+        $role_slug = $wpdb->get_var($wpdb->prepare(
+            "SELECT r.slug 
+            FROM $user_roles_table ur 
+            JOIN $roles_table r ON ur.role_id = r.id 
+            WHERE ur.user_id = %d AND ur.is_active = 1 AND r.is_active = 1
+            ORDER BY 
+                CASE r.slug 
+                    WHEN 'admin' THEN 1 
+                    WHEN 'route_setter' THEN 2 
+                    WHEN 'member' THEN 3 
+                    ELSE 4 
+                END
+            LIMIT 1",
+            $user_id
+        ));
+        
+        return $role_slug ?: 'member';
+    }
+
+    /**
+     * Get user's primary role ID
+     */
+    public function get_user_primary_role_id($user_id)
+    {
+        global $wpdb;
+        
+        $user_roles_table = $wpdb->prefix . 'crux_user_roles';
+        $roles_table = $wpdb->prefix . 'crux_roles';
+        
+        $role_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT r.id 
+            FROM $user_roles_table ur 
+            JOIN $roles_table r ON ur.role_id = r.id 
+            WHERE ur.user_id = %d AND ur.is_active = 1 AND r.is_active = 1
+            ORDER BY 
+                CASE r.slug 
+                    WHEN 'admin' THEN 1 
+                    WHEN 'route_setter' THEN 2 
+                    WHEN 'member' THEN 3 
+                    ELSE 4 
+                END
+            LIMIT 1",
+            $user_id
+        ));
+        
+        return $role_id ? intval($role_id) : 3; // Default to member role ID (3)
+    }
+
+    /**
+     * Get all WordPress users with their roles
+     */
+    public function get_users($request)
+    {
+        global $wpdb;
+        
+        $users_table = $wpdb->users;
+        $user_roles_table = $wpdb->prefix . 'crux_user_roles';
+        $roles_table = $wpdb->prefix . 'crux_roles';
+        
+        $users = $wpdb->get_results(
+            "SELECT u.ID, u.user_login, u.user_email, u.display_name, u.user_registered,
+                    r.name as role_name, r.slug as role_slug
+            FROM $users_table u
+            LEFT JOIN $user_roles_table ur ON u.ID = ur.user_id AND ur.is_active = 1
+            LEFT JOIN $roles_table r ON ur.role_id = r.id AND r.is_active = 1
+            ORDER BY u.display_name",
+            ARRAY_A
+        );
+        
+        // Process users to set default role and format dates
+        foreach ($users as &$user) {
+            if (!$user['role_slug']) {
+                $user['role_slug'] = 'member';
+                $user['role_name'] = 'Member';
+            }
+            $user['created_at'] = str_replace(' ', 'T', $user['user_registered']);
+        }
+        
+        return array(
+            'success' => true,
+            'data' => $users
+        );
+    }
+
+    /**
+     * Change a user's role
+     */
+    public function change_user_role($request)
+    {
+        global $wpdb;
+        
+        $user_id = intval($request['user_id']);
+        $params = $request->get_params();
+        
+        if (empty($params['role_slug'])) {
+            return new WP_Error('missing_role', 'Role slug is required', array('status' => 400));
+        }
+        
+        $role_slug = sanitize_text_field($params['role_slug']);
+        $current_user = $this->_get_current_user();
+        
+        // Validate role exists
+        $roles_table = $wpdb->prefix . 'crux_roles';
+        $role = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, slug FROM $roles_table WHERE slug = %s AND is_active = 1",
+            $role_slug
+        ), ARRAY_A);
+        
+        if (!$role) {
+            return new WP_Error('invalid_role', 'Invalid role specified', array('status' => 400));
+        }
+        
+        $user_roles_table = $wpdb->prefix . 'crux_user_roles';
+        
+        // Remove existing roles
+        $wpdb->update(
+            $user_roles_table,
+            array('is_active' => 0),
+            array('user_id' => $user_id),
+            array('%d'),
+            array('%d')
+        );
+        
+        // Assign new role
+        $result = $wpdb->insert(
+            $user_roles_table,
+            array(
+                'user_id' => $user_id,
+                'role_id' => $role['id'],
+                'assigned_by' => $current_user->ID
+            ),
+            array('%d', '%d', '%d')
+        );
+        
+        if ($result === false) {
+            return new WP_Error('role_assignment_failed', 'Failed to assign role', array('status' => 500));
+        }
+        
+        return array(
+            'success' => true,
+            'message' => 'User role updated successfully'
+        );
+    }
+
+    /**
+     * Fix incorrect flash data where attempts > 1 but flash is still marked as true
+     * This is a cleanup function for existing data
+     */
+    public function fix_flash_data($request) {
+        global $wpdb;
+        
+        $current_user = $this->_get_current_user();
+        
+        // Only allow admin users to run this cleanup
+        if (!current_user_can('manage_options')) {
+            return new WP_Error('permission_denied', 'Permission denied', array('status' => 403));
+        }
+        
+        $ticks_table = $wpdb->prefix . 'crux_ticks';
+        
+        // Fix top rope flashes where attempts > 1
+        $top_rope_fixed = $wpdb->query(
+            "UPDATE $ticks_table SET top_rope_flash = 0 WHERE attempts > 1 AND top_rope_flash = 1"
+        );
+        
+        // Fix lead flashes where attempts > 1
+        $lead_fixed = $wpdb->query(
+            "UPDATE $ticks_table SET lead_flash = 0 WHERE attempts > 1 AND lead_flash = 1"
+        );
+        
+        return array(
+            'success' => true,
+            'message' => 'Flash data cleanup completed',
+            'top_rope_flashes_fixed' => $top_rope_fixed,
+            'lead_flashes_fixed' => $lead_fixed
+        );
     }
 
 }

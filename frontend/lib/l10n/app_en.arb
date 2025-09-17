@@ -182,6 +182,22 @@
   "removeProject": "Remove from Projects",
   "likeRoute": "Like",
   "unlikeRoute": "Unlike",
+  "progressTracking": "Progress Tracking",
+  "socialPlanning": "Social & Planning", 
+  "feedbackReporting": "Feedback & Reporting",
+  "alreadySent": "Already Sent",
+  "cannotAddAttempts": "Cannot add attempts to routes you have already lead sent.",
+  "attemptsLabel": "Attempts",
+  "topRopeLabel": "Top Rope", 
+  "flashLabel": "Flash!",
+  "liked": "Liked",
+  "like": "Like", 
+  "project": "Project",
+  "addProject": "Add Project",
+  "topRopeSent": "Top Rope Sent",
+  "leadSent": "Lead Sent",
+  "suggestGrade": "Suggest Grade",
+  "issueTypeOptional": "Issue Type (Optional)",
   
   "@_SEND_TYPES": {},
   "topRopeShort": "TR",
@@ -236,6 +252,34 @@
   "proposedGrade": "Proposed Grade",
   "selectGradeToPropose": "Select a grade to propose",
   "changeProposedGrade": "You can change your proposed grade",
+  "attemptAdded": "Attempt added!",
+  "failedToAddAttempt": "Failed to add attempt",
+  "topRopeSendRemoved": "Top rope send removed!",
+  "failedToRemoveTopRopeSend": "Failed to remove top rope send",
+  "topRopeSendMarked": "Top rope send marked!",
+  "failedToMarkTopRopeSend": "Failed to mark top rope send",
+  "leadSendRemoved": "Lead send removed!",
+  "failedToRemoveLeadSend": "Failed to remove lead send", 
+  "leadSendMarked": "Lead send marked!",
+  "failedToMarkLeadSend": "Failed to mark lead send",
+  "routeUnliked": "Route unliked!",
+  "routeLiked": "Route liked!",
+  "cannotMarkSentRoutesAsProjects": "Cannot mark sent routes as projects",
+  "projectRemoved": "Project removed!",
+  "routeAddedToProjects": "Route added to projects!",
+  "commentAdded": "Comment added!",
+  "gradeProposalUpdated": "Grade proposal updated!",
+  "issueReported": "Issue reported!",
+  "unableToLoadGrades": "Unable to load grades",
+  "gradeDefinitions": "Grade definitions",
+  "gradesList": "Grades list",
+  "updateGradeProposal": "Update Grade Proposal",
+  "youAlreadyProposed": "You already proposed",
+  "changeYourGradeAndUpdateReasoningBelow": "Change your grade and update reasoning below",
+  "youHadAPreviousProposalThatIsNoLongerValid": "You had a previous proposal that is no longer valid",
+  "pleaseSelectANewGrade": "Please select a new grade",
+  "reasoningOptional": "Reasoning (Optional)",
+  "errorLoadingGradeProposalDialog": "Error loading grade proposal dialog",
   
   "@_WALL_SECTIONS": {},
   "overhangWall": "Overhang Wall",
@@ -246,6 +290,26 @@
   "roofSection": "Roof Section",
   
   "@_ROUTE_DETAIL": {},
+  "routeNotFound": "Route not found",
+  "laneLabel": "Lane {number}",
+  "@laneLabel": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "communitySuggested": "Community suggested: {grade} (avg of {count} proposals)",
+  "@communitySuggested": {
+    "placeholders": {
+      "grade": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "comments": "Comments",
   "gradeProposals": "Grade Proposals", 
   "warnings": "Warnings",

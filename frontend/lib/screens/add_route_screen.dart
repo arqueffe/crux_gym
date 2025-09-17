@@ -19,12 +19,12 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
   final _routeSetterController = TextEditingController();
   final _descriptionController = TextEditingController();
 
-  String? _selectedGrade;
+  int? _selectedGradeId;
   String? _selectedWallSection;
   int? _selectedLane;
-  String? _selectedColor;
+  int? _selectedColorId;
 
-  List<String> _grades = [];
+  List<Map<String, dynamic>> _gradeDefinitions = [];
   List<Map<String, dynamic>> _holdColors = [];
   late List<String> _wallSections;
 
@@ -55,9 +55,7 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
       await routeProvider.loadGradeDefinitions();
       await routeProvider.loadHoldColors();
       setState(() {
-        _grades = routeProvider.gradeDefinitions
-            .map((g) => g['grade'] as String)
-            .toList();
+        _gradeDefinitions = routeProvider.gradeDefinitions;
         _holdColors = routeProvider.holdColors;
       });
     } catch (e) {
@@ -122,21 +120,25 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
                           const SizedBox(height: 16),
 
                           // Grade
-                          DropdownButtonFormField<String>(
+                          DropdownButtonFormField<int>(
                             decoration: InputDecoration(
                               labelText: '${l10n.grade} *',
                               border: const OutlineInputBorder(),
                               helperText: l10n.selectDifficultyGrade,
                             ),
-                            value: _selectedGrade,
-                            items: _grades
-                                .map((grade) => DropdownMenuItem(
-                                      value: grade,
-                                      child: Text(grade),
+                            value: _selectedGradeId,
+                            items: _gradeDefinitions
+                                .map((gradeData) => DropdownMenuItem<int>(
+                                      value: int.tryParse(
+                                              gradeData['id'].toString()) ??
+                                          (gradeData['id'] is int
+                                              ? gradeData['id']
+                                              : 0),
+                                      child: Text(gradeData['grade'] as String),
                                     ))
                                 .toList(),
                             onChanged: (value) =>
-                                setState(() => _selectedGrade = value),
+                                setState(() => _selectedGradeId = value),
                             validator: (value) {
                               if (value == null) {
                                 return l10n.gradeRequired;
@@ -196,10 +198,10 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
                               helperText: l10n.selectLaneNumber,
                             ),
                             value: _selectedLane,
-                            items: routeProvider.laneNumbers
-                                .map((laneNumber) => DropdownMenuItem(
-                                      value: laneNumber,
-                                      child: Text(l10n.laneNumber(laneNumber)),
+                            items: routeProvider.lanes
+                                .map((lane) => DropdownMenuItem(
+                                      value: lane.id,
+                                      child: Text(lane.name),
                                     ))
                                 .toList(),
                             onChanged: (value) =>
@@ -214,24 +216,29 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
                           const SizedBox(height: 16),
 
                           // Color (optional)
-                          DropdownButtonFormField<String>(
+                          DropdownButtonFormField<int>(
                             decoration: InputDecoration(
                               labelText: l10n.holdColor,
                               border: const OutlineInputBorder(),
                               helperText: l10n.colorOfRouteHolds,
                             ),
-                            value: _selectedColor,
+                            value: _selectedColorId,
                             items: [
-                              DropdownMenuItem<String>(
+                              DropdownMenuItem<int>(
                                 value: null,
                                 child: Text(l10n.noSpecificColor),
                               ),
                               ..._holdColors.map((colorData) {
                                 final colorName = colorData['name'] as String;
+                                final colorId =
+                                    int.tryParse(colorData['id'].toString()) ??
+                                        (colorData['id'] is int
+                                            ? colorData['id']
+                                            : 0);
                                 final hexCode =
                                     colorData['hex_code'] as String?;
-                                return DropdownMenuItem(
-                                  value: colorName,
+                                return DropdownMenuItem<int>(
+                                  value: colorId,
                                   child: Row(
                                     children: [
                                       Container(
@@ -253,7 +260,7 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
                               }),
                             ],
                             onChanged: (value) =>
-                                setState(() => _selectedColor = value),
+                                setState(() => _selectedColorId = value),
                           ),
                           const SizedBox(height: 16),
 
@@ -340,11 +347,13 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
       final route = models.Route(
         id: 0, // Will be set by the server
         name: _nameController.text.trim(),
-        grade: _selectedGrade!,
+        grade: _selectedGradeId!
+            .toString(), // Store as string for now, but will be converted to grade_id in toJson
         routeSetter: _routeSetterController.text.trim(),
         wallSection: _selectedWallSection!,
         lane: _selectedLane!,
-        color: _selectedColor,
+        color: _selectedColorId
+            ?.toString(), // Store as string for now, but will be converted to hold_color_id in toJson
         description: _descriptionController.text.trim().isEmpty
             ? null
             : _descriptionController.text.trim(),

@@ -48,7 +48,7 @@ class RouteProvider extends ChangeNotifier {
   List<String> get wallSections => _wallSections;
   List<String> get grades => _grades;
   List<Lane> get lanes => _lanes;
-  List<int> get laneNumbers => _lanes.map((lane) => lane.number).toList();
+  List<int> get laneIds => _lanes.map((lane) => lane.id).toList();
   List<String> get routeSetters => _routeSetters;
   List<Map<String, dynamic>> get gradeDefinitions => _gradeDefinitions;
   List<Map<String, dynamic>> get holdColors => _holdColors;
@@ -78,10 +78,10 @@ class RouteProvider extends ChangeNotifier {
             forceRefresh:
                 forceRefresh), // This will handle grade definitions and hold colors
         loadWallSections(forceRefresh: forceRefresh),
-        loadGrades(forceRefresh: forceRefresh),
-        loadLanes(forceRefresh: forceRefresh),
+        loadGrades(), // Permanently cached - no forceRefresh needed
+        loadLanes(), // Permanently cached - no forceRefresh needed
         loadRouteSetters(),
-        loadGradeColors(forceRefresh: forceRefresh),
+        loadGradeColors(), // Permanently cached - no forceRefresh needed
       ]);
       print('✅ RouteProvider.loadInitialData() completed successfully');
     } catch (e) {
@@ -105,8 +105,8 @@ class RouteProvider extends ChangeNotifier {
       // Ensure grade definitions and hold colors are loaded before populating route data
       print('🔧 Ensuring grade definitions and hold colors are loaded...');
       await Future.wait([
-        loadGradeDefinitions(forceRefresh: forceRefresh),
-        loadHoldColors(forceRefresh: forceRefresh),
+        loadGradeDefinitions(), // Permanently cached - no forceRefresh needed
+        loadHoldColors(), // Permanently cached - no forceRefresh needed
       ]);
       print('✅ Grade definitions and hold colors loaded');
 
@@ -167,8 +167,34 @@ class RouteProvider extends ChangeNotifier {
 
     // Filter by lane
     if (_selectedLane != null) {
-      filteredRoutes =
-          filteredRoutes.where((route) => route.lane == _selectedLane).toList();
+      print(
+          '🔍 Filtering by lane ID: $_selectedLane (type: ${_selectedLane.runtimeType})');
+      print(
+          '🔍 Route lanes before filtering: ${filteredRoutes.map((r) => '${r.name}: ${r.lane} (${r.lane.runtimeType})').take(10).toList()}');
+      print(
+          '🔍 Available lanes: ${_lanes.map((l) => 'ID:${l.id} Name:${l.name}').toList()}');
+
+      // Show detailed comparison for debugging
+      print('🔍 Detailed route lane comparison:');
+      for (final route in filteredRoutes.take(5)) {
+        final routeLane = route.lane;
+        final selectedLane = _selectedLane!;
+        final matches = routeLane == selectedLane;
+        print(
+            '  Route "${route.name}": lane=$routeLane (${routeLane.runtimeType}) == $selectedLane (${selectedLane.runtimeType}) ? $matches');
+      }
+
+      // Filter directly by lane ID (ensure both are integers)
+      filteredRoutes = filteredRoutes.where((route) {
+        final routeLane = route.lane;
+        final selectedLane = _selectedLane!;
+        return routeLane == selectedLane;
+      }).toList();
+      print('🔍 Routes after lane filtering: ${filteredRoutes.length}');
+      if (filteredRoutes.isNotEmpty) {
+        print(
+            '🔍 Filtered routes: ${filteredRoutes.map((r) => r.name).take(5).toList()}');
+      }
     }
 
     // Filter by route setter
@@ -248,8 +274,8 @@ class RouteProvider extends ChangeNotifier {
 
       // Ensure grade definitions and hold colors are loaded before populating route data
       await Future.wait([
-        loadGradeDefinitions(forceRefresh: forceRefresh),
-        loadHoldColors(forceRefresh: forceRefresh),
+        loadGradeDefinitions(), // Permanently cached - no forceRefresh needed
+        loadHoldColors(), // Permanently cached - no forceRefresh needed
       ]);
 
       // Populate route information (colors and grades) for the selected route
@@ -300,6 +326,31 @@ class RouteProvider extends ChangeNotifier {
       await loadRoute(routeId);
       // Also refresh the routes list
       await loadRoutes();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Like/Unlike route (optimized for UI interactions)
+  Future<bool> toggleLikeOptimized(int routeId) async {
+    try {
+      final currentUser = _authProvider.currentUser;
+      if (currentUser == null) return false;
+
+      bool status = await getUserLikeStatus(routeId);
+
+      final isLiked = status;
+
+      if (isLiked) {
+        await _apiService.unlikeRoute(routeId);
+      } else {
+        await _apiService.likeRoute(routeId);
+      }
+
+      // Don't reload everything - let the UI handle its own state updates
       return true;
     } catch (e) {
       _error = e.toString();
@@ -377,6 +428,21 @@ class RouteProvider extends ChangeNotifier {
     }
   }
 
+  // Add attempts to a route (optimized for UI interactions)
+  Future<bool> addAttemptsOptimized(int routeId, int attempts,
+      {String? notes}) async {
+    try {
+      await _apiService.addAttempts(routeId, attempts, notes: notes);
+
+      // Don't reload everything - let the UI handle its own state updates
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
   // Mark a route as sent in a specific style
   Future<bool> markSend(int routeId, String sendType, {String? notes}) async {
     try {
@@ -388,6 +454,54 @@ class RouteProvider extends ChangeNotifier {
       }
       // Also refresh the routes list
       await loadRoutes();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Mark a route as sent in a specific style (optimized for UI interactions)
+  Future<bool> markSendOptimized(int routeId, String sendType,
+      {String? notes}) async {
+    try {
+      await _apiService.markSend(routeId, sendType, notes: notes);
+
+      // Don't reload everything - let the UI handle its own state updates
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Remove a specific send type from a route
+  Future<bool> unmarkSend(int routeId, String sendType) async {
+    try {
+      await _apiService.unmarkSend(routeId, sendType);
+
+      // Refresh the specific route to get updated data
+      if (_selectedRoute?.id == routeId) {
+        await loadRoute(routeId);
+      }
+      // Also refresh the routes list
+      await loadRoutes();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Remove a specific send type from a route (optimized for UI interactions)
+  Future<bool> unmarkSendOptimized(int routeId, String sendType) async {
+    try {
+      await _apiService.unmarkSend(routeId, sendType);
+
+      // Don't reload everything - let the UI handle its own state updates
       return true;
     } catch (e) {
       _error = e.toString();
@@ -419,6 +533,22 @@ class RouteProvider extends ChangeNotifier {
     }
   }
 
+  // Add comment (optimized for UI interactions)
+  Future<bool> addCommentOptimized(int routeId, String content) async {
+    try {
+      await _apiService.addComment(routeId, content);
+      // Only refresh the specific route if it's currently selected to show new comment
+      if (_selectedRoute?.id == routeId) {
+        await loadRoute(routeId);
+      }
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
   // Propose grade
   Future<bool> proposeGrade(
     int routeId,
@@ -429,6 +559,26 @@ class RouteProvider extends ChangeNotifier {
       await _apiService.proposeGrade(routeId, proposedGrade, reasoning ?? '');
       // Refresh the route to show new proposal
       await loadRoute(routeId);
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Propose grade (optimized for UI interactions)
+  Future<bool> proposeGradeOptimized(
+    int routeId,
+    String proposedGrade,
+    String? reasoning,
+  ) async {
+    try {
+      await _apiService.proposeGrade(routeId, proposedGrade, reasoning ?? '');
+      // Only refresh the specific route if it's currently selected to show new proposal
+      if (_selectedRoute?.id == routeId) {
+        await loadRoute(routeId);
+      }
       return true;
     } catch (e) {
       _error = e.toString();
@@ -466,6 +616,26 @@ class RouteProvider extends ChangeNotifier {
     }
   }
 
+  // Add warning (optimized for UI interactions)
+  Future<bool> addWarningOptimized(
+    int routeId,
+    String warningType,
+    String description,
+  ) async {
+    try {
+      await _apiService.addWarning(routeId, warningType, description);
+      // Only refresh the specific route if it's currently selected to show new warning
+      if (_selectedRoute?.id == routeId) {
+        await loadRoute(routeId);
+      }
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
   // Load wall sections
   Future<void> loadWallSections({bool forceRefresh = false}) async {
     print('🔧 RouteProvider.loadWallSections() called');
@@ -483,12 +653,12 @@ class RouteProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Load grades
-  Future<void> loadGrades({bool forceRefresh = false}) async {
+  // Load grades (permanently cached)
+  Future<void> loadGrades() async {
     print('🔧 RouteProvider.loadGrades() called');
     try {
       print('🔧 Calling _apiService.getGrades()...');
-      _grades = await _apiService.getGrades(forceRefresh: forceRefresh);
+      _grades = await _apiService.getGrades();
       print(
           '✅ _apiService.getGrades() returned ${_grades.length} grades: $_grades');
     } catch (e) {
@@ -499,14 +669,14 @@ class RouteProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Load lanes
-  Future<void> loadLanes({bool forceRefresh = false}) async {
+  // Load lanes (permanently cached)
+  Future<void> loadLanes() async {
     print('🔧 RouteProvider.loadLanes() called');
     try {
       print('🔧 Calling _apiService.getLanes()...');
-      _lanes = await _apiService.getLanes(forceRefresh: forceRefresh);
+      _lanes = await _apiService.getLanes();
       print(
-          '✅ _apiService.getLanes() returned ${_lanes.length} lanes: $_lanes');
+          '✅ _apiService.getLanes() returned ${_lanes.length} lanes: ${_lanes.map((l) => 'ID:${l.id} Name:${l.name}').toList()}');
     } catch (e) {
       print('❌ RouteProvider.loadLanes() error: $e');
       print('❌ Error type: ${e.runtimeType}');
@@ -529,34 +699,32 @@ class RouteProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Load grade definitions with colors
-  Future<void> loadGradeDefinitions({bool forceRefresh = false}) async {
+  // Load grade definitions with colors (permanently cached)
+  Future<void> loadGradeDefinitions() async {
     try {
-      _gradeDefinitions =
-          await _apiService.getGradeDefinitions(forceRefresh: forceRefresh);
+      _gradeDefinitions = await _apiService.getGradeDefinitions();
     } catch (e) {
       _error = e.toString();
     }
     notifyListeners();
   }
 
-  // Load hold colors
-  Future<void> loadHoldColors({bool forceRefresh = false}) async {
+  // Load hold colors (permanently cached)
+  Future<void> loadHoldColors() async {
     try {
-      _holdColors = await _apiService.getHoldColors(forceRefresh: forceRefresh);
+      _holdColors = await _apiService.getHoldColors();
     } catch (e) {
       _error = e.toString();
     }
     notifyListeners();
   }
 
-  // Load grade colors mapping
-  Future<void> loadGradeColors({bool forceRefresh = false}) async {
+  // Load grade colors mapping (permanently cached)
+  Future<void> loadGradeColors() async {
     print('🔧 RouteProvider.loadGradeColors() called');
     try {
       print('🔧 Calling _apiService.getGradeColors()...');
-      _gradeColors =
-          await _apiService.getGradeColors(forceRefresh: forceRefresh);
+      _gradeColors = await _apiService.getGradeColors();
       print(
           '✅ _apiService.getGradeColors() returned ${_gradeColors.length} grade colors');
     } catch (e) {
@@ -565,6 +733,58 @@ class RouteProvider extends ChangeNotifier {
       _error = e.toString();
     }
     notifyListeners();
+  }
+
+  // Administrative methods for refreshing permanent cache
+
+  /// Clear all permanently cached static data and reload from server
+  /// Use this when static data has been updated on the backend
+  Future<void> refreshStaticData() async {
+    print('🔄 Refreshing all static data (clearing permanent cache)...');
+
+    // Clear permanent cache for all static data
+    _apiService.clearPermanentCache();
+
+    // Reload all static data
+    await Future.wait([
+      loadGrades(),
+      loadLanes(),
+      loadGradeDefinitions(),
+      loadHoldColors(),
+      loadGradeColors(),
+    ]);
+
+    print('✅ All static data refreshed');
+  }
+
+  /// Clear permanently cached grades and reload
+  Future<void> refreshGrades() async {
+    _apiService.removeCacheEntry('grades');
+    await loadGrades();
+  }
+
+  /// Clear permanently cached lanes and reload
+  Future<void> refreshLanes() async {
+    _apiService.removeCacheEntry('lanes');
+    await loadLanes();
+  }
+
+  /// Clear permanently cached grade definitions and reload
+  Future<void> refreshGradeDefinitions() async {
+    _apiService.removeCacheEntry('grade_definitions');
+    await loadGradeDefinitions();
+  }
+
+  /// Clear permanently cached hold colors and reload
+  Future<void> refreshHoldColors() async {
+    _apiService.removeCacheEntry('hold_colors');
+    await loadHoldColors();
+  }
+
+  /// Clear permanently cached grade colors and reload
+  Future<void> refreshGradeColors() async {
+    _apiService.removeCacheEntry('grade_colors');
+    await loadGradeColors();
   }
 
   // Filter methods
@@ -580,6 +800,8 @@ class RouteProvider extends ChangeNotifier {
 
   void setLaneFilter(int? lane) {
     print('Setting lane filter to: $lane');
+    print(
+        '🔍 Available lanes: ${_lanes.map((l) => 'ID:${l.id} Name:${l.name}').toList()}');
     _selectedLane = lane;
     _applyFiltersAndSort();
   }
@@ -715,11 +937,37 @@ class RouteProvider extends ChangeNotifier {
     }
   }
 
+  // Add project (optimized for UI interactions)
+  Future<bool> addProjectOptimized(int routeId, {String? notes}) async {
+    try {
+      await _apiService.addProject(routeId, notes: notes);
+      // Don't reload everything - let the UI handle its own state updates
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> removeProject(int routeId) async {
     try {
       await _apiService.removeProject(routeId);
       // Reload routes to update project counts
       await loadRoutes();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Remove project (optimized for UI interactions)
+  Future<bool> removeProjectOptimized(int routeId) async {
+    try {
+      await _apiService.removeProject(routeId);
+      // Don't reload everything - let the UI handle its own state updates
       return true;
     } catch (e) {
       _error = e.toString();

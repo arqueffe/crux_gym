@@ -436,6 +436,54 @@ class AppLocalizationsFr extends AppLocalizations {
   String get unlikeRoute => 'Ne plus aimer';
 
   @override
+  String get progressTracking => 'Suivi des Progrès';
+
+  @override
+  String get socialPlanning => 'Social & Planification';
+
+  @override
+  String get feedbackReporting => 'Commentaires & Signalements';
+
+  @override
+  String get alreadySent => 'Déjà Enchaînée';
+
+  @override
+  String get cannotAddAttempts => 'Impossible d\'ajouter des tentatives aux voies déjà enchaînées en tête.';
+
+  @override
+  String get attemptsLabel => 'Tentatives';
+
+  @override
+  String get topRopeLabel => 'Moulinette';
+
+  @override
+  String get flashLabel => 'Flash !';
+
+  @override
+  String get liked => 'Aimée';
+
+  @override
+  String get like => 'Aimer';
+
+  @override
+  String get project => 'Projet';
+
+  @override
+  String get addProject => 'Ajouter aux Projets';
+
+  @override
+  String get topRopeSent => 'Moulinette Enchaînée';
+
+  @override
+  String get leadSent => 'Tête Enchaînée';
+
+  @override
+  String get suggestGrade => 'Suggérer une Cotation';
+
+  @override
+  String get issueTypeOptional => 'Type de Problème (Optionnel)';
+
+  @override
   String get topRopeShort => 'MOU';
 
   @override
@@ -529,11 +577,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get addEntryBelowNotes => 'Ajouter une entrée sous les notes existantes';
 
   @override
-  String get addNotesSend => 'Ajouter des notes sur cet envoi';
+  String get addNotesSend => 'Ajouter des notes sur cet enchaînement';
 
   @override
   String markedSend(String sendType) {
-    return 'Envoi $sendType marqué !';
+    return 'Enchaînement $sendType marqué !';
   }
 
   @override
@@ -547,6 +595,90 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get changeProposedGrade => 'Vous pouvez modifier votre cotation proposée';
+
+  @override
+  String get attemptAdded => 'Tentative ajoutée !';
+
+  @override
+  String get failedToAddAttempt => 'Échec de l\'ajout de tentative';
+
+  @override
+  String get topRopeSendRemoved => 'Enchaînement moulinette supprimé !';
+
+  @override
+  String get failedToRemoveTopRopeSend => 'Échec de la suppression de l\'enchaînement moulinette';
+
+  @override
+  String get topRopeSendMarked => 'Enchaînement moulinette marqué !';
+
+  @override
+  String get failedToMarkTopRopeSend => 'Échec du marquage de l\'enchaînement moulinette';
+
+  @override
+  String get leadSendRemoved => 'Enchaînement en tête supprimé !';
+
+  @override
+  String get failedToRemoveLeadSend => 'Échec de la suppression de l\'enchaînement en tête';
+
+  @override
+  String get leadSendMarked => 'Enchaînement en tête marqué !';
+
+  @override
+  String get failedToMarkLeadSend => 'Échec du marquage de l\'enchaînement en tête';
+
+  @override
+  String get routeUnliked => 'Voie plus aimée !';
+
+  @override
+  String get routeLiked => 'Voie aimée !';
+
+  @override
+  String get cannotMarkSentRoutesAsProjects => 'Impossible de marquer les voies enchaînées comme projets';
+
+  @override
+  String get projectRemoved => 'Projet supprimé !';
+
+  @override
+  String get routeAddedToProjects => 'Voie ajoutée aux projets !';
+
+  @override
+  String get commentAdded => 'Commentaire ajouté !';
+
+  @override
+  String get gradeProposalUpdated => 'Proposition de cotation mise à jour !';
+
+  @override
+  String get issueReported => 'Problème signalé !';
+
+  @override
+  String get unableToLoadGrades => 'Impossible de charger les cotations';
+
+  @override
+  String get gradeDefinitions => 'Définitions des cotations';
+
+  @override
+  String get gradesList => 'Liste des cotations';
+
+  @override
+  String get updateGradeProposal => 'Mettre à Jour la Proposition de Cotation';
+
+  @override
+  String get youAlreadyProposed => 'Vous avez déjà proposé';
+
+  @override
+  String get changeYourGradeAndUpdateReasoningBelow => 'Changez votre cotation et mettez à jour le raisonnement ci-dessous';
+
+  @override
+  String get youHadAPreviousProposalThatIsNoLongerValid => 'Vous aviez une proposition précédente qui n\'est plus valide';
+
+  @override
+  String get pleaseSelectANewGrade => 'Veuillez sélectionner une nouvelle cotation';
+
+  @override
+  String get reasoningOptional => 'Raisonnement (Optionnel)';
+
+  @override
+  String get errorLoadingGradeProposalDialog => 'Erreur lors du chargement du dialogue de proposition de cotation';
 
   @override
   String get overhangWall => 'Mur en surplomb';
@@ -565,6 +697,19 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get roofSection => 'Section toit';
+
+  @override
+  String get routeNotFound => 'Voie introuvable';
+
+  @override
+  String laneLabel(int number) {
+    return 'Couloir $number';
+  }
+
+  @override
+  String communitySuggested(String grade, int count) {
+    return 'Suggéré par la communauté : $grade (moyenne de $count propositions)';
+  }
 
   @override
   String get comments => 'Commentaires';
@@ -606,7 +751,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get manageTick => 'Gérer la coche';
 
   @override
-  String get leadSend => 'Envoi en tête';
+  String get leadSend => 'Enchaînement en tête';
 
   @override
   String get trackProgress => 'Suivre la progression';

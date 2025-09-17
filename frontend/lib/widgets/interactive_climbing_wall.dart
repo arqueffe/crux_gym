@@ -26,14 +26,18 @@ class _InteractiveClimbingWallState extends State<InteractiveClimbingWall> {
   Future<void> _loadWallData() async {
     try {
       _wallData = await ClimbingWallService.loadWallData();
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -119,13 +123,13 @@ class _InteractiveClimbingWallState extends State<InteractiveClimbingWall> {
                           // Interactive lane overlays
                           ..._wallData!.shapes.map((shape) {
                             final isSelected =
-                                routeProvider.selectedLane == shape.laneNumber;
+                                routeProvider.selectedLane == shape.laneId;
                             return _buildLaneOverlay(
                               shape,
                               scale, // Use the calculated scale
                               isSelected,
-                              () => _onLaneSelected(
-                                  routeProvider, shape.laneNumber),
+                              () =>
+                                  _onLaneSelected(routeProvider, shape.laneId),
                             );
                           }).toList(),
                         ],
@@ -163,7 +167,7 @@ class _InteractiveClimbingWallState extends State<InteractiveClimbingWall> {
           painter: LanePainter(
             points: scaledPoints,
             isSelected: isSelected,
-            laneNumber: shape.laneNumber,
+            laneId: shape.laneId,
             offset: Offset(shape.x1 * scale, shape.y1 * scale),
           ),
           size: Size(shape.width * scale, shape.height * scale),
@@ -172,13 +176,17 @@ class _InteractiveClimbingWallState extends State<InteractiveClimbingWall> {
     );
   }
 
-  void _onLaneSelected(RouteProvider routeProvider, int laneNumber) {
-    if (routeProvider.selectedLane == laneNumber) {
-      // If the same lane is clicked, clear the filter
+  void _onLaneSelected(RouteProvider routeProvider, int laneId) {
+    print('🔍 Interactive wall: Lane $laneId selected');
+    print('🔍 Current selectedLane: ${routeProvider.selectedLane}');
+    print('🔍 Available lanes: ${routeProvider.lanes.length} lanes');
+
+    if (routeProvider.selectedLane == laneId) {
+      print('🔍 Deselecting lane $laneId');
       routeProvider.setLaneFilter(null);
     } else {
-      // Set the new lane filter
-      routeProvider.setLaneFilter(laneNumber);
+      print('🔍 Selecting lane $laneId');
+      routeProvider.setLaneFilter(laneId);
     }
   }
 }
@@ -186,13 +194,13 @@ class _InteractiveClimbingWallState extends State<InteractiveClimbingWall> {
 class LanePainter extends CustomPainter {
   final List<Offset> points;
   final bool isSelected;
-  final int laneNumber;
+  final int laneId;
   final Offset offset;
 
   LanePainter({
     required this.points,
     required this.isSelected,
-    required this.laneNumber,
+    required this.laneId,
     required this.offset,
   });
 
@@ -231,7 +239,7 @@ class LanePainter extends CustomPainter {
       if (isSelected) {
         final textPainter = TextPainter(
           text: TextSpan(
-            text: laneNumber.toString(),
+            text: laneId.toString(),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 16,

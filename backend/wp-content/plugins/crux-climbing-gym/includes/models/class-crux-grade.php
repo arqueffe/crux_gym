@@ -13,9 +13,9 @@ class Crux_Grade {
         
         $table_name = $wpdb->prefix . 'crux_grades';
         
-        $sql = "SELECT * FROM $table_name ORDER BY value ASC";
+        $sql = "SELECT *, french_name as grade, value as difficulty_order FROM $table_name ORDER BY value ASC";
         
-        return $wpdb->get_results($sql);
+        return $wpdb->get_results($sql, ARRAY_A);
     }
     
     /**

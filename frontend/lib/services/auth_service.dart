@@ -198,29 +198,59 @@ class AuthService {
       print('🔄 Updating nickname via JavaScript interop...');
 
       final response = await JSAuthService.makeJSRequest(
-        '$baseUrl/user/update-nickname',
-        method: 'POST',
+        '$baseUrl/user/nickname',
+        method: 'PUT',
         body: {'nickname': nickname},
       );
 
-      if (response != null && response['success'] == true) {
+      print('📨 Nickname update response: $response');
+
+      // Check for success in different possible response structures
+      bool isSuccessful = false;
+      String? message;
+
+      if (response != null) {
+        // Check if success is at top level
+        if (response['success'] == true) {
+          isSuccessful = true;
+          message = response['message'] ?? response['data']?['message'];
+        }
+        // Check if success is in data object
+        else if (response['data'] != null &&
+            response['data']['success'] == true) {
+          isSuccessful = true;
+          message = response['data']['message'];
+        }
+        // Check if we have a 200 status with data
+        else if (response.containsKey('nickname') ||
+            (response['data'] != null &&
+                response['data'].containsKey('nickname'))) {
+          isSuccessful = true;
+          message = 'Nickname updated successfully';
+        }
+      }
+
+      if (isSuccessful) {
         // Update current user locally
         if (_currentUser != null) {
           _currentUser = _currentUser!.copyWith(nickname: nickname);
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString(_userKey, jsonEncode(_currentUser!.toJson()));
+          print('✅ Updated local user data with new nickname: $nickname');
         }
 
         return {
           'success': true,
-          'message': response['message'] ?? 'Nickname updated successfully'
+          'message': message ?? 'Nickname updated successfully'
         };
       }
 
-      return {
-        'success': false,
-        'message': response?['message'] ?? 'Failed to update nickname'
-      };
+      final errorMessage = response?['message'] ??
+          response?['data']?['message'] ??
+          'Failed to update nickname';
+
+      print('❌ Nickname update failed: $errorMessage');
+      return {'success': false, 'message': errorMessage};
     } catch (e) {
       print('❌ Update nickname error: $e');
       return {'success': false, 'message': 'Update error: $e'};

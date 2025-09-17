@@ -59,6 +59,15 @@ class Crux_Activator {
         $charset_collate = $wpdb->get_charset_collate();
         $tables_created = 0;
 
+        // Check if we need to drop and recreate lanes table due to schema change
+        $lanes_table = $wpdb->prefix . 'crux_lanes';
+        $columns = $wpdb->get_results("SHOW COLUMNS FROM $lanes_table LIKE 'number'");
+        if (!empty($columns)) {
+            // Old schema detected, drop the table to recreate with new schema
+            $wpdb->query("DROP TABLE IF EXISTS $lanes_table");
+            error_log("Crux Plugin: Dropped old lanes table with number column");
+        }
+
         // 1. Grades table - MUST be created first due to foreign keys
         $table_name = $wpdb->prefix . 'crux_grades';
         $sql = "CREATE TABLE $table_name (
@@ -103,12 +112,10 @@ class Crux_Activator {
         $table_name = $wpdb->prefix . 'crux_lanes';
         $sql = "CREATE TABLE $table_name (
             id mediumint(9) NOT NULL AUTO_INCREMENT,
-            number int(11) NOT NULL,
             name varchar(50) DEFAULT NULL,
             is_active tinyint(1) DEFAULT 1,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            UNIQUE KEY number (number)
+            PRIMARY KEY (id)
         ) $charset_collate;";
         
         $result = dbDelta($sql);
@@ -195,14 +202,15 @@ class Crux_Activator {
             id mediumint(9) NOT NULL AUTO_INCREMENT,
             user_id bigint(20) NOT NULL,
             route_id mediumint(9) NOT NULL,
-            proposed_grade varchar(10) NOT NULL,
+            proposed_grade_id mediumint(9) NOT NULL,
             reasoning text,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             UNIQUE KEY user_route (user_id, route_id),
             KEY user_id (user_id),
-            KEY route_id (route_id)
+            KEY route_id (route_id),
+            KEY proposed_grade_id (proposed_grade_id)
         ) $charset_collate;";
         
         $result = dbDelta($sql);
@@ -288,7 +296,75 @@ class Crux_Activator {
             error_log("Crux Plugin: Failed to create $table_name - " . $wpdb->last_error);
         }
 
-        error_log("Crux Plugin: Created $tables_created out of 10 tables");
+        // 11. Roles table
+        $table_name = $wpdb->prefix . 'crux_roles';
+        $sql = "CREATE TABLE $table_name (
+            id mediumint(9) NOT NULL AUTO_INCREMENT,
+            name varchar(50) NOT NULL,
+            slug varchar(50) NOT NULL,
+            description text,
+            capabilities text DEFAULT NULL,
+            is_active tinyint(1) DEFAULT 1,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY slug (slug),
+            KEY name (name)
+        ) $charset_collate;";
+        
+        $result = dbDelta($sql);
+        if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name) {
+            $tables_created++;
+            error_log("Crux Plugin: Successfully created $table_name");
+        } else {
+            error_log("Crux Plugin: Failed to create $table_name - " . $wpdb->last_error);
+        }
+
+        // 12. User Roles table (linking table)
+        $table_name = $wpdb->prefix . 'crux_user_roles';
+        $sql = "CREATE TABLE $table_name (
+            id mediumint(9) NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) NOT NULL,
+            role_id mediumint(9) NOT NULL,
+            assigned_by bigint(20) NOT NULL,
+            assigned_at datetime DEFAULT CURRENT_TIMESTAMP,
+            is_active tinyint(1) DEFAULT 1,
+            PRIMARY KEY (id),
+            UNIQUE KEY user_role (user_id, role_id),
+            KEY user_id (user_id),
+            KEY role_id (role_id),
+            KEY assigned_by (assigned_by)
+        ) $charset_collate;";
+        
+        $result = dbDelta($sql);
+        if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name) {
+            $tables_created++;
+            error_log("Crux Plugin: Successfully created $table_name");
+        } else {
+            error_log("Crux Plugin: Failed to create $table_name - " . $wpdb->last_error);
+        }
+
+        // 13. User Nicknames table
+        $table_name = $wpdb->prefix . 'crux_user_nicknames';
+        $sql = "CREATE TABLE $table_name (
+            id mediumint(9) NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) NOT NULL,
+            nickname varchar(100) NOT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY user_id (user_id),
+            KEY nickname (nickname)
+        ) $charset_collate;";
+        
+        $result = dbDelta($sql);
+        if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name) {
+            $tables_created++;
+            error_log("Crux Plugin: Successfully created $table_name");
+        } else {
+            error_log("Crux Plugin: Failed to create $table_name - " . $wpdb->last_error);
+        }
+
+        error_log("Crux Plugin: Created $tables_created out of 13 tables");
     }
 
     /**
@@ -413,15 +489,100 @@ class Crux_Activator {
                 $wpdb->insert(
                     $lanes_table,
                     array(
-                        'number' => $i,
                         'name' => "Lane $i",
                         'is_active' => 1
                     ),
-                    array('%d', '%s', '%d')
+                    array('%s', '%d')
                 );
             }
             
             error_log("Crux Plugin: Inserted 20 lanes");
+        }
+
+        // Populate roles
+        $roles_table = $wpdb->prefix . 'crux_roles';
+        $role_count = $wpdb->get_var("SELECT COUNT(*) FROM $roles_table");
+        
+        if ($role_count == 0) {
+            $roles = array(
+                array(
+                    'name' => 'Admin',
+                    'slug' => 'admin',
+                    'description' => 'Administrative access to all gym management features',
+                    'capabilities' => json_encode(array(
+                        'manage_users',
+                        'manage_roles',
+                        'create_routes',
+                        'edit_routes',
+                        'delete_routes',
+                        'manage_grades',
+                        'manage_hold_colors',
+                        'manage_lanes',
+                        'view_analytics',
+                        'manage_warnings',
+                        'moderate_comments',
+                        'view_routes',
+                        'like_routes',
+                        'comment_routes',
+                        'track_progress',
+                        'propose_grades',
+                        'add_projects',
+                        'report_warnings'
+                    ))
+                ),
+                array(
+                    'name' => 'Route Setter',
+                    'slug' => 'route_setter',
+                    'description' => 'Can create and manage climbing routes',
+                    'capabilities' => json_encode(array(
+                        'create_routes',
+                        'edit_own_routes',
+                        'view_routes',
+                        'like_routes',
+                        'comment_routes',
+                        'track_progress',
+                        'propose_grades',
+                        'add_projects',
+                        'report_warnings'
+                    ))
+                ),
+                array(
+                    'name' => 'Member',
+                    'slug' => 'member',
+                    'description' => 'Regular gym member with standard access',
+                    'capabilities' => json_encode(array(
+                        'view_routes',
+                        'like_routes',
+                        'comment_routes',
+                        'track_progress',
+                        'propose_grades',
+                        'add_projects',
+                        'report_warnings'
+                    ))
+                )
+            );
+
+            $inserted = 0;
+            foreach ($roles as $role) {
+                $result = $wpdb->insert(
+                    $roles_table,
+                    array(
+                        'name' => $role['name'],
+                        'slug' => $role['slug'],
+                        'description' => $role['description'],
+                        'capabilities' => $role['capabilities']
+                    ),
+                    array('%s', '%s', '%s', '%s')
+                );
+                
+                if ($result) {
+                    $inserted++;
+                } else {
+                    error_log("Crux Plugin: Failed to insert role {$role['name']}: " . $wpdb->last_error);
+                }
+            }
+            
+            error_log("Crux Plugin: Inserted $inserted roles");
         }
         
         error_log('Crux Plugin: Sample data population completed');

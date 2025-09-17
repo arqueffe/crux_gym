@@ -917,6 +917,102 @@ abstract class AppLocalizations {
   /// **'Unlike'**
   String get unlikeRoute;
 
+  /// No description provided for @progressTracking.
+  ///
+  /// In en, this message translates to:
+  /// **'Progress Tracking'**
+  String get progressTracking;
+
+  /// No description provided for @socialPlanning.
+  ///
+  /// In en, this message translates to:
+  /// **'Social & Planning'**
+  String get socialPlanning;
+
+  /// No description provided for @feedbackReporting.
+  ///
+  /// In en, this message translates to:
+  /// **'Feedback & Reporting'**
+  String get feedbackReporting;
+
+  /// No description provided for @alreadySent.
+  ///
+  /// In en, this message translates to:
+  /// **'Already Sent'**
+  String get alreadySent;
+
+  /// No description provided for @cannotAddAttempts.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot add attempts to routes you have already lead sent.'**
+  String get cannotAddAttempts;
+
+  /// No description provided for @attemptsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Attempts'**
+  String get attemptsLabel;
+
+  /// No description provided for @topRopeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Top Rope'**
+  String get topRopeLabel;
+
+  /// No description provided for @flashLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Flash!'**
+  String get flashLabel;
+
+  /// No description provided for @liked.
+  ///
+  /// In en, this message translates to:
+  /// **'Liked'**
+  String get liked;
+
+  /// No description provided for @like.
+  ///
+  /// In en, this message translates to:
+  /// **'Like'**
+  String get like;
+
+  /// No description provided for @project.
+  ///
+  /// In en, this message translates to:
+  /// **'Project'**
+  String get project;
+
+  /// No description provided for @addProject.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Project'**
+  String get addProject;
+
+  /// No description provided for @topRopeSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Top Rope Sent'**
+  String get topRopeSent;
+
+  /// No description provided for @leadSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Lead Sent'**
+  String get leadSent;
+
+  /// No description provided for @suggestGrade.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggest Grade'**
+  String get suggestGrade;
+
+  /// No description provided for @issueTypeOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Issue Type (Optional)'**
+  String get issueTypeOptional;
+
   /// No description provided for @topRopeShort.
   ///
   /// In en, this message translates to:
@@ -1139,6 +1235,174 @@ abstract class AppLocalizations {
   /// **'You can change your proposed grade'**
   String get changeProposedGrade;
 
+  /// No description provided for @attemptAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Attempt added!'**
+  String get attemptAdded;
+
+  /// No description provided for @failedToAddAttempt.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to add attempt'**
+  String get failedToAddAttempt;
+
+  /// No description provided for @topRopeSendRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Top rope send removed!'**
+  String get topRopeSendRemoved;
+
+  /// No description provided for @failedToRemoveTopRopeSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to remove top rope send'**
+  String get failedToRemoveTopRopeSend;
+
+  /// No description provided for @topRopeSendMarked.
+  ///
+  /// In en, this message translates to:
+  /// **'Top rope send marked!'**
+  String get topRopeSendMarked;
+
+  /// No description provided for @failedToMarkTopRopeSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to mark top rope send'**
+  String get failedToMarkTopRopeSend;
+
+  /// No description provided for @leadSendRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Lead send removed!'**
+  String get leadSendRemoved;
+
+  /// No description provided for @failedToRemoveLeadSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to remove lead send'**
+  String get failedToRemoveLeadSend;
+
+  /// No description provided for @leadSendMarked.
+  ///
+  /// In en, this message translates to:
+  /// **'Lead send marked!'**
+  String get leadSendMarked;
+
+  /// No description provided for @failedToMarkLeadSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to mark lead send'**
+  String get failedToMarkLeadSend;
+
+  /// No description provided for @routeUnliked.
+  ///
+  /// In en, this message translates to:
+  /// **'Route unliked!'**
+  String get routeUnliked;
+
+  /// No description provided for @routeLiked.
+  ///
+  /// In en, this message translates to:
+  /// **'Route liked!'**
+  String get routeLiked;
+
+  /// No description provided for @cannotMarkSentRoutesAsProjects.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot mark sent routes as projects'**
+  String get cannotMarkSentRoutesAsProjects;
+
+  /// No description provided for @projectRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Project removed!'**
+  String get projectRemoved;
+
+  /// No description provided for @routeAddedToProjects.
+  ///
+  /// In en, this message translates to:
+  /// **'Route added to projects!'**
+  String get routeAddedToProjects;
+
+  /// No description provided for @commentAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Comment added!'**
+  String get commentAdded;
+
+  /// No description provided for @gradeProposalUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Grade proposal updated!'**
+  String get gradeProposalUpdated;
+
+  /// No description provided for @issueReported.
+  ///
+  /// In en, this message translates to:
+  /// **'Issue reported!'**
+  String get issueReported;
+
+  /// No description provided for @unableToLoadGrades.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load grades'**
+  String get unableToLoadGrades;
+
+  /// No description provided for @gradeDefinitions.
+  ///
+  /// In en, this message translates to:
+  /// **'Grade definitions'**
+  String get gradeDefinitions;
+
+  /// No description provided for @gradesList.
+  ///
+  /// In en, this message translates to:
+  /// **'Grades list'**
+  String get gradesList;
+
+  /// No description provided for @updateGradeProposal.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Grade Proposal'**
+  String get updateGradeProposal;
+
+  /// No description provided for @youAlreadyProposed.
+  ///
+  /// In en, this message translates to:
+  /// **'You already proposed'**
+  String get youAlreadyProposed;
+
+  /// No description provided for @changeYourGradeAndUpdateReasoningBelow.
+  ///
+  /// In en, this message translates to:
+  /// **'Change your grade and update reasoning below'**
+  String get changeYourGradeAndUpdateReasoningBelow;
+
+  /// No description provided for @youHadAPreviousProposalThatIsNoLongerValid.
+  ///
+  /// In en, this message translates to:
+  /// **'You had a previous proposal that is no longer valid'**
+  String get youHadAPreviousProposalThatIsNoLongerValid;
+
+  /// No description provided for @pleaseSelectANewGrade.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a new grade'**
+  String get pleaseSelectANewGrade;
+
+  /// No description provided for @reasoningOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Reasoning (Optional)'**
+  String get reasoningOptional;
+
+  /// No description provided for @errorLoadingGradeProposalDialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading grade proposal dialog'**
+  String get errorLoadingGradeProposalDialog;
+
   /// No description provided for @overhangWall.
   ///
   /// In en, this message translates to:
@@ -1174,6 +1438,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Roof Section'**
   String get roofSection;
+
+  /// No description provided for @routeNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Route not found'**
+  String get routeNotFound;
+
+  /// No description provided for @laneLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Lane {number}'**
+  String laneLabel(int number);
+
+  /// No description provided for @communitySuggested.
+  ///
+  /// In en, this message translates to:
+  /// **'Community suggested: {grade} (avg of {count} proposals)'**
+  String communitySuggested(String grade, int count);
 
   /// No description provided for @comments.
   ///

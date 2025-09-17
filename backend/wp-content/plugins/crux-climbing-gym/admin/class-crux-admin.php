@@ -200,7 +200,7 @@ class Crux_Admin {
         // Get form data
         $grades = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}crux_grades ORDER BY value ASC");
         $hold_colors = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}crux_hold_colors ORDER BY name ASC");
-        $lanes = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}crux_lanes WHERE is_active = 1 ORDER BY number ASC");
+        $lanes = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}crux_lanes WHERE is_active = 1 ORDER BY id ASC");
         
         // Debug: Check if grades query failed
         if ($wpdb->last_error) {

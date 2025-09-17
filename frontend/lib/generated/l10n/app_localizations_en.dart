@@ -436,6 +436,54 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unlikeRoute => 'Unlike';
 
   @override
+  String get progressTracking => 'Progress Tracking';
+
+  @override
+  String get socialPlanning => 'Social & Planning';
+
+  @override
+  String get feedbackReporting => 'Feedback & Reporting';
+
+  @override
+  String get alreadySent => 'Already Sent';
+
+  @override
+  String get cannotAddAttempts => 'Cannot add attempts to routes you have already lead sent.';
+
+  @override
+  String get attemptsLabel => 'Attempts';
+
+  @override
+  String get topRopeLabel => 'Top Rope';
+
+  @override
+  String get flashLabel => 'Flash!';
+
+  @override
+  String get liked => 'Liked';
+
+  @override
+  String get like => 'Like';
+
+  @override
+  String get project => 'Project';
+
+  @override
+  String get addProject => 'Add Project';
+
+  @override
+  String get topRopeSent => 'Top Rope Sent';
+
+  @override
+  String get leadSent => 'Lead Sent';
+
+  @override
+  String get suggestGrade => 'Suggest Grade';
+
+  @override
+  String get issueTypeOptional => 'Issue Type (Optional)';
+
+  @override
   String get topRopeShort => 'TR';
 
   @override
@@ -549,6 +597,90 @@ class AppLocalizationsEn extends AppLocalizations {
   String get changeProposedGrade => 'You can change your proposed grade';
 
   @override
+  String get attemptAdded => 'Attempt added!';
+
+  @override
+  String get failedToAddAttempt => 'Failed to add attempt';
+
+  @override
+  String get topRopeSendRemoved => 'Top rope send removed!';
+
+  @override
+  String get failedToRemoveTopRopeSend => 'Failed to remove top rope send';
+
+  @override
+  String get topRopeSendMarked => 'Top rope send marked!';
+
+  @override
+  String get failedToMarkTopRopeSend => 'Failed to mark top rope send';
+
+  @override
+  String get leadSendRemoved => 'Lead send removed!';
+
+  @override
+  String get failedToRemoveLeadSend => 'Failed to remove lead send';
+
+  @override
+  String get leadSendMarked => 'Lead send marked!';
+
+  @override
+  String get failedToMarkLeadSend => 'Failed to mark lead send';
+
+  @override
+  String get routeUnliked => 'Route unliked!';
+
+  @override
+  String get routeLiked => 'Route liked!';
+
+  @override
+  String get cannotMarkSentRoutesAsProjects => 'Cannot mark sent routes as projects';
+
+  @override
+  String get projectRemoved => 'Project removed!';
+
+  @override
+  String get routeAddedToProjects => 'Route added to projects!';
+
+  @override
+  String get commentAdded => 'Comment added!';
+
+  @override
+  String get gradeProposalUpdated => 'Grade proposal updated!';
+
+  @override
+  String get issueReported => 'Issue reported!';
+
+  @override
+  String get unableToLoadGrades => 'Unable to load grades';
+
+  @override
+  String get gradeDefinitions => 'Grade definitions';
+
+  @override
+  String get gradesList => 'Grades list';
+
+  @override
+  String get updateGradeProposal => 'Update Grade Proposal';
+
+  @override
+  String get youAlreadyProposed => 'You already proposed';
+
+  @override
+  String get changeYourGradeAndUpdateReasoningBelow => 'Change your grade and update reasoning below';
+
+  @override
+  String get youHadAPreviousProposalThatIsNoLongerValid => 'You had a previous proposal that is no longer valid';
+
+  @override
+  String get pleaseSelectANewGrade => 'Please select a new grade';
+
+  @override
+  String get reasoningOptional => 'Reasoning (Optional)';
+
+  @override
+  String get errorLoadingGradeProposalDialog => 'Error loading grade proposal dialog';
+
+  @override
   String get overhangWall => 'Overhang Wall';
 
   @override
@@ -565,6 +697,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get roofSection => 'Roof Section';
+
+  @override
+  String get routeNotFound => 'Route not found';
+
+  @override
+  String laneLabel(int number) {
+    return 'Lane $number';
+  }
+
+  @override
+  String communitySuggested(String grade, int count) {
+    return 'Community suggested: $grade (avg of $count proposals)';
+  }
 
   @override
   String get comments => 'Comments';

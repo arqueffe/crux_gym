@@ -68,10 +68,12 @@ class AuthProvider with ChangeNotifier {
 
   // Update user nickname
   Future<bool> updateNickname(String nickname) async {
+    _clearError();
     try {
       final result = await _authService.updateNickname(nickname);
       if (result['success'] == true) {
-        notifyListeners();
+        // Refresh user data from server to ensure UI is up to date
+        await refreshUser();
         return true;
       } else {
         _setError(result['message'] ?? 'Failed to update nickname');

@@ -5,6 +5,7 @@ import '../providers/profile_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/route_provider.dart';
 import '../providers/theme_provider.dart';
+import '../providers/role_provider.dart';
 import '../models/profile_models.dart';
 import '../widgets/grade_statistics_chart.dart';
 import '../widgets/performance_summary_card.dart';
@@ -13,6 +14,8 @@ import '../widgets/likes_list.dart';
 import '../widgets/projects_list.dart';
 import '../widgets/language_selector.dart';
 import '../widgets/custom_app_bar.dart';
+import 'user_management_screen.dart';
+import 'role_management_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -841,15 +844,6 @@ class SettingsTab extends StatelessWidget {
                 child: LanguageListTile(),
               ),
               const SizedBox(height: 24),
-
-              // Account Section
-              Text(
-                l10n.account,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 16),
             ],
           ),
         );

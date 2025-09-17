@@ -8,6 +8,7 @@ import 'providers/auth_provider.dart';
 import 'providers/profile_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/locale_provider.dart';
+import 'providers/role_provider.dart';
 import 'screens/main_navigation_screen.dart';
 
 void main() async {
@@ -36,6 +37,14 @@ class ClimbingGymApp extends StatelessWidget {
             authProvider: context.read<AuthProvider>(),
           ),
           update: (context, auth, previous) => RouteProvider(
+            authProvider: auth,
+          ),
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, RoleProvider>(
+          create: (context) => RoleProvider(
+            authProvider: context.read<AuthProvider>(),
+          ),
+          update: (context, auth, previous) => RoleProvider(
             authProvider: auth,
           ),
         ),

@@ -58,7 +58,8 @@ class Route {
       gradeColor: null, // Will be populated by frontend mapping
       routeSetter: json['route_setter'],
       wallSection: json['wall_section'],
-      lane: json['lane_id'], // Backend sends lane_id, not lane
+      lane: int.tryParse(json['lane_id']?.toString() ?? '0') ??
+          0, // Ensure lane is int
       laneName:
           json['lane_name'], // May be null if not provided by backend JOIN
       color: json['hold_color_id']
@@ -93,16 +94,26 @@ class Route {
   }
 
   Map<String, dynamic> toJson() {
-    return {
+    final result = <String, dynamic>{
       'name': name,
-      'grade': grade,
+      'grade_id': int.tryParse(grade) ??
+          grade, // Convert string ID back to int, or keep as is if already proper format
       'route_setter': routeSetter,
       'wall_section': wallSection,
-      'lane_id': lane, // Backend expects lane_id, not lane
-      'hold_color_id':
-          color, // Backend expects hold_color_id (assuming color contains the ID when creating)
-      'description': description,
+      'lane_id': lane,
     };
+
+    // Only add hold_color_id if color is not null
+    if (color != null) {
+      result['hold_color_id'] = int.tryParse(color!) ?? color!;
+    }
+
+    // Only add description if it's not null
+    if (description != null) {
+      result['description'] = description!;
+    }
+
+    return result;
   }
 
   // Calculate average proposed grade
@@ -249,6 +260,17 @@ class GradeProposal {
   });
 
   factory GradeProposal.fromJson(Map<String, dynamic> json) {
+    // Validate required fields
+    if (json['id'] == null ||
+        json['user_id'] == null ||
+        json['user_name'] == null ||
+        json['proposed_grade'] == null ||
+        json['route_id'] == null ||
+        json['created_at'] == null) {
+      throw const FormatException(
+          'Invalid GradeProposal data: missing required fields');
+    }
+
     return GradeProposal(
       id: json['id'],
       userId: json['user_id'],

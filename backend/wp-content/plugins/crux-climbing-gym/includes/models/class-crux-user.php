@@ -97,6 +97,8 @@ class Crux_User {
                 SUM(CASE WHEN top_rope_send = 1 THEN 1 ELSE 0 END) as top_rope_sends,
                 SUM(CASE WHEN lead_send = 1 THEN 1 ELSE 0 END) as lead_sends,
                 SUM(CASE WHEN top_rope_flash = 1 OR lead_flash = 1 THEN 1 ELSE 0 END) as total_flashes,
+                SUM(CASE WHEN top_rope_flash = 1 THEN 1 ELSE 0 END) as top_rope_flashes,
+                SUM(CASE WHEN lead_flash = 1 THEN 1 ELSE 0 END) as lead_flashes,
                 SUM(attempts) as total_attempts
             FROM $ticks_table 
             WHERE user_id = %d
@@ -106,11 +108,13 @@ class Crux_User {
         
         // Ensure numeric values
         $stats['total_sends'] = intval($stats['total_sends'] ?? 0);
+        $stats['top_rope_flashes'] = intval($stats['top_rope_flashes'] ?? 0);
+        $stats['lead_flashes'] = intval($stats['lead_flashes'] ?? 0);
         $stats['total_attempts'] = intval($stats['total_attempts'] ?? 0);
         
-        // Calculate average attempts
-        $stats['average_attempts'] = $stats['total_ticks'] > 0 ? 
-            round($stats['total_attempts'] / $stats['total_ticks'], 2) : 0;
+        // Calculate average attempts correctly - divide by total sends, not total ticks
+        $stats['average_attempts'] = $stats['total_sends'] > 0 ? 
+            round($stats['total_attempts'] / $stats['total_sends'], 2) : 0;
         
         // Get favorite grade (most climbed grade)
         $favorite_grade = $wpdb->get_row($wpdb->prepare("

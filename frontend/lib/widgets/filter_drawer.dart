@@ -193,6 +193,11 @@ class FilterDrawer extends StatelessWidget {
   }
 
   Widget _buildLaneFilter(RouteProvider routeProvider, AppLocalizations l10n) {
+    print(
+        '🔍 Filter drawer lanes: ${routeProvider.lanes.length} lanes available');
+    print(
+        '🔍 Lanes: ${routeProvider.lanes.map((l) => 'ID:${l.id} Name:${l.name}').toList()}');
+
     return DropdownButtonFormField<int>(
       decoration: InputDecoration(
         labelText: l10n.lane,
@@ -207,7 +212,7 @@ class FilterDrawer extends StatelessWidget {
         ),
         ...routeProvider.lanes.map(
           (lane) => DropdownMenuItem<int>(
-            value: lane.number,
+            value: lane.id,
             child: Text(lane.name),
           ),
         ),
