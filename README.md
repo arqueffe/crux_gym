@@ -4,14 +4,14 @@ A comprehensive climbing gym management platform featuring a Flutter mobile appl
 
 ## 🏗️ System Overview
 
-- **Frontend**: Flutter mobile app with 3D route visualization and cross-platform support
+- **Frontend**: Flutter mobile app with route visualization and cross-platform support
 - **Backend**: WordPress plugin with REST API for gym management and user authentication
 - **Architecture**: Clean Architecture with Provider pattern (Frontend) + WordPress REST API (Backend)
 
 ## ✨ Key Features
 
 ### 🧗‍♂️ Route Management
-- Interactive 3D climbing wall visualization
+- Interactive climbing wall visualization
 - Advanced filtering (grade, setter, wall section, color)
 - Route interactions (likes, comments, ticks, projects)
 - Grade proposals and safety warnings
