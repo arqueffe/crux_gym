@@ -33,7 +33,7 @@ A comprehensive climbing gym management platform featuring a Flutter mobile appl
 ### Backend Setup (WordPress)
 ```bash
 # Install WordPress and copy plugin
-cp -r backend/wp-content/plugins/crux-climbing-gym /path/to/wordpress/wp-content/plugins/
+cp -r backend/wp-content/plugins/crux-climbing-gym /path/to/wordpress/htdocs/crux-climbing-gym/wp-content/plugins/
 
 # Activate plugin in WordPress admin
 # Plugin automatically creates database schema and sample data
@@ -49,8 +49,11 @@ flutter pub get
 # Generate localization files
 flutter pub run intl_utils:generate
 
+# Build the web application
+flutter build web --base-href "/crux-climbing-gym/flutter-app/"
+
 # Run the application
-flutter run
+cp -r build/web /path/to/wordpress/htdocs/crux-climbing-gym/flutter-app
 ```
 
 ## 📁 Project Structure
