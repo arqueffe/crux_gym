@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../generated/l10n/app_localizations.dart';
 import '../providers/route_provider.dart';
 import '../widgets/route_interactions.dart';
 import '../widgets/custom_app_bar.dart';
@@ -22,17 +23,19 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final routeProvider = context.read<RouteProvider>();
-      routeProvider.loadGradeDefinitions(); // Load grade definitions first
-      routeProvider.loadRoute(widget.routeId);
-      routeProvider.loadGradeColors();
+      routeProvider
+          .loadRoute(widget.routeId); // This now handles all dependencies
+      routeProvider
+          .loadGradeColors(); // Still needed for other grade color operations
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: const CustomAppBar(
-        title: 'Route Details',
+      appBar: CustomAppBar(
+        title: l10n.routeTitle,
       ),
       body: Consumer<RouteProvider>(
         builder: (context, routeProvider, child) {
@@ -48,14 +51,14 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                   const Icon(Icons.error_outline, size: 64, color: Colors.red),
                   const SizedBox(height: 16),
                   Text(
-                    'Error: ${routeProvider.error}',
+                    '${l10n.error}: ${routeProvider.error}',
                     textAlign: TextAlign.center,
                     style: const TextStyle(fontSize: 16),
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () => routeProvider.loadRoute(widget.routeId),
-                    child: const Text('Retry'),
+                    child: Text(l10n.retry),
                   ),
                 ],
               ),
@@ -64,7 +67,7 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
 
           final route = routeProvider.selectedRoute;
           if (route == null) {
-            return const Center(child: Text('Route not found'));
+            return Center(child: Text(l10n.routeNotFound));
           }
 
           return SingleChildScrollView(
@@ -103,28 +106,36 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                                       Consumer<RouteProvider>(
                                         builder:
                                             (context, routeProvider, child) {
-                                          final averageGrade = GradeUtils
-                                              .calculateAverageProposedGrade(
-                                            route.gradeProposals,
-                                            routeProvider.gradeDefinitions,
-                                          );
+                                          try {
+                                            final averageGrade = GradeUtils
+                                                .calculateAverageProposedGrade(
+                                              route.gradeProposals,
+                                              routeProvider.gradeDefinitions,
+                                            );
 
-                                          if (averageGrade == null) {
+                                            if (averageGrade == null) {
+                                              return const SizedBox.shrink();
+                                            }
+
+                                            final averageGradeColor =
+                                                routeProvider.getGradeColor(
+                                                    averageGrade);
+
+                                            return Padding(
+                                              padding: const EdgeInsets.only(
+                                                  left: 8),
+                                              child: AverageGradeChip(
+                                                grade: averageGrade,
+                                                gradeColorHex:
+                                                    averageGradeColor,
+                                              ),
+                                            );
+                                          } catch (e) {
+                                            // If there's an error calculating average grade, just don't show it
+                                            print(
+                                                'Error calculating average grade: $e');
                                             return const SizedBox.shrink();
                                           }
-
-                                          final averageGradeColor =
-                                              routeProvider
-                                                  .getGradeColor(averageGrade);
-
-                                          return Padding(
-                                            padding:
-                                                const EdgeInsets.only(left: 8),
-                                            child: AverageGradeChip(
-                                              grade: averageGrade,
-                                              gradeColorHex: averageGradeColor,
-                                            ),
-                                          );
                                         },
                                       ),
                                       if (route.color != null) ...[
@@ -146,41 +157,51 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                                   // Explanation for averaged proposed grade
                                   Consumer<RouteProvider>(
                                     builder: (context, routeProvider, child) {
-                                      final averageGrade = GradeUtils
-                                          .calculateAverageProposedGrade(
-                                        route.gradeProposals,
-                                        routeProvider.gradeDefinitions,
-                                      );
+                                      try {
+                                        final averageGrade = GradeUtils
+                                            .calculateAverageProposedGrade(
+                                          route.gradeProposals,
+                                          routeProvider.gradeDefinitions,
+                                        );
 
-                                      if (averageGrade == null) {
-                                        return const SizedBox.shrink();
-                                      }
+                                        if (averageGrade == null) {
+                                          return const SizedBox.shrink();
+                                        }
 
-                                      return Padding(
-                                        padding: const EdgeInsets.only(top: 4),
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.info_outline,
-                                              size: 14,
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurfaceVariant,
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              'Community suggested: $averageGrade (avg of ${route.gradeProposalsCount} proposals)',
-                                              style: TextStyle(
-                                                fontSize: 12,
+                                        return Padding(
+                                          padding:
+                                              const EdgeInsets.only(top: 4),
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.info_outline,
+                                                size: 14,
                                                 color: Theme.of(context)
                                                     .colorScheme
                                                     .onSurfaceVariant,
-                                                fontStyle: FontStyle.italic,
                                               ),
-                                            ),
-                                          ],
-                                        ),
-                                      );
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                l10n.communitySuggested(
+                                                    averageGrade,
+                                                    route.gradeProposalsCount),
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurfaceVariant,
+                                                  fontStyle: FontStyle.italic,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      } catch (e) {
+                                        // If there's an error calculating average grade, just don't show it
+                                        print(
+                                            'Error calculating average grade: $e');
+                                        return const SizedBox.shrink();
+                                      }
                                     },
                                   ),
                                 ],
@@ -239,7 +260,7 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                                     .colorScheme
                                     .onSurfaceVariant),
                             const SizedBox(width: 4),
-                            Text('Set by ${route.routeSetter}'),
+                            Text(l10n.setBy(route.routeSetter)),
                           ],
                         ),
                         const SizedBox(height: 8),
@@ -263,7 +284,7 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                                     .colorScheme
                                     .onSurfaceVariant),
                             const SizedBox(width: 4),
-                            Text('Lane ${route.lane}'),
+                            Text(l10n.laneLabel(route.lane)),
                           ],
                         ),
                         if (route.description != null) ...[
@@ -292,7 +313,7 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Comments',
+                            l10n.comments,
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
                           const SizedBox(height: 16),
@@ -340,7 +361,7 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Grade Proposals',
+                            l10n.gradeProposals,
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
                           const SizedBox(height: 16),
@@ -440,7 +461,7 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                               const Icon(Icons.warning, color: Colors.orange),
                               const SizedBox(width: 8),
                               Text(
-                                'Warnings',
+                                l10n.warnings,
                                 style: Theme.of(context).textTheme.titleLarge,
                               ),
                             ],

@@ -20,7 +20,8 @@ class RouteCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-
+    print(
+        'Rendering RouteCard for route ID: ${route.id}, Name: ${route.name}, Grade: ${route.grade}, Lane: ${route.lane}, Color: ${route.colorHex}, Likes: ${route.likesCount}, Comments: ${route.commentsCount}, Ticks: ${route.ticksCount}, Proposals: ${route.gradeProposalsCount}, Warnings: ${route.warningsCount}');
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(

@@ -15,7 +15,6 @@ class AuthProvider with ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isAuthenticated => _authService.isAuthenticated;
   User? get currentUser => _authService.currentUser;
-  String? get token => _authService.token;
 
   // Initialize the provider
   Future<void> initialize() async {
@@ -32,82 +31,19 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // Register a new user
-  Future<bool> register({
-    required String username,
-    required String nickname,
-    required String email,
-    required String password,
-  }) async {
+  // Check authentication status
+  Future<void> checkAuth() async {
     _setLoading(true);
     _clearError();
 
     try {
-      final result = await _authService.register(
-        username: username,
-        nickname: nickname,
-        email: email,
-        password: password,
-      );
-
-      if (result['success']) {
-        // Clear any cached data
-        _cacheService.clear();
-        notifyListeners();
-        return true;
-      } else {
-        _setError(result['message']);
-        return false;
+      final result = await _authService.checkAuth();
+      if (!result) {
+        _setError('Please log in to WordPress to access the app');
       }
-    } catch (e) {
-      _setError('Registration failed: $e');
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  // Login user
-  Future<bool> login({
-    required String username,
-    required String password,
-  }) async {
-    _setLoading(true);
-    _clearError();
-
-    try {
-      final result = await _authService.login(
-        username: username,
-        password: password,
-      );
-
-      if (result['success']) {
-        // Clear any cached data from previous user
-        _cacheService.invalidateUserData();
-        notifyListeners();
-        return true;
-      } else {
-        _setError(result['message']);
-        return false;
-      }
-    } catch (e) {
-      _setError('Login failed: $e');
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  // Logout user
-  Future<void> logout() async {
-    _setLoading(true);
-    try {
-      await _authService.logout();
-      // Clear all cached data on logout
-      _cacheService.clear();
       notifyListeners();
     } catch (e) {
-      _setError('Logout failed: $e');
+      _setError('Failed to check authentication: $e');
     } finally {
       _setLoading(false);
     }
@@ -132,10 +68,12 @@ class AuthProvider with ChangeNotifier {
 
   // Update user nickname
   Future<bool> updateNickname(String nickname) async {
+    _clearError();
     try {
       final result = await _authService.updateNickname(nickname);
       if (result['success'] == true) {
-        notifyListeners();
+        // Refresh user data from server to ensure UI is up to date
+        await refreshUser();
         return true;
       } else {
         _setError(result['message'] ?? 'Failed to update nickname');

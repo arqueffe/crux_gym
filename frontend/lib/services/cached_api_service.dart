@@ -4,24 +4,30 @@ import '../models/route_models.dart';
 import '../models/lane_models.dart';
 import '../providers/auth_provider.dart';
 import 'cache_service.dart';
+import 'js_auth_service.dart';
+import 'package:flutter/foundation.dart';
 
 /// Cached API service that wraps HTTP requests with intelligent caching
 class CachedApiService {
-  static const String baseUrl = 'http://localhost:5000/api';
+  // WordPress API endpoint for authenticated requests
+  static const String baseUrl = '/crux-climbing-gym/wp-json/crux/v1';
+  // Fallback to Python backend for non-web platforms
+  static const String fallbackUrl = 'http://localhost:5000/api';
   final AuthProvider authProvider;
   final CacheService _cacheService = CacheService();
 
   CachedApiService({required this.authProvider});
 
-  // Get headers with authentication
+  // Get headers with authentication (for fallback HTTP requests)
   Map<String, String> get _headers => authProvider.getAuthHeaders();
 
-  /// Generic cached GET request
+  /// Generic cached GET request using JavaScript interop for web, HTTP for others
   Future<Map<String, dynamic>> get(
     String endpoint, {
     Map<String, dynamic>? params,
     Duration? cacheDuration,
     bool forceRefresh = false,
+    bool isPermanentCache = false,
   }) async {
     final cacheKey = CacheService.generateKey(endpoint, params);
     final duration = cacheDuration ?? CacheService.defaultCacheDuration;
@@ -41,41 +47,91 @@ class CachedApiService {
       }
     }
 
-    // Build URL with query parameters
-    var uri = Uri.parse('$baseUrl$endpoint');
-    if (params != null && params.isNotEmpty) {
-      uri = uri.replace(
-          queryParameters:
-              params.map((key, value) => MapEntry(key, value.toString())));
-    }
+    if (kIsWeb) {
+      // Use JavaScript interop for web platform with cookie authentication
+      try {
+        // Build URL with query parameters
+        String url = '$baseUrl$endpoint';
+        if (params != null && params.isNotEmpty) {
+          final queryString = params.entries
+              .map((e) => '${e.key}=${Uri.encodeComponent(e.value.toString())}')
+              .join('&');
+          url = '$url?$queryString';
+        }
 
-    try {
-      final response = await http.get(uri, headers: _headers);
+        final response = await JSAuthService.makeJSRequest(url);
 
-      if (response.statusCode == 200) {
-        final responseData = {
-          'success': true,
-          'data': json.decode(response.body),
-          'fromCache': false,
-        };
+        if (response != null) {
+          final responseData = {
+            'success': true,
+            'data': response['data'] ?? response,
+            'fromCache': false,
+          };
 
-        // Cache the successful response
-        _cacheService.put(cacheKey, responseData);
+          // Cache the successful response
+          if (isPermanentCache) {
+            _cacheService.putPermanent(cacheKey, responseData);
+          } else {
+            _cacheService.put(cacheKey, responseData);
+          }
 
-        return responseData;
-      } else {
+          return responseData;
+        } else {
+          return {
+            'success': false,
+            'error': 'JavaScript request failed',
+            'fromCache': false,
+          };
+        }
+      } catch (e) {
         return {
           'success': false,
-          'error': 'Request failed with status ${response.statusCode}',
+          'error': 'JavaScript request error: $e',
           'fromCache': false,
         };
       }
-    } catch (e) {
-      return {
-        'success': false,
-        'error': 'Network error: $e',
-        'fromCache': false,
-      };
+    } else {
+      // Fallback to HTTP client for non-web platforms
+      // Build URL with query parameters
+      var uri = Uri.parse('$fallbackUrl$endpoint');
+      if (params != null && params.isNotEmpty) {
+        uri = uri.replace(
+            queryParameters:
+                params.map((key, value) => MapEntry(key, value.toString())));
+      }
+
+      try {
+        final response = await http.get(uri, headers: _headers);
+
+        if (response.statusCode == 200) {
+          final responseData = {
+            'success': true,
+            'data': json.decode(response.body),
+            'fromCache': false,
+          };
+
+          // Cache the successful response
+          if (isPermanentCache) {
+            _cacheService.putPermanent(cacheKey, responseData);
+          } else {
+            _cacheService.put(cacheKey, responseData);
+          }
+
+          return responseData;
+        } else {
+          return {
+            'success': false,
+            'error': 'Request failed with status ${response.statusCode}',
+            'fromCache': false,
+          };
+        }
+      } catch (e) {
+        return {
+          'success': false,
+          'error': 'Network error: $e',
+          'fromCache': false,
+        };
+      }
     }
   }
 
@@ -85,38 +141,74 @@ class CachedApiService {
     Map<String, dynamic> body, {
     List<String>? invalidatePatterns,
   }) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl$endpoint'),
-        headers: _headers,
-        body: json.encode(body),
-      );
+    if (kIsWeb) {
+      try {
+        final response = await JSAuthService.makeJSRequest(
+          '$baseUrl$endpoint',
+          method: 'POST',
+          body: body,
+        );
 
-      // Invalidate related cache entries after successful POST
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        if (invalidatePatterns != null) {
-          for (final pattern in invalidatePatterns) {
-            _cacheService.invalidatePattern(pattern);
+        // Invalidate related cache entries after successful POST
+        if (response != null) {
+          if (invalidatePatterns != null) {
+            for (final pattern in invalidatePatterns) {
+              _cacheService.invalidatePattern(pattern);
+            }
           }
         }
-      }
 
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        return {
-          'success': true,
-          'data': json.decode(response.body),
-        };
-      } else {
+        if (response != null) {
+          return {
+            'success': true,
+            'data': response['data'] ?? response,
+          };
+        } else {
+          return {
+            'success': false,
+            'error': 'JavaScript POST request failed',
+          };
+        }
+      } catch (e) {
         return {
           'success': false,
-          'error': 'Request failed with status ${response.statusCode}',
+          'error': 'JavaScript POST error: $e',
         };
       }
-    } catch (e) {
-      return {
-        'success': false,
-        'error': 'Network error: $e',
-      };
+    } else {
+      try {
+        final response = await http.post(
+          Uri.parse('$fallbackUrl$endpoint'),
+          headers: _headers,
+          body: json.encode(body),
+        );
+
+        // Invalidate related cache entries after successful POST
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          if (invalidatePatterns != null) {
+            for (final pattern in invalidatePatterns) {
+              _cacheService.invalidatePattern(pattern);
+            }
+          }
+        }
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          return {
+            'success': true,
+            'data': json.decode(response.body),
+          };
+        } else {
+          return {
+            'success': false,
+            'error': 'Request failed with status ${response.statusCode}',
+          };
+        }
+      } catch (e) {
+        return {
+          'success': false,
+          'error': 'Network error: $e',
+        };
+      }
     }
   }
 
@@ -126,38 +218,74 @@ class CachedApiService {
     Map<String, dynamic> body, {
     List<String>? invalidatePatterns,
   }) async {
-    try {
-      final response = await http.put(
-        Uri.parse('$baseUrl$endpoint'),
-        headers: _headers,
-        body: json.encode(body),
-      );
+    if (kIsWeb) {
+      try {
+        final response = await JSAuthService.makeJSRequest(
+          '$baseUrl$endpoint',
+          method: 'PUT',
+          body: body,
+        );
 
-      // Invalidate related cache entries after successful PUT
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        if (invalidatePatterns != null) {
-          for (final pattern in invalidatePatterns) {
-            _cacheService.invalidatePattern(pattern);
+        // Invalidate related cache entries after successful PUT
+        if (response != null) {
+          if (invalidatePatterns != null) {
+            for (final pattern in invalidatePatterns) {
+              _cacheService.invalidatePattern(pattern);
+            }
           }
         }
-      }
 
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        return {
-          'success': true,
-          'data': json.decode(response.body),
-        };
-      } else {
+        if (response != null) {
+          return {
+            'success': true,
+            'data': response['data'] ?? response,
+          };
+        } else {
+          return {
+            'success': false,
+            'error': 'JavaScript PUT request failed',
+          };
+        }
+      } catch (e) {
         return {
           'success': false,
-          'error': 'Request failed with status ${response.statusCode}',
+          'error': 'JavaScript PUT error: $e',
         };
       }
-    } catch (e) {
-      return {
-        'success': false,
-        'error': 'Network error: $e',
-      };
+    } else {
+      try {
+        final response = await http.put(
+          Uri.parse('$fallbackUrl$endpoint'),
+          headers: _headers,
+          body: json.encode(body),
+        );
+
+        // Invalidate related cache entries after successful PUT
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          if (invalidatePatterns != null) {
+            for (final pattern in invalidatePatterns) {
+              _cacheService.invalidatePattern(pattern);
+            }
+          }
+        }
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          return {
+            'success': true,
+            'data': json.decode(response.body),
+          };
+        } else {
+          return {
+            'success': false,
+            'error': 'Request failed with status ${response.statusCode}',
+          };
+        }
+      } catch (e) {
+        return {
+          'success': false,
+          'error': 'Network error: $e',
+        };
+      }
     }
   }
 
@@ -166,37 +294,63 @@ class CachedApiService {
     String endpoint, {
     List<String>? invalidatePatterns,
   }) async {
-    try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl$endpoint'),
-        headers: _headers,
-      );
+    if (kIsWeb) {
+      try {
+        final response = await JSAuthService.makeJSRequest(
+          '$baseUrl$endpoint',
+          method: 'DELETE',
+        );
 
-      // Invalidate related cache entries after successful DELETE
-      if (response.statusCode >= 200 && response.statusCode < 300) {
+        // Invalidate related cache entries after successful DELETE
         if (invalidatePatterns != null) {
           for (final pattern in invalidatePatterns) {
             _cacheService.invalidatePattern(pattern);
           }
         }
-      }
 
-      if (response.statusCode >= 200 && response.statusCode < 300) {
         return {
           'success': true,
-          'data': response.body.isNotEmpty ? json.decode(response.body) : {},
+          'data': response?['data'] ?? response ?? {},
         };
-      } else {
+      } catch (e) {
         return {
           'success': false,
-          'error': 'Request failed with status ${response.statusCode}',
+          'error': 'JavaScript DELETE error: $e',
         };
       }
-    } catch (e) {
-      return {
-        'success': false,
-        'error': 'Network error: $e',
-      };
+    } else {
+      try {
+        final response = await http.delete(
+          Uri.parse('$fallbackUrl$endpoint'),
+          headers: _headers,
+        );
+
+        // Invalidate related cache entries after successful DELETE
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          if (invalidatePatterns != null) {
+            for (final pattern in invalidatePatterns) {
+              _cacheService.invalidatePattern(pattern);
+            }
+          }
+        }
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          return {
+            'success': true,
+            'data': response.body.isNotEmpty ? json.decode(response.body) : {},
+          };
+        } else {
+          return {
+            'success': false,
+            'error': 'Request failed with status ${response.statusCode}',
+          };
+        }
+      } catch (e) {
+        return {
+          'success': false,
+          'error': 'Network error: $e',
+        };
+      }
     }
   }
 
@@ -209,18 +363,47 @@ class CachedApiService {
     int? lane,
     bool forceRefresh = false,
   }) async {
+    print('🔧 CachedApiService.getRoutes() called');
     final params = <String, dynamic>{};
     if (wallSection != null) params['wall_section'] = wallSection;
     if (grade != null) params['grade'] = grade;
     if (lane != null) params['lane'] = lane;
 
+    print('🔧 Calling get("/routes") with params: $params');
     final response =
         await get('/routes', params: params, forceRefresh: forceRefresh);
+    print(
+        '✅ get("/routes") returned: success=${response['success']}, data type=${response['data'].runtimeType}');
 
     if (response['success']) {
-      final List<dynamic> data = response['data'];
-      return data.map((json) => Route.fromJson(json)).toList();
+      print('🔧 Processing routes data...');
+      final data = response['data'];
+      print(
+          '🔧 Data type: ${data.runtimeType}, length: ${data is List ? data.length : 'N/A'}');
+
+      if (data is List) {
+        print('🔧 Converting ${data.length} items to Route objects...');
+        final routes = <Route>[];
+        for (int i = 0; i < data.length; i++) {
+          try {
+            print('🔧 Converting route $i: ${data[i].runtimeType}');
+            final route = Route.fromJson(data[i]);
+            routes.add(route);
+            print('✅ Route $i converted successfully: ${route.name}');
+          } catch (e) {
+            print('❌ Error converting route $i: $e');
+            print('❌ Route data: ${data[i]}');
+            rethrow;
+          }
+        }
+        print('✅ All ${routes.length} routes converted successfully');
+        return routes;
+      } else {
+        print('❌ Expected List but got ${data.runtimeType}');
+        throw Exception('Expected List but got ${data.runtimeType}');
+      }
     } else {
+      print('❌ Request failed: ${response['error']}');
       throw Exception(response['error'] ?? 'Failed to load routes');
     }
   }
@@ -238,75 +421,150 @@ class CachedApiService {
 
   /// Get wall sections with caching
   Future<List<String>> getWallSections({bool forceRefresh = false}) async {
+    print('🔧 CachedApiService.getWallSections() called');
     final response = await get('/wall-sections', forceRefresh: forceRefresh);
+    print(
+        '✅ get("/wall-sections") returned: success=${response['success']}, data type=${response['data'].runtimeType}');
 
     if (response['success']) {
-      final List<dynamic> data = response['data'];
-      return data.cast<String>();
+      final data = response['data'];
+      print('🔧 Processing wall sections data: $data (${data.runtimeType})');
+      if (data is List) {
+        print('🔧 Converting to List<String>...');
+        final result = data.cast<String>();
+        print('✅ Wall sections converted: $result');
+        return result;
+      } else {
+        print('❌ Expected List but got ${data.runtimeType}');
+        return <String>[];
+      }
     } else {
+      print('❌ Request failed: ${response['error']}');
       throw Exception(response['error'] ?? 'Failed to load wall sections');
     }
   }
 
-  /// Get grades with caching
+  /// Get grades with permanent caching (never expires)
   Future<List<String>> getGrades({bool forceRefresh = false}) async {
-    final response = await get('/grades', forceRefresh: forceRefresh);
+    final response = await get(
+      '/grades',
+      forceRefresh: forceRefresh,
+      isPermanentCache: true,
+    );
 
     if (response['success']) {
-      final List<dynamic> data = response['data'];
-      return data.cast<String>();
+      final data = response['data'];
+      if (data is List) {
+        return data.cast<String>();
+      } else {
+        return <String>[];
+      }
     } else {
       throw Exception(response['error'] ?? 'Failed to load grades');
     }
   }
 
-  /// Get lanes with caching
+  /// Get lanes with permanent caching (never expires)
   Future<List<Lane>> getLanes({bool forceRefresh = false}) async {
-    final response = await get('/lanes', forceRefresh: forceRefresh);
+    print('🔧 CachedApiService.getLanes() called');
+    final response = await get(
+      '/lanes',
+      forceRefresh: forceRefresh,
+      isPermanentCache: true,
+    );
+    print(
+        '✅ get("/lanes") returned: success=${response['success']}, data type=${response['data'].runtimeType}');
 
     if (response['success']) {
-      final List<dynamic> data = response['data'];
-      return data.map((json) => Lane.fromJson(json)).toList();
+      final data = response['data'];
+      print('🔧 Processing lanes data: $data (${data.runtimeType})');
+
+      if (data is List) {
+        print('🔧 Converting ${data.length} items to Lane objects...');
+        final lanes = <Lane>[];
+        for (int i = 0; i < data.length; i++) {
+          try {
+            print('🔧 Converting lane $i: ${data[i].runtimeType}');
+            final lane = Lane.fromJson(data[i]);
+            lanes.add(lane);
+            print(
+                '✅ Lane $i converted successfully: ${lane.id} - ${lane.name}');
+          } catch (e) {
+            print('❌ Error converting lane $i: $e');
+            print('❌ Lane data: ${data[i]}');
+            rethrow;
+          }
+        }
+        print('✅ All ${lanes.length} lanes converted successfully');
+        return lanes;
+      } else {
+        print('❌ Expected List but got ${data.runtimeType}');
+        return <Lane>[];
+      }
     } else {
+      print('❌ Request failed: ${response['error']}');
       throw Exception(response['error'] ?? 'Failed to load lanes');
     }
   }
 
-  /// Get grade definitions with caching
+  /// Get grade definitions with permanent caching (never expires)
   Future<List<Map<String, dynamic>>> getGradeDefinitions(
       {bool forceRefresh = false}) async {
-    final response =
-        await get('/grade-definitions', forceRefresh: forceRefresh);
+    final response = await get(
+      '/grade-definitions',
+      forceRefresh: forceRefresh,
+      isPermanentCache: true,
+    );
 
     if (response['success']) {
-      final List<dynamic> data = response['data'];
-      return data.cast<Map<String, dynamic>>();
+      final data = response['data'];
+      if (data is List) {
+        return data.cast<Map<String, dynamic>>();
+      } else {
+        return <Map<String, dynamic>>[];
+      }
     } else {
       throw Exception(response['error'] ?? 'Failed to load grade definitions');
     }
   }
 
-  /// Get hold colors with caching
+  /// Get hold colors with permanent caching (never expires)
   Future<List<Map<String, dynamic>>> getHoldColors(
       {bool forceRefresh = false}) async {
-    final response = await get('/hold-colors', forceRefresh: forceRefresh);
+    final response = await get(
+      '/hold-colors',
+      forceRefresh: forceRefresh,
+      isPermanentCache: true,
+    );
 
     if (response['success']) {
-      final List<dynamic> data = response['data'];
-      return data.cast<Map<String, dynamic>>();
+      final data = response['data'];
+      if (data is List) {
+        return data.cast<Map<String, dynamic>>();
+      } else {
+        return <Map<String, dynamic>>[];
+      }
     } else {
       throw Exception(response['error'] ?? 'Failed to load hold colors');
     }
   }
 
-  /// Get grade colors with caching
+  /// Get grade colors with permanent caching (never expires)
   Future<Map<String, String>> getGradeColors(
       {bool forceRefresh = false}) async {
-    final response = await get('/grade-colors', forceRefresh: forceRefresh);
+    final response = await get(
+      '/grade-colors',
+      forceRefresh: forceRefresh,
+      isPermanentCache: true,
+    );
 
     if (response['success']) {
-      final Map<String, dynamic> data = response['data'];
-      return data.cast<String, String>();
+      final data = response['data'];
+      if (data is Map) {
+        return Map<String, String>.from(data);
+      } else {
+        return <String, String>{};
+      }
     } else {
       throw Exception(response['error'] ?? 'Failed to load grade colors');
     }
@@ -357,8 +615,6 @@ class CachedApiService {
       throw Exception(response['error'] ?? 'Failed to load user projects');
     }
   }
-
-  // Additional API methods needed by RouteProvider
 
   /// Create a new route
   Future<Route> createRoute(Route route) async {
@@ -418,6 +674,25 @@ class CachedApiService {
     }
   }
 
+  /// Remove a specific send type from a route
+  Future<void> unmarkSend(int routeId, String sendType) async {
+    final body = {
+      'send_type': sendType,
+    };
+
+    final response = await post('/routes/$routeId/unsend', body,
+        invalidatePatterns: [
+          '/user/ticks',
+          '/user/stats',
+          '/routes/$routeId',
+          '/routes'
+        ]);
+
+    if (!response['success']) {
+      throw Exception(response['error'] ?? 'Failed to unmark send');
+    }
+  }
+
   /// Add a comment to a route
   Future<void> addComment(int routeId, String content) async {
     final body = {'content': content};
@@ -452,7 +727,13 @@ class CachedApiService {
 
     if (response['success']) {
       final data = response['data'];
-      return data != null ? GradeProposal.fromJson(data) : null;
+      // Check if data is null, empty object, or doesn't have required fields
+      if (data == null ||
+          data is Map<String, dynamic> &&
+              (data.isEmpty || data['id'] == null)) {
+        return null;
+      }
+      return GradeProposal.fromJson(data);
     } else {
       throw Exception(response['error'] ?? 'Failed to get grade proposal');
     }
@@ -474,17 +755,6 @@ class CachedApiService {
     }
   }
 
-  /// Get project status for a route
-  Future<Map<String, dynamic>?> getProjectStatus(int routeId) async {
-    final response = await get('/routes/$routeId/projects/me');
-
-    if (response['success']) {
-      return response['data'] as Map<String, dynamic>?;
-    } else {
-      throw Exception(response['error'] ?? 'Failed to get project status');
-    }
-  }
-
   /// Get user stats with caching
   Future<Map<String, dynamic>> getUserStats({bool forceRefresh = false}) async {
     final response = await get('/user/stats', forceRefresh: forceRefresh);
@@ -495,8 +765,6 @@ class CachedApiService {
       throw Exception(response['error'] ?? 'Failed to load user stats');
     }
   }
-
-  // Write operations that invalidate cache
 
   /// Like a route (invalidates user likes and route data)
   Future<void> likeRoute(int routeId) async {
@@ -515,6 +783,16 @@ class CachedApiService {
 
     if (!response['success']) {
       throw Exception(response['error'] ?? 'Failed to unlike route');
+    }
+  }
+
+  Future<bool> getUserLikeStatus(int routeId) async {
+    final response = await get('/routes/$routeId/like-status');
+
+    if (response['success']) {
+      return response['data']['liked'] as bool;
+    } else {
+      throw Exception(response['error'] ?? 'Failed to get like status');
     }
   }
 
@@ -545,19 +823,19 @@ class CachedApiService {
   }
 
   /// Untick a route (invalidates user ticks, stats, and route data)
-  Future<void> untickRoute(int routeId) async {
-    final response = await delete('/routes/$routeId/ticks',
-        invalidatePatterns: [
-          '/user/ticks',
-          '/user/stats',
-          '/routes/$routeId',
-          '/routes'
-        ]);
+  // Future<void> untickRoute(int routeId) async {
+  //   final response = await delete('/routes/$routeId/ticks',
+  //       invalidatePatterns: [
+  //         '/user/ticks',
+  //         '/user/stats',
+  //         '/routes/$routeId',
+  //         '/routes'
+  //       ]);
 
-    if (!response['success']) {
-      throw Exception(response['error'] ?? 'Failed to untick route');
-    }
-  }
+  //   if (!response['success']) {
+  //     throw Exception(response['error'] ?? 'Failed to untick route');
+  //   }
+  // }
 
   /// Add project (invalidates user projects and route data)
   Future<void> addProject(int routeId, {String? notes}) async {
@@ -608,6 +886,16 @@ class CachedApiService {
   /// Clear route-specific cache
   void clearRouteCache() {
     _cacheService.invalidateRouteData();
+  }
+
+  /// Clear permanent cache for all static data
+  void clearPermanentCache() {
+    _cacheService.clearPermanentCache();
+  }
+
+  /// Remove specific cache entry
+  void removeCacheEntry(String key) {
+    _cacheService.remove(key);
   }
 
   /// Get cache statistics for debugging

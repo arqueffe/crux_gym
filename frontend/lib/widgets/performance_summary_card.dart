@@ -51,12 +51,23 @@ class PerformanceSummaryCard extends StatelessWidget {
     final filteredFlashRate =
         filteredTotalSends > 0 ? filteredFlashes / filteredTotalSends : 0.0;
 
-    // Get hardest grade from filtered ticks
+    // Get hardest grade from filtered ticks using proper grade ordering
     String? filteredHardestGrade;
     if (filteredTicks.isNotEmpty) {
       final grades =
           filteredTicks.map((tick) => tick.routeGrade).toSet().toList();
-      grades.sort((a, b) => _gradeOrder(b).compareTo(_gradeOrder(a)));
+
+      // Sort using grade definitions if available
+      if (gradeDefinitions.isNotEmpty) {
+        grades.sort((a, b) {
+          final aOrder = _getGradeOrder(a, gradeDefinitions);
+          final bOrder = _getGradeOrder(b, gradeDefinitions);
+          return bOrder.compareTo(aOrder); // Descending order for hardest first
+        });
+      } else {
+        // Fallback to V-scale ordering
+        grades.sort((a, b) => _gradeOrder(b).compareTo(_gradeOrder(a)));
+      }
       filteredHardestGrade = grades.first;
     }
 
@@ -110,7 +121,7 @@ class PerformanceSummaryCard extends StatelessWidget {
                 _buildStatCard(
                   context,
                   l10n.totalTicks,
-                  '$filteredTotalSends',
+                  '${filteredTicks.length}', // Show total ticks, not just sends
                   Icons.check_circle,
                   Colors.green,
                 ),
@@ -222,27 +233,6 @@ class PerformanceSummaryCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildInfoRow(
-                      context,
-                      l10n.wallSectionsClimbed,
-                      '${stats!.uniqueWallSections}',
-                      Icons.location_on,
-                    ),
-                  ),
-                  Expanded(
-                    child: _buildInfoRow(
-                      context,
-                      l10n.gradesAchieved,
-                      '${stats!.achievedGrades.length}',
-                      Icons.grade,
-                    ),
-                  ),
-                ],
-              ),
             ],
           ],
         ),
@@ -333,10 +323,32 @@ class PerformanceSummaryCard extends StatelessWidget {
     // Return 0 if grade definitions are not loaded yet
     if (gradeDefinitions.isEmpty) return 0;
 
-    // Find the grade in the definitions and return its difficulty_order
+    // Find the grade in the definitions and return its value (not difficulty_order)
     for (final gradeDefinition in gradeDefinitions) {
-      if (gradeDefinition['grade'] == grade) {
-        return gradeDefinition['difficulty_order'] as int;
+      if (gradeDefinition['french_name'] == grade) {
+        final value = gradeDefinition['value'];
+        if (value is String) {
+          return double.tryParse(value)?.toInt() ?? 0;
+        } else if (value is num) {
+          return value.toInt();
+        }
+      }
+    }
+    // Return 0 for unknown grades (will be sorted first)
+    return 0;
+  }
+
+  int _getGradeOrder(
+      String grade, List<Map<String, dynamic>> gradeDefinitions) {
+    // Find the grade in the definitions and return its value (not difficulty_order)
+    for (final gradeDefinition in gradeDefinitions) {
+      if (gradeDefinition['french_name'] == grade) {
+        final value = gradeDefinition['value'];
+        if (value is String) {
+          return double.tryParse(value)?.toInt() ?? 0;
+        } else if (value is num) {
+          return value.toInt();
+        }
       }
     }
     // Return 0 for unknown grades (will be sorted first)

@@ -79,5 +79,5 @@ class LaneShape {
     );
   }
 
-  int get laneNumber => int.parse(label);
+  int get laneId => int.parse(label); // Lane label directly maps to lane ID
 }

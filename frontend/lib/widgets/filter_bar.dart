@@ -91,7 +91,7 @@ class FilterBar extends StatelessWidget {
                         ),
                         ...routeProvider.lanes.map(
                           (lane) => DropdownMenuItem<int>(
-                            value: lane.number,
+                            value: lane.id,
                             child: Text(lane.name),
                           ),
                         ),

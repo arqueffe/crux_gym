@@ -53,20 +53,24 @@ class Route {
     return Route(
       id: json['id'],
       name: json['name'],
-      grade: json['grade'],
-      gradeColor: json['grade_color'],
+      grade: json['grade_id']?.toString() ??
+          '', // Backend sends grade_id, frontend will map this
+      gradeColor: null, // Will be populated by frontend mapping
       routeSetter: json['route_setter'],
       wallSection: json['wall_section'],
-      lane: json['lane'],
-      laneName: json['lane_name'],
-      color: json['color'],
-      colorHex: json['color_hex'],
+      lane: int.tryParse(json['lane_id']?.toString() ?? '0') ??
+          0, // Ensure lane is int
+      laneName:
+          json['lane_name'], // May be null if not provided by backend JOIN
+      color: json['hold_color_id']
+          ?.toString(), // Backend sends hold_color_id, frontend will map this
+      colorHex: null, // Will be populated by frontend mapping
       description: json['description'],
       createdAt: DateTime.parse(json['created_at']),
-      likesCount: json['likes_count'],
-      commentsCount: json['comments_count'],
-      gradeProposalsCount: json['grade_proposals_count'],
-      warningsCount: json['warnings_count'],
+      likesCount: json['likes_count'] ?? 0,
+      commentsCount: json['comments_count'] ?? 0,
+      gradeProposalsCount: json['grade_proposals_count'] ?? 0,
+      warningsCount: json['warnings_count'] ?? 0,
       ticksCount: json['ticks_count'] ?? 0,
       projectsCount: json['projects_count'] ?? 0,
       likes: json['likes'] != null
@@ -90,15 +94,26 @@ class Route {
   }
 
   Map<String, dynamic> toJson() {
-    return {
+    final result = <String, dynamic>{
       'name': name,
-      'grade': grade,
+      'grade_id': int.tryParse(grade) ??
+          grade, // Convert string ID back to int, or keep as is if already proper format
       'route_setter': routeSetter,
       'wall_section': wallSection,
-      'lane': lane,
-      'color': color,
-      'description': description,
+      'lane_id': lane,
     };
+
+    // Only add hold_color_id if color is not null
+    if (color != null) {
+      result['hold_color_id'] = int.tryParse(color!) ?? color!;
+    }
+
+    // Only add description if it's not null
+    if (description != null) {
+      result['description'] = description!;
+    }
+
+    return result;
   }
 
   // Calculate average proposed grade
@@ -245,6 +260,17 @@ class GradeProposal {
   });
 
   factory GradeProposal.fromJson(Map<String, dynamic> json) {
+    // Validate required fields
+    if (json['id'] == null ||
+        json['user_id'] == null ||
+        json['user_name'] == null ||
+        json['proposed_grade'] == null ||
+        json['route_id'] == null ||
+        json['created_at'] == null) {
+      throw const FormatException(
+          'Invalid GradeProposal data: missing required fields');
+    }
+
     return GradeProposal(
       id: json['id'],
       userId: json['user_id'],

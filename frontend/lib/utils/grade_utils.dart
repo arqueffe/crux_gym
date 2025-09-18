@@ -13,8 +13,12 @@ class GradeUtils {
     // Create a map of grade to difficulty order for quick lookup
     final Map<String, int> gradeDifficultyMap = {};
     for (final gradeDefinition in gradeDefinitions) {
-      gradeDifficultyMap[gradeDefinition['grade'] as String] =
-          gradeDefinition['difficulty_order'] as int;
+      final grade = gradeDefinition['grade'];
+      final difficultyOrder = gradeDefinition['difficulty_order'];
+
+      if (grade != null && difficultyOrder != null) {
+        gradeDifficultyMap[grade as String] = difficultyOrder as int;
+      }
     }
 
     double totalDifficulty = 0;
@@ -22,11 +26,24 @@ class GradeUtils {
 
     // Sum up the difficulty orders of all valid proposed grades
     for (final proposal in gradeProposals) {
-      final proposedGrade = proposal is Map<String, dynamic>
-          ? proposal['proposed_grade'] as String?
-          : proposal.proposedGrade as String?;
+      String? proposedGrade;
+
+      try {
+        if (proposal is Map<String, dynamic>) {
+          final gradeValue = proposal['proposed_grade'];
+          proposedGrade = gradeValue?.toString();
+        } else if (proposal != null) {
+          // Assuming proposal has a proposedGrade property
+          final dynamicProposal = proposal as dynamic;
+          proposedGrade = dynamicProposal.proposedGrade?.toString();
+        }
+      } catch (e) {
+        // Skip this proposal if we can't extract the grade
+        continue;
+      }
 
       if (proposedGrade != null &&
+          proposedGrade.isNotEmpty &&
           gradeDifficultyMap.containsKey(proposedGrade)) {
         totalDifficulty += gradeDifficultyMap[proposedGrade]!;
         validProposalsCount++;
@@ -43,13 +60,18 @@ class GradeUtils {
     int closestDifference = double.maxFinite.toInt();
 
     for (final gradeDefinition in gradeDefinitions) {
-      final grade = gradeDefinition['grade'] as String;
-      final difficulty = gradeDefinition['difficulty_order'] as int;
-      final difference = (difficulty - averageDifficulty).abs();
+      final grade = gradeDefinition['grade'];
+      final difficulty = gradeDefinition['difficulty_order'];
 
-      if (difference < closestDifference) {
-        closestDifference = difference;
-        closestGrade = grade;
+      if (grade != null && difficulty != null) {
+        final gradeStr = grade as String;
+        final difficultyInt = difficulty as int;
+        final difference = (difficultyInt - averageDifficulty).abs();
+
+        if (difference < closestDifference) {
+          closestDifference = difference;
+          closestGrade = gradeStr;
+        }
       }
     }
 
@@ -62,8 +84,13 @@ class GradeUtils {
     List<Map<String, dynamic>> gradeDefinitions,
   ) {
     for (final gradeDefinition in gradeDefinitions) {
-      if (gradeDefinition['grade'] == grade) {
-        return gradeDefinition['difficulty_order'] as int;
+      final gradeValue = gradeDefinition['grade'];
+      final difficultyOrder = gradeDefinition['difficulty_order'];
+
+      if (gradeValue != null &&
+          difficultyOrder != null &&
+          gradeValue == grade) {
+        return difficultyOrder as int;
       }
     }
     return 0; // Default for unknown grades

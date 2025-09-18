@@ -75,8 +75,10 @@ class ProfileProvider extends ChangeNotifier {
       final grade = entry.key;
       final ticks = entry.value;
       final tickCount = ticks.length;
-      final totalAttempts =
-          ticks.fold<int>(0, (sum, tick) => sum + tick.attempts);
+      final totalAttempts = ticks.fold<int>(
+        0,
+        (sum, tick) => sum + tick.attempts,
+      );
       final flashCount = ticks.where((tick) => tick.flash).length;
       final averageAttempts = tickCount > 0 ? totalAttempts / tickCount : 0.0;
       final flashRate = tickCount > 0 ? flashCount / tickCount : 0.0;
@@ -97,8 +99,13 @@ class ProfileProvider extends ChangeNotifier {
     // Use route provider's grade definitions if available
     if (_routeProvider != null && _routeProvider!.gradeDefinitions.isNotEmpty) {
       for (final gradeDefinition in _routeProvider!.gradeDefinitions) {
-        if (gradeDefinition['grade'] == grade) {
-          return gradeDefinition['difficulty_order'] as int;
+        if (gradeDefinition['french_name'] == grade) {
+          final value = gradeDefinition['value'];
+          if (value is String) {
+            return double.tryParse(value)?.toInt() ?? 0;
+          } else if (value is num) {
+            return value.toInt();
+          }
         }
       }
     }
@@ -156,8 +163,9 @@ class ProfileProvider extends ChangeNotifier {
 
   Future<void> _loadUserProjects({bool forceRefresh = false}) async {
     try {
-      final data =
-          await _apiService.getUserProjects(forceRefresh: forceRefresh);
+      final data = await _apiService.getUserProjects(
+        forceRefresh: forceRefresh,
+      );
       _userProjects = data.map((json) => Project.fromJson(json)).toList();
     } catch (e) {
       throw 'Failed to load user projects: $e';
@@ -184,8 +192,10 @@ class ProfileProvider extends ChangeNotifier {
       final grade = entry.key;
       final ticks = entry.value;
       final tickCount = ticks.length;
-      final totalAttempts =
-          ticks.fold<int>(0, (sum, tick) => sum + tick.attempts);
+      final totalAttempts = ticks.fold<int>(
+        0,
+        (sum, tick) => sum + tick.attempts,
+      );
       final flashCount = ticks.where((tick) => tick.flash).length;
       final averageAttempts = tickCount > 0 ? totalAttempts / tickCount : 0.0;
       final flashRate = tickCount > 0 ? flashCount / tickCount : 0.0;
@@ -199,7 +209,9 @@ class ProfileProvider extends ChangeNotifier {
         flashRate: flashRate,
       );
     }).toList()
-      ..sort((a, b) => _gradeOrder(a.grade).compareTo(_gradeOrder(b.grade)));
+      ..sort(
+        (a, b) => _gradeOrder(a.grade).compareTo(_gradeOrder(b.grade)),
+      );
   }
 
   void _setLoading(bool loading) {

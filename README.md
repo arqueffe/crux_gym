@@ -1,368 +1,137 @@
-# Crux - Climbing Gym Management System
+# Crux Climbing Gym Management System
 
-A modern climbing gym management application with Flask backend and Flutter mobile app.
+A comprehensive climbing gym management platform featuring a Flutter mobile application and WordPress-based backend for route tracking, user interactions, and performance analytics.
 
-## Quick Start
+## 🏗️ System Overview
 
-### Backend
+- **Frontend**: Flutter mobile app with 3D route visualization and cross-platform support
+- **Backend**: WordPress plugin with REST API for gym management and user authentication
+- **Architecture**: Clean Architecture with Provider pattern (Frontend) + WordPress REST API (Backend)
+
+## ✨ Key Features
+
+### 🧗‍♂️ Route Management
+- Interactive 3D climbing wall visualization
+- Advanced filtering (grade, setter, wall section, color)
+- Route interactions (likes, comments, ticks, projects)
+- Grade proposals and safety warnings
+
+### 👤 User Management
+- WordPress cookie-based authentication
+- Role-based access control (Admin, Route Setter, Member)
+- Personal climbing statistics and progress tracking
+- Multi-language support (English/French)
+
+### 📊 Analytics & Performance
+- Comprehensive climbing statistics
+- Performance tracking (sends, attempts, flashes)
+- Intelligent caching with offline capability
+- Real-time updates and background sync
+
+## 🚀 Quick Start
+
+### Backend Setup (WordPress)
 ```bash
-cd backend
-pip install -r requirements.txt
-python app.py
-```
-Server runs on `http://localhost:5000`
+# Install WordPress and copy plugin
+cp -r backend/wp-content/plugins/crux-climbing-gym /path/to/wordpress/wp-content/plugins/
 
-### Frontend
+# Activate plugin in WordPress admin
+# Plugin automatically creates database schema and sample data
+```
+
+### Frontend Setup (Flutter)
 ```bash
 cd frontend
+
+# Install dependencies
 flutter pub get
+
+# Generate localization files
+flutter pub run intl_utils:generate
+
+# Run the application
 flutter run
 ```
 
-## Features
-
-- **Route Management**: Browse, create, and filter climbing routes
-- **User System**: Registration, login, and user profiles
-- **Interactions**: Like, comment, grade proposals, and warnings
-- **Tick Tracking**: Log attempts, sends (TR/Lead), and flashes
-- **Analytics**: Performance statistics and grade progression
-- **Localization**: English and French support
-- **Mobile UI**: Material Design 3 with responsive layouts
-
-## Sample Data
-
-Login with: `admin` / `admin123` or `alice_johnson` / `password123`
-
-## Tech Stack
-
-- **Backend**: Flask, SQLAlchemy, JWT, SQLite
-- **Frontend**: Flutter, Provider, Material Design 3
-- **Database**: SQLite with auto-initialization
-
-## Project Structure
+## 📁 Project Structure
 
 ```
-├── backend/          # Flask REST API
-├── frontend/         # Flutter mobile app
-└── VERSION.md        # v0.8.0
+topo_app/
+├── backend/                    # WordPress backend
+│   ├── wp-content/plugins/     # Main plugin directory
+│   │   └── crux-climbing-gym/  # Plugin files and admin interface
+│   └── requirements.txt        # Dependencies
+├── frontend/                   # Flutter mobile app
+│   ├── lib/                    # Application source code
+│   │   ├── models/            # Data models
+│   │   ├── providers/         # State management
+│   │   ├── screens/           # UI screens
+│   │   ├── services/          # API and data services
+│   │   └── widgets/           # Reusable UI components
+│   └── assets/                # Static assets and 3D models
+└── README.md                  # This file
 ```
 
-## License
-
-MIT License
-
-## Project Structure
-
-```
-Crux/
-├── backend/                          # Flask REST API
-│   ├── app.py                       # Main Flask application with full API
-│   ├── requirements.txt             # Python dependencies
-│   ├── climbing_gym.db             # SQLite database (auto-generated)
-│   ├── cli.py                       # Command-line interface for DB management
-│   └── README.md                   # Backend documentation
-├── frontend/                        # Flutter Mobile App
-│   ├── lib/
-│   │   ├── main.dart               # App entry point with auth wrapper
-│   │   ├── models/                 # Data models (Route, User, Profile)
-│   │   │   ├── route_models.dart   # Route, Like, Comment, Warning, Tick models
-│   │   │   ├── user_models.dart    # User authentication models
-│   │   │   ├── profile_models.dart # User statistics and profile models
-│   │   │   └── climbing_wall_models.dart # 3D wall visualization models
-│   │   ├── providers/              # State management
-│   │   │   ├── auth_provider.dart  # Authentication state
-│   │   │   ├── route_provider.dart # Route data and filtering
-│   │   │   └── profile_provider.dart # User profile and statistics
-│   │   ├── services/               # API communication
-│   │   │   ├── api_service.dart    # Main API service
-│   │   │   ├── auth_service.dart   # Authentication service
-│   │   │   └── climbing_wall_service.dart # 3D wall service
-│   │   ├── screens/                # App screens
-│   │   │   ├── login_screen.dart   # Authentication UI
-│   │   │   ├── main_navigation_screen.dart # Bottom navigation
-│   │   │   ├── home_screen.dart    # Routes listing with filters
-│   │   │   ├── route_detail_screen.dart # Detailed route view
-│   │   │   ├── add_route_screen.dart # Route creation
-│   │   │   └── profile_screen.dart # User profile with statistics
-│   │   └── widgets/                # Reusable UI components
-│   │       ├── route_card.dart     # Route display cards
-│   │       ├── route_interactions.dart # Like, comment, tick buttons
-│   │       ├── filter_drawer.dart  # Advanced filtering UI
-│   │       ├── interactive_climbing_wall.dart # 3D wall viewer
-│   │       ├── performance_summary_card.dart # Statistics cards
-│   │       ├── grade_statistics_chart.dart # Performance charts
-│   │       ├── ticks_list.dart     # User's completed routes
-│   │       └── likes_list.dart     # User's liked routes
-│   ├── pubspec.yaml               # Flutter dependencies
-│   ├── assets/models/             # 3D model assets
-│   └── README.md                  # Frontend documentation
-├── commit.sh                      # Version management script
-├── VERSION.md                     # Current version (0.3.0)
-└── README.md                     # This file
-```
-
-## Features
-
-### Authentication & User Management
-- Secure JWT-based authentication
-- User registration and login
-- Persistent session management
-- User profile management
-
-### Route Management
-- Complete CRUD operations for climbing routes
-- Detailed route information (grade, setter, wall section, lane, color)
-- Route filtering by multiple criteria (wall section, grade, lane, setter)
-- Advanced sorting options (newest, oldest, difficulty, popularity)
-- Route search and discovery
-
-### User Interactions
-- **Likes**: Express appreciation for routes
-- **Comments**: Share detailed feedback and beta
-- **Grade Proposals**: Suggest alternative difficulty ratings with reasoning
-- **Warnings**: Report safety issues, broken holds, or maintenance needs
-- **Ticks**: Track successful ascents with attempt counts and notes
-- **Flash Tracking**: Record first-try completions
-
-### Profile & Statistics
-- Comprehensive climbing statistics
-- Performance analytics by grade and time period
-- Personal achievement tracking
-- Tick history with detailed information
-- Grade progression tracking
-- Wall section diversity metrics
-- Average attempts and flash rate calculation
-
-### Advanced Features
-- Interactive 3D climbing wall visualization
-- Real-time data synchronization
-- Offline-capable design
-- Responsive Material Design UI
-- Advanced error handling and loading states
-- Pull-to-refresh functionality
-
-## API Endpoints
-
-### Authentication
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/login` - User login
-- `GET /api/auth/me` - Get current user info
-
-### Routes
-- `GET /api/routes` - Get all routes (with filtering: wall_section, grade, lane)
-- `GET /api/routes/{id}` - Get specific route with all interactions
-- `POST /api/routes` - Create new route
-
-### Route Interactions
-- `POST /api/routes/{id}/like` - Like a route
-- `DELETE /api/routes/{id}/unlike` - Unlike a route
-- `POST /api/routes/{id}/comments` - Add comment
-- `POST /api/routes/{id}/grade-proposals` - Propose grade change
-- `POST /api/routes/{id}/warnings` - Report warning/issue
-- `POST /api/routes/{id}/ticks` - Record successful ascent
-- `DELETE /api/routes/{id}/ticks` - Remove tick
-- `GET /api/routes/{id}/ticks/me` - Check if user has ticked route
-
-### User Profile
-- `GET /api/user/ticks` - Get user's completed routes
-- `GET /api/user/likes` - Get user's liked routes  
-- `GET /api/user/stats` - Get comprehensive user statistics
-
-### Utility Endpoints
-- `GET /api/wall-sections` - Get all unique wall sections
-- `GET /api/grades` - Get all grades used in gym
-- `GET /api/lanes` - Get all lane numbers
-
-## Database Schema
-
-### Core Models
-- **User**: Authentication and profile information
-- **Route**: Complete route details with metadata
-- **Like**: User appreciation for routes
-- **Comment**: Detailed user feedback
-- **GradeProposal**: Alternative difficulty suggestions
-- **Warning**: Safety and maintenance reports
-- **Tick**: Successful ascent records
-
-### Key Relationships
-- Users can have multiple likes, comments, proposals, warnings, and ticks
-- Routes contain aggregated counts for all interaction types
-- Unique constraints prevent duplicate ticks per user-route combination
-
-## Sample Data
-
-The system initializes with sample data for immediate testing:
-
-**Users:**
-- `admin` / `admin123` (Administrator)
-- `alice_johnson` / `password123`
-- `bob_smith` / `password123`
-- `charlie_brown` / `password123`
-
-**Sample Routes:**
-- "Crimpy Goodness" (V4) - Technical crimps with dynamic finish
-- "Slab Master" (V2) - Balance and footwork focused
-- "Power House" (V6) - Raw power moves with big holds
-- "Finger Torture" (V5) - Tiny crimps and pinches
-- "Beginner's Delight" (V1) - Perfect for new climbers
-- "The Gaston" (V3) - Lots of gaston moves
-
-## Technologies Used
-
-### Backend
-- **Flask**: Python web framework with RESTful API design
-- **SQLAlchemy**: Object-relational mapping with SQLite
-- **Flask-JWT-Extended**: Secure JWT authentication
-- **Flask-Bcrypt**: Password hashing and security
-- **Flask-CORS**: Cross-origin resource sharing
+## 🛠️ Technology Stack
 
 ### Frontend
-- **Flutter**: Cross-platform mobile app framework
-- **Provider**: State management and dependency injection
-- **Material Design 3**: Modern UI components and theming
-- **HTTP**: RESTful API communication
-- **SharedPreferences**: Local data persistence
-- **JWT Decoder**: Token validation and management
-- **Flutter 3D Controller**: Interactive 3D visualizations
+- **Flutter 3.0+** - Cross-platform mobile framework
+- **Provider** - State management
+- **flutter_3d_controller** - 3D visualization
+- **HTTP** - API communication with intelligent caching
 
-## Development Features
+### Backend
+- **WordPress 5.0+** - Content management system
+- **PHP 7.4+** - Server-side logic
+- **MySQL/MariaDB** - Database
+- **WordPress REST API** - Backend API endpoints
 
-### Version Management
-- Automated versioning with `commit.sh` script
-- Semantic versioning (major.minor.patch)
-- Synchronized version updates across components
+## 📚 API Overview
 
-### Code Quality
-- Comprehensive error handling throughout the stack
-- Loading states and user feedback
-- Responsive design patterns
-- Clean architecture with separation of concerns
+Base URL: `/wp-json/crux/v1/`
 
-### Color System
-- **Backend-Driven Colors**: All grade and hold colors are managed in the backend database
-- **Hex Color Support**: Colors are stored as hex codes for precise color matching
-- **Centralized Color Utilities**: Shared `ColorUtils` class for consistent color parsing
-- **Fallback Mechanism**: Graceful degradation to default colors if backend data is unavailable
-- **Visual Consistency**: Uniform color representation across all UI components
+### Core Endpoints
+- `GET /routes` - Retrieve climbing routes with filtering
+- `POST /routes/{id}/ticks` - Mark route completion
+- `GET /user/stats` - Get user climbing statistics
+- `GET /auth/me` - Current user authentication status
 
-## Future Enhancements
+## 🔒 Authentication & Roles
 
-- Route setting scheduling and management
-- Social features (following other climbers, competitions)
-- Photo uploads for routes
-- Advanced analytics and reporting
-- Push notifications for new routes
-- Offline mode with data synchronization
-- Admin dashboard for gym management
+- **Authentication**: WordPress cookie-based system
+- **Admin**: Full system management access
+- **Route Setter**: Route creation and editing
+- **Member**: Route interaction and personal tracking
 
-## Contributing
+## 🌍 Internationalization
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes following the existing code style
-4. Test thoroughly on both backend and frontend
-5. Use the version management script: `./commit.sh "Your commit message" patch`
-6. Submit a pull request
+- English (primary)
+- French (secondary)
+- Extensible localization system
 
-## License
+## 📱 Platform Support
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+- **Web**: Primary deployment target
+- **Android**: Mobile app via Flutter
+- **iOS**: Mobile app via Flutter (macOS required for development)
 
-## Support
+## 🔧 Development
 
-For questions, issues, or feature requests:
-- Open a GitHub issue with detailed information
-- Check existing documentation in backend/ and frontend/ README files
-- Contact the development team
+### Prerequisites
+- Flutter SDK ≥3.0.0
+- WordPress 5.0+
+- PHP 7.4+ with MySQL/MariaDB
+
+### Documentation
+- [Frontend Documentation](frontend/README.md) - Detailed Flutter app architecture
+- [Backend Documentation](backend/README.md) - WordPress plugin implementation
+
+## 📄 License
+
+See [LICENSE](LICENSE) file for details.
 
 ---
 
-**Current Version**: 0.3.0  
-**Last Updated**: January 2025## Project Structure
-
-```
-Crux/
-├── backend/                 # Flask API
-│   ├── app.py              # Main Flask application
-│   ├── requirements.txt    # Python dependencies
-│   ├── setup.bat          # Setup script
-│   └── README.md          # Backend documentation
-├── frontend/               # Flutter app
-│   ├── lib/               # Dart source code
-│   ├── pubspec.yaml       # Flutter dependencies
-│   ├── setup.bat          # Setup script
-│   └── README.md          # Frontend documentation
-└── README.md              # This file
-```
-
-## Features
-
-### Backend Features
-- Route CRUD operations
-- User interaction tracking (likes, comments, grade proposals, warnings)
-- Gym topology management (wall sections)
-- RESTful API design
-- Sample data initialization
-
-### Frontend Features
-- Modern Material Design UI
-- Real-time data updates
-- Filtering and search capabilities
-- User-friendly interaction forms
-- Responsive design
-- Error handling and loading states
-
-## API Endpoints
-
-### Routes
-- `GET /api/routes` - Get all routes (with optional filtering)
-- `GET /api/routes/{id}` - Get specific route with details
-- `POST /api/routes` - Create new route
-
-### User Interactions
-- `POST /api/routes/{id}/like` - Like a route
-- `DELETE /api/routes/{id}/unlike` - Unlike a route
-- `POST /api/routes/{id}/comments` - Add comment
-- `POST /api/routes/{id}/grade-proposals` - Propose grade change
-- `POST /api/routes/{id}/warnings` - Report warning
-
-### Utility
-- `GET /api/wall-sections` - Get all wall sections
-- `GET /api/grades` - Get all grades used
-
-## Data Models
-
-### Route
-- Basic information: name, grade, route setter, wall section
-- Optional: color, description
-- Statistics: likes count, comments count, warnings count
-
-### User Interactions
-- **Likes**: Simple user appreciation
-- **Comments**: Text feedback and beta sharing
-- **Grade Proposals**: Suggest different difficulty with reasoning
-- **Warnings**: Report issues (broken holds, safety concerns, etc.)
-
-## Development
-
-### Adding New Features
-
-1. **Backend**: Add new endpoints in `app.py`, update models if needed
-2. **Frontend**: Add new screens/widgets, update API service and provider
-
-### Database Schema
-
-The SQLite database includes:
-- `route` - Route information
-- `like` - User likes
-- `comment` - User comments
-- `grade_proposal` - Grade change suggestions
-- `warning` - Route condition warnings
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+**Version**: 0.11.1  
+**Architecture**: Flutter + WordPress  
+**Platform**: Cross-platform mobile with web backend

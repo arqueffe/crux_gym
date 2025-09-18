@@ -35,75 +35,6 @@ class _HomeScreenState extends State<HomeScreen> {
         automaticallyImplyLeading:
             false, // Remove back button since we're using bottom nav
         actions: [
-          // User info and logout
-          Consumer<AuthProvider>(
-            builder: (context, authProvider, child) {
-              return PopupMenuButton<String>(
-                onSelected: (value) async {
-                  if (value == 'logout') {
-                    await authProvider.logout();
-                  }
-                },
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    enabled: false,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Logged in as:',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                        Text(
-                          authProvider.currentUser?.nickname ?? 'Unknown',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuDivider(),
-                  const PopupMenuItem(
-                    value: 'logout',
-                    child: Row(
-                      children: [
-                        Icon(Icons.logout),
-                        SizedBox(width: 8),
-                        Text('Logout'),
-                      ],
-                    ),
-                  ),
-                ],
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircleAvatar(
-                        radius: 16,
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        child: Text(
-                          (authProvider.currentUser?.nickname ?? 'U')[0]
-                              .toUpperCase(),
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onPrimary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.arrow_drop_down),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
           Builder(builder: (BuildContext context) {
             return IconButton(
               onPressed: () {
@@ -113,18 +44,6 @@ class _HomeScreenState extends State<HomeScreen> {
               tooltip: 'Filters',
             );
           }),
-          // IconButton(
-          //   onPressed: () {
-          //     Navigator.push(
-          //       context,
-          //       MaterialPageRoute(
-          //         builder: (context) => const WallViewer(),
-          //       ),
-          //     );
-          //   },
-          //   icon: const Icon(Icons.view_in_ar),
-          //   tooltip: '3D Wall View',
-          // ),
           Consumer<AuthProvider>(
             builder: (context, authProvider, child) {
               // Only show add route button if user has permission
