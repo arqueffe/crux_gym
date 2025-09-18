@@ -80,7 +80,6 @@ topo_app/
 ### Frontend
 - **Flutter 3.0+** - Cross-platform mobile framework
 - **Provider** - State management
-- **flutter_3d_controller** - 3D visualization
 - **HTTP** - API communication with intelligent caching
 
 ### Backend
@@ -135,6 +134,6 @@ See [LICENSE](LICENSE) file for details.
 
 ---
 
-**Version**: 0.11.1  
+**Version**: 0.11.2
 **Architecture**: Flutter + WordPress  
 **Platform**: Cross-platform mobile with web backend
