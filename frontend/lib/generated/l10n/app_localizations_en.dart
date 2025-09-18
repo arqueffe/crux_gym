@@ -699,22 +699,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorLoadingGradeProposalDialog => 'Error loading grade proposal dialog';
 
   @override
-  String get overhangWall => 'Overhang Wall';
+  String get overhangWall => 'Overhang';
 
   @override
-  String get slabWall => 'Slab Wall';
+  String get slabWall => 'Slab';
 
   @override
-  String get steepWall => 'Steep Wall';
+  String get steepWall => 'Steep';
 
   @override
-  String get verticalWall => 'Vertical Wall';
+  String get verticalWall => 'Vertical';
 
   @override
-  String get caveSection => 'Cave Section';
+  String get prowWall => 'Prow';
 
   @override
-  String get roofSection => 'Roof Section';
+  String get dihedralWall => 'Dièdre';
 
   @override
   String get routeNotFound => 'Route not found';

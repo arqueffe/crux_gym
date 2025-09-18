@@ -177,38 +177,24 @@ class PerformanceSummaryCard extends StatelessWidget {
                   Icons.trending_up,
                   Colors.green,
                 ),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            // Send Type Breakdown
-            Row(
-              children: [
-                Expanded(
-                  child: _buildSendTypeCard(
-                    context,
-                    l10n.trFlash,
-                    filteredTopRopeFlashes,
-                    filteredTopRopeSends,
-                    Icons.arrow_upward,
-                    Colors.blue,
-                  ),
+                _buildSendTypeCard(
+                  context,
+                  l10n.trFlash,
+                  filteredTopRopeFlashes,
+                  filteredTopRopeSends,
+                  Icons.arrow_upward,
+                  Colors.blue,
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildSendTypeCard(
-                    context,
-                    l10n.leadFlash,
-                    filteredLeadFlashes,
-                    filteredLeadSends,
-                    Icons.trending_up,
-                    Colors.green,
-                  ),
+                _buildSendTypeCard(
+                  context,
+                  l10n.leadFlash,
+                  filteredLeadFlashes,
+                  filteredLeadSends,
+                  Icons.trending_up,
+                  Colors.green,
                 ),
               ],
             ),
-
             if (timeFilter == ProfileTimeFilter.all) ...[
               const SizedBox(height: 16),
               const Divider(),

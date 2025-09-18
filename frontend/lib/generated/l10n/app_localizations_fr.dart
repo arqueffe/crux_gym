@@ -699,22 +699,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get errorLoadingGradeProposalDialog => 'Erreur lors du chargement du dialogue de proposition de cotation';
 
   @override
-  String get overhangWall => 'Mur en surplomb';
+  String get overhangWall => 'Surplomb';
 
   @override
-  String get slabWall => 'Mur en dalle';
+  String get slabWall => 'Dalle';
 
   @override
-  String get steepWall => 'Mur raide';
+  String get steepWall => 'Dévers';
 
   @override
-  String get verticalWall => 'Mur vertical';
+  String get verticalWall => 'Vertical';
 
   @override
-  String get caveSection => 'Section grotte';
+  String get prowWall => 'Proue';
 
   @override
-  String get roofSection => 'Section toit';
+  String get dihedralWall => 'Dièdre';
 
   @override
   String get routeNotFound => 'Voie introuvable';

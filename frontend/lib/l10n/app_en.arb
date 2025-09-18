@@ -288,12 +288,12 @@
   "errorLoadingGradeProposalDialog": "Error loading grade proposal dialog",
   
   "@_WALL_SECTIONS": {},
-  "overhangWall": "Overhang Wall",
-  "slabWall": "Slab Wall",
-  "steepWall": "Steep Wall",
-  "verticalWall": "Vertical Wall",
-  "caveSection": "Cave Section",
-  "roofSection": "Roof Section",
+  "overhangWall": "Overhang",
+  "slabWall": "Slab",
+  "steepWall": "Steep",
+  "verticalWall": "Vertical",
+  "prowWall": "Prow",
+  "dihedralWall": "Dièdre",
   
   "@_ROUTE_DETAIL": {},
   "routeNotFound": "Route not found",

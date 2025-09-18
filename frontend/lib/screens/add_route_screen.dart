@@ -44,8 +44,8 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
       l10n.slabWall,
       l10n.steepWall,
       l10n.verticalWall,
-      'Cave Section', // These don't seem to have translations yet
-      'Roof Section'
+      l10n.prowWall,
+      l10n.dihedralWall,
     ];
   }
 

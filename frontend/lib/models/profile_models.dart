@@ -47,9 +47,9 @@ class UserTick {
     );
   }
 
-  bool get isTopRopeFlash => topRopeSend && topRopeAttempts == 0;
+  bool get isTopRopeFlash => topRopeSend && topRopeAttempts == 1;
 
-  bool get isLeadFlash => leadSend && leadAttempts == 0 && topRopeAttempts == 0;
+  bool get isLeadFlash => leadSend && leadAttempts == 1 && topRopeAttempts == 0;
 }
 
 class UserLike {

@@ -1,3 +1,4 @@
+import 'package:climbing_gym_app/widgets/grade_chip.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/profile_models.dart';
@@ -183,14 +184,9 @@ class GradeStatisticsChart extends StatelessWidget {
             ),
 
             // Grade label
-            Text(
-              stat.grade,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: _getGradeColor(stat.grade, routeProvider),
-              ),
-            ),
+            GradeChip(
+                grade: stat.grade,
+                gradeColorHex: routeProvider.getGradeColor(stat.grade)),
           ],
         ),
       ),
@@ -227,22 +223,10 @@ class GradeStatisticsChart extends StatelessWidget {
                     .map((stat) => DataRow(
                           cells: [
                             DataCell(
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color:
-                                      _getGradeColor(stat.grade, routeProvider),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  stat.grade,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                              GradeChip(
+                                grade: stat.grade,
+                                gradeColorHex:
+                                    routeProvider.getGradeColor(stat.grade),
                               ),
                             ),
                             DataCell(Text('${stat.leadSends}')),

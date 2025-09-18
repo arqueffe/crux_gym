@@ -1442,38 +1442,38 @@ abstract class AppLocalizations {
   /// No description provided for @overhangWall.
   ///
   /// In en, this message translates to:
-  /// **'Overhang Wall'**
+  /// **'Overhang'**
   String get overhangWall;
 
   /// No description provided for @slabWall.
   ///
   /// In en, this message translates to:
-  /// **'Slab Wall'**
+  /// **'Slab'**
   String get slabWall;
 
   /// No description provided for @steepWall.
   ///
   /// In en, this message translates to:
-  /// **'Steep Wall'**
+  /// **'Steep'**
   String get steepWall;
 
   /// No description provided for @verticalWall.
   ///
   /// In en, this message translates to:
-  /// **'Vertical Wall'**
+  /// **'Vertical'**
   String get verticalWall;
 
-  /// No description provided for @caveSection.
+  /// No description provided for @prowWall.
   ///
   /// In en, this message translates to:
-  /// **'Cave Section'**
-  String get caveSection;
+  /// **'Prow'**
+  String get prowWall;
 
-  /// No description provided for @roofSection.
+  /// No description provided for @dihedralWall.
   ///
   /// In en, this message translates to:
-  /// **'Roof Section'**
-  String get roofSection;
+  /// **'Dièdre'**
+  String get dihedralWall;
 
   /// No description provided for @routeNotFound.
   ///

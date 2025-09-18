@@ -227,12 +227,12 @@
   "changeProposedGrade": "Vous pouvez modifier votre cotation proposée",
   
   "@_WALL_SECTIONS": {},
-  "overhangWall": "Mur en surplomb",
-  "slabWall": "Mur en dalle",
-  "steepWall": "Mur raide",
-  "verticalWall": "Mur vertical",
-  "caveSection": "Section grotte",
-  "roofSection": "Section toit",
+  "overhangWall": "Surplomb",
+  "slabWall": "Dalle",
+  "steepWall": "Dévers",
+  "verticalWall": "Vertical",
+  "prowWall": "Proue",
+  "dihedralWall": "Dièdre",
   
   "@_ROUTE_DETAIL": {},
   "routeNotFound": "Voie introuvable",
