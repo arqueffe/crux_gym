@@ -74,14 +74,12 @@ class RouteProvider extends ChangeNotifier {
     print('🔧 RouteProvider.loadInitialData() called');
     try {
       await Future.wait([
-        loadRoutes(
-            forceRefresh:
-                forceRefresh), // This will handle grade definitions and hold colors
-        loadWallSections(forceRefresh: forceRefresh),
-        loadGrades(), // Permanently cached - no forceRefresh needed
-        loadLanes(), // Permanently cached - no forceRefresh needed
+        loadRoutes(forceRefresh: forceRefresh),
+        loadWallSections(),
+        loadGrades(),
+        loadLanes(),
         loadRouteSetters(),
-        loadGradeColors(), // Permanently cached - no forceRefresh needed
+        loadGradeColors(),
       ]);
       print('✅ RouteProvider.loadInitialData() completed successfully');
     } catch (e) {
@@ -161,7 +159,8 @@ class RouteProvider extends ChangeNotifier {
     // Filter by grade
     if (_selectedGrade != null) {
       filteredRoutes = filteredRoutes
-          .where((route) => route.grade == _selectedGrade)
+          // TODO: CHECK IF THIS IS WORKING!
+          .where((route) => route.gradeName == _selectedGrade)
           .toList();
     }
 
@@ -372,43 +371,6 @@ class RouteProvider extends ChangeNotifier {
     }
   }
 
-  // Tick/Untick route
-  Future<bool> toggleTick(
-    int routeId, {
-    int attempts = 1,
-    bool flash = false,
-    String? notes,
-  }) async {
-    try {
-      // Check if route is already ticked
-      final tickStatus = await _apiService.getUserTick(routeId);
-      final isTicked = tickStatus['ticked'] ?? false;
-
-      if (isTicked) {
-        // await _apiService.untickRoute(routeId);
-      } else {
-        await _apiService.tickRoute(
-          routeId,
-          attempts: attempts,
-          flash: flash,
-          notes: notes,
-        );
-      }
-
-      // Refresh the specific route to get updated data
-      if (_selectedRoute?.id == routeId) {
-        await loadRoute(routeId);
-      }
-      // Also refresh the routes list
-      await loadRoutes();
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return false;
-    }
-  }
-
   // Add attempts to a route
   Future<bool> addAttempts(int routeId, int attempts, {String? notes}) async {
     try {
@@ -430,9 +392,10 @@ class RouteProvider extends ChangeNotifier {
 
   // Add attempts to a route (optimized for UI interactions)
   Future<bool> addAttemptsOptimized(int routeId, int attempts,
-      {String? notes}) async {
+      {String? notes, String? attemptType}) async {
     try {
-      await _apiService.addAttempts(routeId, attempts, notes: notes);
+      await _apiService.addAttempts(routeId, attempts,
+          notes: notes, attemptType: attemptType);
 
       // Don't reload everything - let the UI handle its own state updates
       return true;
@@ -500,6 +463,20 @@ class RouteProvider extends ChangeNotifier {
   Future<bool> unmarkSendOptimized(int routeId, String sendType) async {
     try {
       await _apiService.unmarkSend(routeId, sendType);
+
+      // Don't reload everything - let the UI handle its own state updates
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Update route notes without affecting attempts or sends
+  Future<bool> updateRouteNotes(int routeId, String notes) async {
+    try {
+      await _apiService.updateRouteNotes(routeId, notes);
 
       // Don't reload everything - let the UI handle its own state updates
       return true;
@@ -890,10 +867,10 @@ class RouteProvider extends ChangeNotifier {
         _currentRoutes.sort((a, b) => b.name.compareTo(a.name));
         break;
       case SortOption.gradeAsc:
-        _currentRoutes.sort((a, b) => a.grade.compareTo(b.grade));
+        _currentRoutes.sort((a, b) => a.gradeId.compareTo(b.gradeId));
         break;
       case SortOption.gradeDesc:
-        _currentRoutes.sort((a, b) => b.grade.compareTo(a.grade));
+        _currentRoutes.sort((a, b) => b.gradeId.compareTo(a.gradeId));
         break;
       case SortOption.mostLikes:
         _currentRoutes.sort((a, b) => b.likesCount.compareTo(a.likesCount));
@@ -1007,39 +984,25 @@ class RouteProvider extends ChangeNotifier {
   }
 
   /// Get hold color info by ID
-  Map<String, String>? getHoldColorById(String? holdColorId) {
-    if (holdColorId == null || holdColorId.isEmpty) return null;
-
-    try {
-      final colorObj = _holdColors.firstWhere(
-        (color) => color['id']?.toString() == holdColorId,
-      );
-      return {
-        'name': colorObj['name']?.toString() ?? '',
-        'hex_code': colorObj['hex_code']?.toString() ?? '',
-      };
-    } catch (e) {
-      // Color not found
-      return null;
-    }
+  Map<String, String> getHoldColorById(int holdColorId) {
+    final colorObj = _holdColors.firstWhere(
+      (color) => int.parse(color['id']) == holdColorId,
+    );
+    return {
+      'name': colorObj['name']?.toString() ?? '',
+      'hex_code': colorObj['hex_code']?.toString() ?? '',
+    };
   }
 
   /// Get grade info by ID
-  Map<String, String>? getGradeById(String? gradeId) {
-    if (gradeId == null || gradeId.isEmpty) return null;
-
-    try {
-      final gradeObj = _gradeDefinitions.firstWhere(
-        (grade) => grade['id']?.toString() == gradeId,
-      );
-      return {
-        'french_name': gradeObj['french_name']?.toString() ?? '',
-        'color': gradeObj['color']?.toString() ?? '',
-      };
-    } catch (e) {
-      // Grade not found
-      return null;
-    }
+  Map<String, String> getGradeById(int? gradeId) {
+    final gradeObj = _gradeDefinitions.firstWhere(
+      (grade) => int.parse(grade['id']) == gradeId,
+    );
+    return {
+      'french_name': gradeObj['french_name']?.toString() ?? '',
+      'color': gradeObj['color']?.toString() ?? '',
+    };
   }
 
   /// Populate route information (colors and grades) for routes after loading
@@ -1047,63 +1010,32 @@ class RouteProvider extends ChangeNotifier {
     for (int i = 0; i < _routes.length; i++) {
       final route = _routes[i];
 
-      // Get color information
-      final colorInfo = getHoldColorById(route.color);
-
-      // Get grade information
-      final gradeInfo = getGradeById(route.grade);
-
-      // Create a new route with populated information
-      _routes[i] = Route(
-        id: route.id,
-        name: route.name,
-        grade: gradeInfo?['french_name'] ??
-            route.grade, // Now contains the grade name
-        gradeColor: gradeInfo?['color'], // Now contains the grade color
-        routeSetter: route.routeSetter,
-        wallSection: route.wallSection,
-        lane: route.lane,
-        laneName: route.laneName,
-        color: colorInfo?['name'] ?? route.color, // Now contains the color name
-        colorHex: colorInfo?['hex_code'], // Now contains the hex code
-        description: route.description,
-        createdAt: route.createdAt,
-        likesCount: route.likesCount,
-        commentsCount: route.commentsCount,
-        gradeProposalsCount: route.gradeProposalsCount,
-        warningsCount: route.warningsCount,
-        ticksCount: route.ticksCount,
-        projectsCount: route.projectsCount,
-        likes: route.likes,
-        comments: route.comments,
-        gradeProposals: route.gradeProposals,
-        warnings: route.warnings,
-        ticks: route.ticks,
-      );
+      _routes[i] = _populateRouteDataForSingleRoute(route);
     }
   }
 
   /// Populate route information (colors and grades) for a single route
   Route _populateRouteDataForSingleRoute(Route route) {
     // Get color information
-    final colorInfo = getHoldColorById(route.color);
+    final colorInfo = getHoldColorById(route.holdColorId);
 
     // Get grade information
-    final gradeInfo = getGradeById(route.grade);
+    final gradeInfo = getGradeById(route.gradeId);
 
     // Create a new route with populated information
     return Route(
       id: route.id,
       name: route.name,
-      grade: gradeInfo?['french_name'] ??
-          route.grade, // Now contains the grade name
-      gradeColor: gradeInfo?['color'], // Now contains the grade color
+      gradeId: route.gradeId,
+      gradeName: gradeInfo['french_name'],
+      gradeColor: gradeInfo['color'],
       routeSetter: route.routeSetter,
       wallSection: route.wallSection,
       lane: route.lane,
       laneName: route.laneName,
-      color: colorInfo?['name'] ?? route.color, // Now contains the color name
-      colorHex: colorInfo?['hex_code'], // Now contains the hex code
+      holdColorId: route.holdColorId,
+      colorName: colorInfo['name'],
+      colorHex: colorInfo['hex_code'],
       description: route.description,
       createdAt: route.createdAt,
       likesCount: route.likesCount,

@@ -128,18 +128,6 @@ class Crux_API
             'permission_callback' => array($this, 'check_user_permissions')
         ));
 
-        register_rest_route($namespace, '/routes/(?P<id>\d+)/ticks', array(
-            'methods' => 'POST',
-            'callback' => array($this, 'tick_route'),
-            'permission_callback' => array($this, 'check_user_permissions')
-        ));
-
-        register_rest_route($namespace, '/routes/(?P<id>\d+)/ticks', array(
-            'methods' => 'DELETE',
-            'callback' => array($this, 'untick_route'),
-            'permission_callback' => array($this, 'check_user_permissions')
-        ));
-
         register_rest_route($namespace, '/routes/(?P<id>\d+)/attempts', array(
             'methods' => 'POST',
             'callback' => array($this, 'add_attempts'),
@@ -219,11 +207,10 @@ class Crux_API
             'permission_callback' => array($this, 'check_user_permissions')
         ));
 
-        // Admin-only cleanup endpoint
-        register_rest_route($namespace, '/admin/fix-flash-data', array(
-            'methods' => 'POST',
-            'callback' => array($this, 'fix_flash_data'),
-            'permission_callback' => array($this, 'check_admin_permissions')
+        register_rest_route($namespace, '/route/notes', array(
+            'methods' => 'PUT',
+            'callback' => array($this, 'update_route_notes'),
+            'permission_callback' => array($this, 'check_user_permissions')
         ));
     }
 
@@ -406,22 +393,6 @@ class Crux_API
                 'is_active' => true,
                 'role' => $this->get_user_primary_role_slug($current_user->ID) ?: 'member'
             )
-        );
-    }
-
-    /**
-     * Get user permissions
-     */
-    public function get_user_permissions($request)
-    {
-        $current_user = $this->_get_current_user();
-        
-        return array(
-            'can_manage_routes' => current_user_can('manage_options') || current_user_can('edit_posts'),
-            'can_create_routes' => current_user_can('manage_options') || current_user_can('edit_posts'),
-            'can_edit_routes' => current_user_can('manage_options'),
-            'can_delete_routes' => current_user_can('manage_options'),
-            'is_admin' => current_user_can('manage_options')
         );
     }
 
@@ -768,101 +739,31 @@ class Crux_API
         $tick = $wpdb->get_row($sql, ARRAY_A);
         
         if (!$tick) {
-            return new WP_Error('not_found', 'No tick found', array('status' => 404));
-        }
-        
-        return $tick;
-    }
-
-    /**
-     * Tick a route
-     */
-    public function tick_route($request)
-    {
-        global $wpdb;
-        
-        $route_id = intval($request['id']);
-        $current_user = $this->_get_current_user();
-        $data = $request->get_json_params();
-        
-        $attempts = isset($data['attempts']) ? intval($data['attempts']) : 1;
-        $flash = isset($data['flash']) ? (bool)$data['flash'] : false;
-        $notes = isset($data['notes']) ? sanitize_textarea_field($data['notes']) : '';
-        
-        // Flash is only valid if attempts = 1
-        $is_flash = $flash && $attempts == 1;
-        
-        $table_name = $wpdb->prefix . 'crux_ticks';
-        
-        // Check if tick already exists
-        $existing = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM $table_name WHERE user_id = %d AND route_id = %d", 
-            $current_user->ID, $route_id
-        ));
-        
-        if ($existing) {
-            // Update existing tick
-            $result = $wpdb->update(
-                $table_name,
-                array(
-                    'attempts' => $attempts,
-                    'notes' => $notes,
-                    'top_rope_flash' => $is_flash ? 1 : 0,
-                    'top_rope_send' => 1,
-                    'updated_at' => current_time('mysql')
-                ),
-                array('user_id' => $current_user->ID, 'route_id' => $route_id),
-                array('%d', '%s', '%d', '%d', '%s'),
-                array('%d', '%d')
-            );
-        } else {
-            // Create new tick
+            // Create empty tick record in database
             $result = $wpdb->insert(
                 $table_name,
                 array(
                     'user_id' => $current_user->ID,
                     'route_id' => $route_id,
-                    'attempts' => $attempts,
-                    'notes' => $notes,
-                    'top_rope_flash' => $is_flash ? 1 : 0,
-                    'top_rope_send' => 1,
+                    'top_rope_attempts' => 0,
+                    'lead_attempts' => 0,
+                    'top_rope_send' => 0,
+                    'lead_send' => 0,
                     'created_at' => current_time('mysql'),
                     'updated_at' => current_time('mysql')
                 ),
-                array('%d', '%d', '%d', '%s', '%d', '%d', '%s', '%s')
+                array('%d', '%d', '%d', '%d', '%d', '%s', '%d', '%d', '%d', '%d', '%s', '%s')
             );
+            
+            if ($result === false) {
+                return new WP_Error('tick_creation_failed', 'Failed to create empty tick record', array('status' => 500));
+            }
+            
+            // Get the newly created tick
+            $tick = $wpdb->get_row($sql, ARRAY_A);
         }
         
-        if ($result === false) {
-            return new WP_Error('tick_failed', 'Failed to tick route', array('status' => 500));
-        }
-        
-        return array('success' => true);
-    }
-
-    /**
-     * Untick a route
-     */
-    public function untick_route($request)
-    {
-        global $wpdb;
-        
-        $route_id = intval($request['id']);
-        $current_user = $this->_get_current_user();
-        
-        $table_name = $wpdb->prefix . 'crux_ticks';
-        
-        $result = $wpdb->delete(
-            $table_name,
-            array('user_id' => $current_user->ID, 'route_id' => $route_id),
-            array('%d', '%d')
-        );
-        
-        if ($result === false) {
-            return new WP_Error('untick_failed', 'Failed to untick route', array('status' => 500));
-        }
-        
-        return array('success' => true);
+        return $tick;
     }
 
     /**
@@ -877,6 +778,7 @@ class Crux_API
         $data = $request->get_json_params();
         
         $attempts = intval($data['attempts']);
+        $attempt_type = isset($data['attempt_type']) ? sanitize_text_field($data['attempt_type']) : 'general';
         $notes = isset($data['notes']) ? sanitize_textarea_field($data['notes']) : '';
         
         $table_name = $wpdb->prefix . 'crux_ticks';
@@ -889,15 +791,29 @@ class Crux_API
         
         if ($existing) {
             // Update existing tick - add attempts without marking as sent
-            $new_attempts = $existing->attempts + $attempts;
+            $new_total_attempts = $existing->attempts + $attempts;
             $update_data = array(
-                'attempts' => $new_attempts,
-                'notes' => $notes,
                 'updated_at' => current_time('mysql')
             );
             
+            // Only update notes if new notes are provided and not empty
+            if (!empty($notes)) {
+                $update_data['notes'] = $notes;
+            }
+            
+            // Add to specific attempt type
+            if ($attempt_type === 'top_rope') {
+                $update_data['top_rope_attempts'] = $existing->top_rope_attempts + $attempts;
+            } elseif ($attempt_type === 'lead') {
+                $update_data['lead_attempts'] = $existing->lead_attempts + $attempts;
+            } else {
+                // For general attempts, add to both types equally or keep legacy behavior
+                $update_data['top_rope_attempts'] = $existing->top_rope_attempts;
+                $update_data['lead_attempts'] = $existing->lead_attempts;
+            }
+            
             // If attempts become > 1, remove any flash status
-            if ($new_attempts > 1) {
+            if ($new_total_attempts > 1) {
                 $update_data['top_rope_flash'] = 0;
                 $update_data['lead_flash'] = 0;
             }
@@ -906,24 +822,38 @@ class Crux_API
                 $table_name,
                 $update_data,
                 array('user_id' => $current_user->ID, 'route_id' => $route_id),
-                array('%d', '%s', '%s', '%d', '%d'),
+                array('%d', '%d', '%d', '%s', '%s', '%d', '%d'),
                 array('%d', '%d')
             );
         } else {
             // Create new tick without marking as sent
+            $insert_data = array(
+                'user_id' => $current_user->ID,
+                'route_id' => $route_id,
+                'notes' => $notes,
+                'top_rope_send' => 0,
+                'lead_send' => 0,
+                'created_at' => current_time('mysql'),
+                'updated_at' => current_time('mysql')
+            );
+            
+            // Set specific attempt types
+            if ($attempt_type === 'top_rope') {
+                $insert_data['top_rope_attempts'] = $attempts;
+                $insert_data['lead_attempts'] = 0;
+            } elseif ($attempt_type === 'lead') {
+                $insert_data['top_rope_attempts'] = 0;
+                $insert_data['lead_attempts'] = $attempts;
+            } else {
+                // For general attempts, keep legacy behavior
+                $insert_data['top_rope_attempts'] = 0;
+                $insert_data['lead_attempts'] = 0;
+            }
+            
             $result = $wpdb->insert(
                 $table_name,
-                array(
-                    'user_id' => $current_user->ID,
-                    'route_id' => $route_id,
-                    'attempts' => $attempts,
-                    'notes' => $notes,
-                    'top_rope_send' => 0,
-                    'lead_send' => 0,
-                    'created_at' => current_time('mysql'),
-                    'updated_at' => current_time('mysql')
-                ),
-                array('%d', '%d', '%d', '%s', '%d', '%d', '%s', '%s')
+                $insert_data,
+                array('%d', '%d', '%d', '%s', '%d', '%d', '%d', '%d', '%s', '%s')
             );
         }
         
@@ -961,17 +891,20 @@ class Crux_API
                 break;
             case 'flash':
                 $send_data['top_rope_send'] = 1;
-                $send_data['top_rope_flash'] = 1;
-                $send_data['attempts'] = 1;
+                $send_data['top_rope_attempts'] = 1;
+                $send_data['lead_attempts'] = 0;
                 break;
             case 'lead_flash':
                 $send_data['lead_send'] = 1;
-                $send_data['lead_flash'] = 1;
-                $send_data['attempts'] = 1;
+                $send_data['top_rope_attempts'] = 0;
+                $send_data['lead_attempts'] = 1;
                 break;
         }
         
-        $send_data['notes'] = $notes;
+        // Only update notes if new notes are provided and not empty
+        if (!empty($notes)) {
+            $send_data['notes'] = $notes;
+        }
         $send_data['updated_at'] = current_time('mysql');
         
         // Check if tick already exists
@@ -981,6 +914,15 @@ class Crux_API
         ));
         
         if ($existing) {
+            // For non-flash sends, preserve existing attempt counts and ensure minimum 1 attempt of the correct type
+            if ($send_type === 'top_rope' && !isset($send_data['top_rope_attempts'])) {
+                $send_data['top_rope_attempts'] = max(1, $existing->top_rope_attempts);
+                $send_data['lead_attempts'] = $existing->lead_attempts;
+            } elseif ($send_type === 'lead' && !isset($send_data['lead_attempts'])) {
+                $send_data['lead_attempts'] = max(1, $existing->lead_attempts);
+                $send_data['top_rope_attempts'] = $existing->top_rope_attempts;
+            }
+            
             // Update existing tick
             $result = $wpdb->update(
                 $table_name,
@@ -996,7 +938,31 @@ class Crux_API
                 $send_data['attempts'] = 1;
             }
             
+            // For new ticks, ensure attempt counts are set
+            if (!isset($send_data['top_rope_attempts'])) {
+                if ($send_type === 'top_rope' || $send_type === 'flash') {
+                    $send_data['top_rope_attempts'] = 1;
+                    $send_data['lead_attempts'] = 0;
+                } elseif ($send_type === 'lead' || $send_type === 'lead_flash') {
+                    $send_data['top_rope_attempts'] = 0;
+                    $send_data['lead_attempts'] = 1;
+                } else {
+                    $send_data['top_rope_attempts'] = 0;
+                    $send_data['lead_attempts'] = 0;
+                }
+            }
+            
             $result = $wpdb->insert($table_name, $send_data);
+        }
+
+        // If route is a project, remove it from projects upon sending
+        if ($result) {
+            $projects_table = $wpdb->prefix . 'crux_projects';
+            $wpdb->delete(
+                $projects_table,
+                array('user_id' => $current_user->ID, 'route_id' => $route_id),
+                array('%d', '%d')
+            );
         }
         
         if ($result === false) {
@@ -1036,11 +1002,9 @@ class Crux_API
         switch ($send_type) {
             case 'top_rope':
                 $unsend_data['top_rope_send'] = 0;
-                $unsend_data['top_rope_flash'] = 0; // Also remove flash if it exists
                 break;
             case 'lead':
                 $unsend_data['lead_send'] = 0;
-                $unsend_data['lead_flash'] = 0; // Also remove flash if it exists
                 break;
         }
         
@@ -2160,6 +2124,72 @@ class Crux_API
             'message' => 'Flash data cleanup completed',
             'top_rope_flashes_fixed' => $top_rope_fixed,
             'lead_flashes_fixed' => $lead_fixed
+        );
+    }
+
+    /**
+     * Update route notes for a user without affecting attempts or sends
+     */
+    public function update_route_notes($request) {
+        global $wpdb;
+        
+        $route_id = $request['route_id'];
+        $notes = $request['notes'] ?? '';
+        
+        // Get current user
+        $current_user = $this->_get_current_user();
+        
+        if (!$current_user) {
+            return new WP_Error('not_authenticated', 'User is not authenticated', array('status' => 401));
+        }
+        
+        $user_id = $current_user->ID;
+        $ticks_table = $wpdb->prefix . 'crux_ticks';
+        
+        // Check if a tick entry exists for this user/route combination
+        $existing_tick = $wpdb->get_row($wpdb->prepare(
+            "SELECT id FROM $ticks_table WHERE user_id = %d AND route_id = %d",
+            $user_id,
+            $route_id
+        ));
+        
+        if ($existing_tick) {
+            // Update existing tick with new notes only
+            $result = $wpdb->update(
+                $ticks_table,
+                array('notes' => $notes),
+                array('id' => $existing_tick->id),
+                array('%s'),
+                array('%d')
+            );
+        } else {
+            // Create new tick entry with only notes
+            $result = $wpdb->insert(
+                $ticks_table,
+                array(
+                    'user_id' => $user_id,
+                    'route_id' => $route_id,
+                    'notes' => $notes,
+                    'attempts' => 0,
+                    'top_rope_attempts' => 0,
+                    'lead_attempts' => 0,
+                    'top_rope_send' => 0,
+                    'lead_send' => 0,
+                    'top_rope_flash' => 0,
+                    'lead_flash' => 0
+                ),
+                array('%d', '%d', '%s', '%d', '%d', '%d', '%d', '%d', '%d', '%d')
+            );
+        }
+        
+        if ($result === false) {
+            return new WP_Error('notes_update_failed', 'Failed to update notes', array('status' => 500));
+        }
+        
+        return array(
+            'success' => true,
+            'message' => 'Notes updated successfully',
+            'notes' => $notes
         );
     }
 

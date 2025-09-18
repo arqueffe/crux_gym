@@ -21,7 +21,7 @@ class RouteCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     print(
-        'Rendering RouteCard for route ID: ${route.id}, Name: ${route.name}, Grade: ${route.grade}, Lane: ${route.lane}, Color: ${route.colorHex}, Likes: ${route.likesCount}, Comments: ${route.commentsCount}, Ticks: ${route.ticksCount}, Proposals: ${route.gradeProposalsCount}, Warnings: ${route.warningsCount}');
+        'Rendering RouteCard for route ID: ${route.id}, Name: ${route.name}, Grade: ${route.gradeId}, Lane: ${route.lane}, Color: ${route.colorHex}, Likes: ${route.likesCount}, Comments: ${route.commentsCount}, Ticks: ${route.ticksCount}, Proposals: ${route.gradeProposalsCount}, Warnings: ${route.warningsCount}');
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
@@ -47,7 +47,7 @@ class RouteCard extends StatelessWidget {
                         Row(
                           children: [
                             GradeChip(
-                              grade: route.grade,
+                              grade: route.gradeName!,
                               gradeColorHex: route.gradeColor,
                             ),
                             // Show average proposed grade if there are proposals
@@ -75,7 +75,7 @@ class RouteCard extends StatelessWidget {
                                 },
                               ),
                             ],
-                            if (route.color != null) ...[
+                            if (route.colorHex != null) ...[
                               const SizedBox(width: 8),
                               Container(
                                 width: 20,

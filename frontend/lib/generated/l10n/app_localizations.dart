@@ -449,17 +449,35 @@ abstract class AppLocalizations {
   /// **'Projects'**
   String get projectsTab;
 
+  /// No description provided for @inProgressTab.
+  ///
+  /// In en, this message translates to:
+  /// **'In Progress'**
+  String get inProgressTab;
+
   /// No description provided for @noTicksFound.
   ///
   /// In en, this message translates to:
-  /// **'No ticks found'**
+  /// **'No lead sends found'**
   String get noTicksFound;
 
   /// No description provided for @noTicksDescription.
   ///
   /// In en, this message translates to:
-  /// **'Complete some routes to see them here'**
+  /// **'Complete some routes in lead to see them here'**
   String get noTicksDescription;
+
+  /// No description provided for @noInProgressFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No routes in progress'**
+  String get noInProgressFound;
+
+  /// No description provided for @noInProgressDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Start attempting some routes to see them here'**
+  String get noInProgressDescription;
 
   /// No description provided for @noLikesFound.
   ///
@@ -532,6 +550,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Avg. Attempts'**
   String get averageAttempts;
+
+  /// No description provided for @trAverageAttempts.
+  ///
+  /// In en, this message translates to:
+  /// **'TR Avg. Attempts'**
+  String get trAverageAttempts;
+
+  /// No description provided for @leadAverageAttempts.
+  ///
+  /// In en, this message translates to:
+  /// **'Lead Avg. Attempts'**
+  String get leadAverageAttempts;
 
   /// No description provided for @routeTitle.
   ///
@@ -778,6 +808,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add Attempts'**
   String get addAttempts;
+
+  /// No description provided for @selectAttemptType.
+  ///
+  /// In en, this message translates to:
+  /// **'What type of attempt?'**
+  String get selectAttemptType;
 
   /// No description provided for @reportIssue.
   ///
@@ -1516,6 +1552,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Track'**
   String get track;
+
+  /// No description provided for @note.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get note;
 
   /// No description provided for @comment.
   ///

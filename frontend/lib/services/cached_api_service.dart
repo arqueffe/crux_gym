@@ -14,7 +14,8 @@ class CachedApiService {
   // Fallback to Python backend for non-web platforms
   static const String fallbackUrl = 'http://localhost:5000/api';
   final AuthProvider authProvider;
-  final CacheService _cacheService = CacheService();
+
+  late final CacheService _cacheService = CacheService();
 
   CachedApiService({required this.authProvider});
 
@@ -640,9 +641,11 @@ class CachedApiService {
   }
 
   /// Add attempts to a route (without marking as sent)
-  Future<void> addAttempts(int routeId, int attempts, {String? notes}) async {
+  Future<void> addAttempts(int routeId, int attempts,
+      {String? notes, String? attemptType}) async {
     final body = {
       'attempts': attempts,
+      if (attemptType != null) 'attempt_type': attemptType,
       if (notes != null && notes.trim().isNotEmpty) 'notes': notes.trim(),
     };
 
@@ -690,6 +693,23 @@ class CachedApiService {
 
     if (!response['success']) {
       throw Exception(response['error'] ?? 'Failed to unmark send');
+    }
+  }
+
+  /// Update notes for a route without affecting attempts or sends
+  Future<void> updateRouteNotes(int routeId, String notes) async {
+    final body = {
+      'route_id': routeId,
+      'notes': notes,
+    };
+
+    final response = await put('/route/notes', body, invalidatePatterns: [
+      '/user/ticks',
+      '/routes/$routeId',
+    ]);
+
+    if (!response['success']) {
+      throw Exception(response['error'] ?? 'Failed to update notes');
     }
   }
 
@@ -795,47 +815,6 @@ class CachedApiService {
       throw Exception(response['error'] ?? 'Failed to get like status');
     }
   }
-
-  /// Tick a route (invalidates user ticks, stats, and route data)
-  Future<void> tickRoute(
-    int routeId, {
-    int attempts = 1,
-    bool flash = false,
-    String? notes,
-  }) async {
-    final body = {
-      'attempts': attempts,
-      'flash': flash,
-      if (notes != null && notes.trim().isNotEmpty) 'notes': notes.trim(),
-    };
-
-    final response = await post('/routes/$routeId/ticks', body,
-        invalidatePatterns: [
-          '/user/ticks',
-          '/user/stats',
-          '/routes/$routeId',
-          '/routes'
-        ]);
-
-    if (!response['success']) {
-      throw Exception(response['error'] ?? 'Failed to tick route');
-    }
-  }
-
-  /// Untick a route (invalidates user ticks, stats, and route data)
-  // Future<void> untickRoute(int routeId) async {
-  //   final response = await delete('/routes/$routeId/ticks',
-  //       invalidatePatterns: [
-  //         '/user/ticks',
-  //         '/user/stats',
-  //         '/routes/$routeId',
-  //         '/routes'
-  //       ]);
-
-  //   if (!response['success']) {
-  //     throw Exception(response['error'] ?? 'Failed to untick route');
-  //   }
-  // }
 
   /// Add project (invalidates user projects and route data)
   Future<void> addProject(int routeId, {String? notes}) async {

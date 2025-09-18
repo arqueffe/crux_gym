@@ -99,7 +99,7 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                                   Row(
                                     children: [
                                       GradeChip(
-                                        grade: route.grade,
+                                        grade: route.gradeName!,
                                         gradeColorHex: route.gradeColor,
                                       ),
                                       // Show averaged proposed grade if available
@@ -138,7 +138,7 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                                           }
                                         },
                                       ),
-                                      if (route.color != null) ...[
+                                      if (route.colorHex != null) ...[
                                         const SizedBox(width: 8),
                                         Container(
                                           width: 20,

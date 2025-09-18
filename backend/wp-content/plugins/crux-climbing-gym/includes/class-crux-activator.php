@@ -59,15 +59,6 @@ class Crux_Activator {
         $charset_collate = $wpdb->get_charset_collate();
         $tables_created = 0;
 
-        // Check if we need to drop and recreate lanes table due to schema change
-        $lanes_table = $wpdb->prefix . 'crux_lanes';
-        $columns = $wpdb->get_results("SHOW COLUMNS FROM $lanes_table LIKE 'number'");
-        if (!empty($columns)) {
-            // Old schema detected, drop the table to recreate with new schema
-            $wpdb->query("DROP TABLE IF EXISTS $lanes_table");
-            error_log("Crux Plugin: Dropped old lanes table with number column");
-        }
-
         // 1. Grades table - MUST be created first due to foreign keys
         $table_name = $wpdb->prefix . 'crux_grades';
         $sql = "CREATE TABLE $table_name (
@@ -227,12 +218,11 @@ class Crux_Activator {
             id mediumint(9) NOT NULL AUTO_INCREMENT,
             user_id bigint(20) NOT NULL,
             route_id mediumint(9) NOT NULL,
-            attempts int(11) DEFAULT 1,
+            top_rope_attempts int(11) DEFAULT 0,
+            lead_attempts int(11) DEFAULT 0,
             notes text,
             top_rope_send tinyint(1) DEFAULT 0,
-            top_rope_flash tinyint(1) DEFAULT 0,
             lead_send tinyint(1) DEFAULT 0,
-            lead_flash tinyint(1) DEFAULT 0,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),

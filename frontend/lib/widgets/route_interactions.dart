@@ -367,6 +367,16 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                         runSpacing: 8,
                         children: [
                           ElevatedButton.icon(
+                            onPressed: () => _showNotesDialog(),
+                            icon: const Icon(Icons.sticky_note_2_outlined,
+                                size: 18),
+                            label: Text(l10n.note),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                            ),
+                          ),
+                          ElevatedButton.icon(
                             onPressed: () => _showCommentDialog(),
                             icon: const Icon(Icons.comment, size: 18),
                             label: Text(l10n.comment),
@@ -439,7 +449,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        // Attempts
+                        // Attempts - Show separate counts if available
                         Column(
                           children: [
                             Icon(
@@ -450,13 +460,59 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                               size: 20,
                             ),
                             const SizedBox(height: 4),
-                            Text(
-                              '${_tickData?['attempts'] ?? 0}',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                            // Show separate attempt counts if we have the data
+                            if (_tickData != null &&
+                                (_tickData!['top_rope_attempts'] != null ||
+                                    _tickData!['lead_attempts'] != null))
+                              Column(
+                                children: [
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.arrow_upward,
+                                          size: 14, color: Colors.blue),
+                                      const SizedBox(width: 2),
+                                      Text(
+                                        '${_tickData!['top_rope_attempts'] ?? 0}',
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Icon(Icons.trending_up,
+                                          size: 14, color: Colors.green),
+                                      const SizedBox(width: 2),
+                                      Text(
+                                        '${_tickData!['lead_attempts'] ?? 0}',
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Total: ${_tickData?['attempts'] ?? 0}',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            else
+                              // Fallback to total attempts display
+                              Text(
+                                '${_tickData?['attempts'] ?? 0}',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
                             Text(
                               l10n.attemptsLabel,
                               style: TextStyle(
@@ -621,9 +677,62 @@ class _RouteInteractionsState extends State<RouteInteractions> {
       return;
     }
 
+    // Show dialog to select attempt type
+    if (!mounted) return;
+
+    final attemptType = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.addAttempts),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(l10n.selectAttemptType),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => Navigator.of(context).pop('top_rope'),
+                    icon: const Icon(Icons.arrow_upward),
+                    label: Text(l10n.topRope),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => Navigator.of(context).pop('lead'),
+                    icon: const Icon(Icons.trending_up),
+                    label: Text(l10n.lead),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.cancel),
+          ),
+        ],
+      ),
+    );
+
+    if (attemptType == null) return;
+
     final routeProvider = context.read<RouteProvider>();
     try {
-      await routeProvider.addAttemptsOptimized(widget.route.id, 1);
+      await routeProvider.addAttemptsOptimized(widget.route.id, 1,
+          notes: '', attemptType: attemptType);
       // Refresh only the tick data to get updated attempt count
       await _refreshTickData();
       if (mounted) {
@@ -818,6 +927,89 @@ class _RouteInteractionsState extends State<RouteInteractions> {
             _isProject ? l10n.projectRemoved : l10n.routeAddedToProjects,
           ),
           duration: const Duration(seconds: 2),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${l10n.error}: ${routeProvider.error}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _showNotesDialog() {
+    final notesController = TextEditingController();
+
+    // Pre-populate with existing notes if any
+    if (_tickData != null && _tickData!['notes'] != null) {
+      notesController.text = _tickData!['notes'].toString();
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        final l10n = AppLocalizations.of(context);
+        return AlertDialog(
+          title: Text('${l10n.note} - ${widget.route.name}'),
+          content: TextField(
+            controller: notesController,
+            decoration: InputDecoration(
+              labelText: l10n.notes,
+              border: const OutlineInputBorder(),
+              helperText: 'Personal notes for this route',
+            ),
+            maxLines: 4,
+            autofocus: true,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n.cancel),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _updateNotes(notesController.text.trim());
+              },
+              child: Text(l10n.save),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _updateNotes(String notes) async {
+    final l10n = AppLocalizations.of(context);
+    final routeProvider = Provider.of<RouteProvider>(context, listen: false);
+
+    final success =
+        await routeProvider.updateRouteNotes(widget.route.id, notes);
+
+    if (success) {
+      // Update local state immediately
+      if (_tickData != null) {
+        _tickData!['notes'] = notes;
+      } else {
+        _tickData = {
+          'notes': notes,
+          'attempts': 0,
+          'top_rope_attempts': 0,
+          'lead_attempts': 0,
+          'top_rope_send': false,
+          'lead_send': false,
+          'top_rope_flash': false,
+          'lead_flash': false,
+        };
+      }
+      setState(() {});
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(notes.isEmpty ? 'Note removed' : 'Note saved'),
+          backgroundColor: Colors.green,
         ),
       );
     } else {

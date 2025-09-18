@@ -1,13 +1,15 @@
 class Route {
   final int id;
   final String name;
-  final String grade;
+  final int gradeId;
+  final String? gradeName;
   final String? gradeColor;
   final String routeSetter;
   final String wallSection;
   final int lane;
   final String? laneName;
-  final String? color;
+  final int holdColorId;
+  final String? colorName;
   final String? colorHex;
   final String? description;
   final DateTime createdAt;
@@ -26,13 +28,15 @@ class Route {
   Route({
     required this.id,
     required this.name,
-    required this.grade,
+    required this.gradeId,
+    this.gradeName,
     this.gradeColor,
     required this.routeSetter,
     required this.wallSection,
     required this.lane,
     this.laneName,
-    this.color,
+    required this.holdColorId,
+    this.colorName,
     this.colorHex,
     this.description,
     required this.createdAt,
@@ -51,19 +55,17 @@ class Route {
 
   factory Route.fromJson(Map<String, dynamic> json) {
     return Route(
-      id: json['id'],
+      id: int.parse(json['id']),
       name: json['name'],
-      grade: json['grade_id']?.toString() ??
-          '', // Backend sends grade_id, frontend will map this
+      gradeId: int.parse(json['grade_id']),
+      gradeName: null, // Will be populated by frontend mapping
       gradeColor: null, // Will be populated by frontend mapping
       routeSetter: json['route_setter'],
       wallSection: json['wall_section'],
-      lane: int.tryParse(json['lane_id']?.toString() ?? '0') ??
-          0, // Ensure lane is int
-      laneName:
-          json['lane_name'], // May be null if not provided by backend JOIN
-      color: json['hold_color_id']
-          ?.toString(), // Backend sends hold_color_id, frontend will map this
+      lane: int.parse(json['lane_id']),
+      laneName: json['lane_name'],
+      holdColorId: int.parse(json['hold_color_id']),
+      colorName: null, // Will be populated by frontend mapping
       colorHex: null, // Will be populated by frontend mapping
       description: json['description'],
       createdAt: DateTime.parse(json['created_at']),
@@ -96,80 +98,18 @@ class Route {
   Map<String, dynamic> toJson() {
     final result = <String, dynamic>{
       'name': name,
-      'grade_id': int.tryParse(grade) ??
-          grade, // Convert string ID back to int, or keep as is if already proper format
+      'grade_id': gradeId,
       'route_setter': routeSetter,
       'wall_section': wallSection,
       'lane_id': lane,
     };
 
-    // Only add hold_color_id if color is not null
-    if (color != null) {
-      result['hold_color_id'] = int.tryParse(color!) ?? color!;
-    }
-
-    // Only add description if it's not null
+    result['hold_color_id'] = holdColorId;
     if (description != null) {
       result['description'] = description!;
     }
 
     return result;
-  }
-
-  // Calculate average proposed grade
-  // @deprecated Use GradeUtils.calculateAverageProposedGrade instead for accurate grading
-  String? get averageProposedGrade {
-    if (gradeProposals == null || gradeProposals!.isEmpty) {
-      return null;
-    }
-
-    // Map grades to numeric values for averaging
-    Map<String, int> gradeValues = {
-      'V0': 0,
-      'V1': 1,
-      'V2': 2,
-      'V3': 3,
-      'V4': 4,
-      'V5': 5,
-      'V6': 6,
-      'V7': 7,
-      'V8': 8,
-      'V9': 9,
-      'V10': 10,
-      'V11': 11,
-      'V12': 12,
-    };
-
-    List<String> grades = [
-      'V0',
-      'V1',
-      'V2',
-      'V3',
-      'V4',
-      'V5',
-      'V6',
-      'V7',
-      'V8',
-      'V9',
-      'V10',
-      'V11',
-      'V12'
-    ];
-
-    double total = 0;
-    int count = 0;
-
-    for (var proposal in gradeProposals!) {
-      if (gradeValues.containsKey(proposal.proposedGrade)) {
-        total += gradeValues[proposal.proposedGrade]!;
-        count++;
-      }
-    }
-
-    if (count == 0) return null;
-
-    int averageIndex = (total / count).round();
-    return grades[averageIndex.clamp(0, grades.length - 1)];
   }
 }
 
@@ -190,10 +130,10 @@ class Like {
 
   factory Like.fromJson(Map<String, dynamic> json) {
     return Like(
-      id: json['id'],
-      userId: json['user_id'],
+      id: int.parse(json['id']),
+      userId: int.parse(json['user_id']),
       userName: json['user_name'],
-      routeId: json['route_id'],
+      routeId: int.parse(json['route_id']),
       createdAt: DateTime.parse(json['created_at']),
     );
   }
@@ -224,11 +164,11 @@ class Comment {
 
   factory Comment.fromJson(Map<String, dynamic> json) {
     return Comment(
-      id: json['id'],
-      userId: json['user_id'],
+      id: int.parse(json['id']),
+      userId: int.parse(json['user_id']),
       userName: json['user_name'],
       content: json['content'],
-      routeId: json['route_id'],
+      routeId: int.parse(json['route_id']),
       createdAt: DateTime.parse(json['created_at']),
     );
   }
@@ -260,24 +200,13 @@ class GradeProposal {
   });
 
   factory GradeProposal.fromJson(Map<String, dynamic> json) {
-    // Validate required fields
-    if (json['id'] == null ||
-        json['user_id'] == null ||
-        json['user_name'] == null ||
-        json['proposed_grade'] == null ||
-        json['route_id'] == null ||
-        json['created_at'] == null) {
-      throw const FormatException(
-          'Invalid GradeProposal data: missing required fields');
-    }
-
     return GradeProposal(
-      id: json['id'],
-      userId: json['user_id'],
+      id: int.parse(json['id']),
+      userId: int.parse(json['user_id']),
       userName: json['user_name'],
       proposedGrade: json['proposed_grade'],
       reasoning: json['reasoning'],
-      routeId: json['route_id'],
+      routeId: int.parse(json['route_id']),
       createdAt: DateTime.parse(json['created_at']),
     );
   }
@@ -313,12 +242,12 @@ class Warning {
 
   factory Warning.fromJson(Map<String, dynamic> json) {
     return Warning(
-      id: json['id'],
-      userId: json['user_id'],
+      id: int.parse(json['id']),
+      userId: int.parse(json['user_id']),
       userName: json['user_name'],
       warningType: json['warning_type'],
       description: json['description'],
-      routeId: json['route_id'],
+      routeId: int.parse(json['route_id']),
       status: json['status'],
       createdAt: DateTime.parse(json['created_at']),
     );
@@ -337,14 +266,10 @@ class Tick {
   final int userId;
   final String userName;
   final int routeId;
-  final int attempts;
+  final int topRopeAttempts;
+  final int leadAttempts;
   final bool topRopeSend;
   final bool leadSend;
-  final bool topRopeFlash;
-  final bool leadFlash;
-  final bool flash; // Legacy field for backward compatibility
-  final bool hasAnySend;
-  final bool hasAnyFlash;
   final String? notes;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -354,14 +279,10 @@ class Tick {
     required this.userId,
     required this.userName,
     required this.routeId,
-    required this.attempts,
+    required this.topRopeAttempts,
+    required this.leadAttempts,
     required this.topRopeSend,
     required this.leadSend,
-    required this.topRopeFlash,
-    required this.leadFlash,
-    required this.flash,
-    required this.hasAnySend,
-    required this.hasAnyFlash,
     this.notes,
     required this.createdAt,
     required this.updatedAt,
@@ -369,18 +290,14 @@ class Tick {
 
   factory Tick.fromJson(Map<String, dynamic> json) {
     return Tick(
-      id: json['id'],
-      userId: json['user_id'],
+      id: int.parse(json['id']),
+      userId: int.parse(json['user_id']),
       userName: json['user_name'],
-      routeId: json['route_id'],
-      attempts: json['attempts'] ?? 0,
+      routeId: int.parse(json['route_id']),
+      topRopeAttempts: json['top_rope_attempts'] ?? 0,
+      leadAttempts: json['lead_attempts'] ?? 0,
       topRopeSend: json['top_rope_send'] ?? false,
       leadSend: json['lead_send'] ?? false,
-      topRopeFlash: json['top_rope_flash'] ?? false,
-      leadFlash: json['lead_flash'] ?? false,
-      flash: json['flash'] ?? false,
-      hasAnySend: json['has_any_send'] ?? false,
-      hasAnyFlash: json['has_any_flash'] ?? false,
       notes: json['notes'],
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
@@ -389,12 +306,10 @@ class Tick {
 
   Map<String, dynamic> toJson() {
     return {
-      'attempts': attempts,
+      'top_rope_attempts': topRopeAttempts,
+      'lead_attempts': leadAttempts,
       'top_rope_send': topRopeSend,
       'lead_send': leadSend,
-      'top_rope_flash': topRopeFlash,
-      'lead_flash': leadFlash,
-      'flash': flash,
       'notes': notes,
     };
   }
@@ -427,10 +342,10 @@ class Project {
 
   factory Project.fromJson(Map<String, dynamic> json) {
     return Project(
-      id: json['id'],
-      userId: json['user_id'],
+      id: int.parse(json['id']),
+      userId: int.parse(json['user_id']),
       userName: json['user_name'],
-      routeId: json['route_id'],
+      routeId: int.parse(json['route_id']),
       routeName: json['route_name'],
       routeGrade: json['route_grade'],
       routeWallSection: json['route_wall_section'],
