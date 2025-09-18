@@ -188,10 +188,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String get projectsTab => 'Projets';
 
   @override
-  String get noTicksFound => 'Aucune réalisation trouvée';
+  String get inProgressTab => 'En cours';
 
   @override
-  String get noTicksDescription => 'Terminez quelques voies pour les voir ici';
+  String get noTicksFound => 'Aucun enchaînement en tête trouvé';
+
+  @override
+  String get noTicksDescription => 'Réalisez quelques voies en tête pour les voir ici';
+
+  @override
+  String get noInProgressFound => 'Aucune voie en cours';
+
+  @override
+  String get noInProgressDescription => 'Commencez à tenter quelques voies pour les voir ici';
 
   @override
   String get noLikesFound => 'Aucune voie aimée trouvée';
@@ -228,6 +237,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get averageAttempts => 'Tentatives moy.';
+
+  @override
+  String get trAverageAttempts => 'Moul. Tent. Moy.';
+
+  @override
+  String get leadAverageAttempts => 'Tête Tent. Moy.';
 
   @override
   String get routeTitle => 'Détails de la voie';
@@ -355,6 +370,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get addAttempts => 'Ajouter des tentatives';
+
+  @override
+  String get selectAttemptType => 'Quel type de tentative ?';
 
   @override
   String get reportIssue => 'Signaler un problème';
@@ -740,6 +758,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get track => 'Suivre';
+
+  @override
+  String get note => 'Note';
 
   @override
   String get comment => 'Commentaire';

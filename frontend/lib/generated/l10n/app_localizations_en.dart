@@ -188,10 +188,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get projectsTab => 'Projects';
 
   @override
-  String get noTicksFound => 'No ticks found';
+  String get inProgressTab => 'In Progress';
 
   @override
-  String get noTicksDescription => 'Complete some routes to see them here';
+  String get noTicksFound => 'No lead sends found';
+
+  @override
+  String get noTicksDescription => 'Complete some routes in lead to see them here';
+
+  @override
+  String get noInProgressFound => 'No routes in progress';
+
+  @override
+  String get noInProgressDescription => 'Start attempting some routes to see them here';
 
   @override
   String get noLikesFound => 'No liked routes found';
@@ -228,6 +237,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get averageAttempts => 'Avg. Attempts';
+
+  @override
+  String get trAverageAttempts => 'TR Avg. Attempts';
+
+  @override
+  String get leadAverageAttempts => 'Lead Avg. Attempts';
 
   @override
   String get routeTitle => 'Route Details';
@@ -355,6 +370,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get addAttempts => 'Add Attempts';
+
+  @override
+  String get selectAttemptType => 'What type of attempt?';
 
   @override
   String get reportIssue => 'Report Issue';
@@ -740,6 +758,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get track => 'Track';
+
+  @override
+  String get note => 'Note';
 
   @override
   String get comment => 'Comment';

@@ -117,7 +117,7 @@ class TicksList extends StatelessWidget {
                                           size: 12, color: Colors.blue),
                                       const SizedBox(width: 2),
                                       Text(
-                                        '${l10n.topRopeShort}${tick.topRopeFlash ? ' ⚡' : ''}',
+                                        '${l10n.topRopeShort}${tick.isTopRopeFlash ? ' ⚡' : ''}',
                                         style: const TextStyle(
                                           color: Colors.blue,
                                           fontSize: 10,
@@ -144,7 +144,7 @@ class TicksList extends StatelessWidget {
                                           size: 12, color: Colors.green),
                                       const SizedBox(width: 2),
                                       Text(
-                                        '${l10n.leadShort}${tick.leadFlash ? ' ⚡' : ''}',
+                                        '${l10n.leadShort}${tick.isLeadFlash ? ' ⚡' : ''}',
                                         style: const TextStyle(
                                           color: Colors.green,
                                           fontSize: 10,
@@ -156,26 +156,6 @@ class TicksList extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 4),
                               ],
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          // Attempts indicator
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.repeat,
-                                size: 16,
-                                color: Colors.grey.shade600,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                l10n.attemptsCount(tick.attempts),
-                                style: TextStyle(
-                                  color: Colors.grey.shade600,
-                                  fontSize: 12,
-                                ),
-                              ),
                             ],
                           ),
                           const SizedBox(height: 4),

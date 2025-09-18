@@ -20,7 +20,7 @@ class Role {
 
   factory Role.fromJson(Map<String, dynamic> json) {
     return Role(
-      id: json['id'],
+      id: int.parse(json['id']),
       name: json['name'],
       slug: json['slug'],
       description: json['description'],

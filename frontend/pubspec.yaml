@@ -1,7 +1,7 @@
 name: climbing_gym_app
 description: A Flutter app for managing climbing gym routes and user interactions.
 publish_to: 'none'
-version: 0.11.2
+version: 0.12.0
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

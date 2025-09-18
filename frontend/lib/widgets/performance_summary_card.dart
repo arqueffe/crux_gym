@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import '../generated/l10n/app_localizations.dart';
 import '../models/profile_models.dart';
+import '../models/route_models.dart';
 
 class PerformanceSummaryCard extends StatelessWidget {
   final ProfileStats? stats;
   final List<UserTick> filteredTicks;
+  final List<Project> filteredProjects;
   final ProfileTimeFilter timeFilter;
   final List<Map<String, dynamic>> gradeDefinitions;
 
@@ -12,6 +14,7 @@ class PerformanceSummaryCard extends StatelessWidget {
     super.key,
     required this.stats,
     required this.filteredTicks,
+    required this.filteredProjects,
     required this.timeFilter,
     required this.gradeDefinitions,
   });
@@ -31,25 +34,32 @@ class PerformanceSummaryCard extends StatelessWidget {
       );
     }
 
-    final filteredFlashes =
-        filteredTicks.where((tick) => tick.hasAnyFlash).length;
+    print(
+        "Filtered ticks: ${filteredTicks.map((t) => "${t.routeName} ${t.topRopeAttempts} ${t.leadAttempts} ${t.topRopeSend} ${t.leadSend} ${t.isTopRopeFlash} ${t.isLeadFlash}").toList()}");
+
     final filteredTopRopeFlashes =
-        filteredTicks.where((tick) => tick.topRopeFlash).length;
+        filteredTicks.where((tick) => tick.isTopRopeFlash).length;
     final filteredLeadFlashes =
-        filteredTicks.where((tick) => tick.leadFlash).length;
+        filteredTicks.where((tick) => tick.isLeadFlash).length;
     final filteredTopRopeSends =
         filteredTicks.where((tick) => tick.topRopeSend).length;
     final filteredLeadSends =
         filteredTicks.where((tick) => tick.leadSend).length;
-    final filteredTotalSends =
-        filteredTicks.where((tick) => tick.hasAnySend).length;
-    final filteredTotalAttempts =
-        filteredTicks.fold<int>(0, (sum, tick) => sum + tick.attempts);
-    final filteredAverageAttempts = filteredTotalSends > 0
-        ? filteredTotalAttempts / filteredTotalSends
+
+    // Calculate flash rate based on lead sends only (as requested)
+    final filteredLeadFlashRate =
+        filteredLeadSends > 0 ? filteredLeadFlashes / filteredLeadSends : 0.0;
+
+    // Calculate separate attempt statistics for top rope and lead
+    final filteredTopRopeAttempts =
+        filteredTicks.fold<int>(0, (sum, tick) => sum + tick.topRopeAttempts);
+    final filteredLeadAttempts =
+        filteredTicks.fold<int>(0, (sum, tick) => sum + tick.leadAttempts);
+    final filteredTopRopeAverageAttempts = filteredTopRopeSends > 0
+        ? filteredTopRopeAttempts / filteredTopRopeSends
         : 0.0;
-    final filteredFlashRate =
-        filteredTotalSends > 0 ? filteredFlashes / filteredTotalSends : 0.0;
+    final filteredLeadAverageAttempts =
+        filteredLeadSends > 0 ? filteredLeadAttempts / filteredLeadSends : 0.0;
 
     // Get hardest grade from filtered ticks using proper grade ordering
     String? filteredHardestGrade;
@@ -113,18 +123,11 @@ class PerformanceSummaryCard extends StatelessWidget {
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
+              crossAxisCount: 3,
               childAspectRatio: 2.2,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
               children: [
-                _buildStatCard(
-                  context,
-                  l10n.totalTicks,
-                  '${filteredTicks.length}', // Show total ticks, not just sends
-                  Icons.check_circle,
-                  Colors.green,
-                ),
                 _buildStatCard(
                   context,
                   l10n.topRope,
@@ -142,23 +145,16 @@ class PerformanceSummaryCard extends StatelessWidget {
                 _buildStatCard(
                   context,
                   l10n.projectsTab,
-                  '${stats!.totalProjects}',
+                  '${filteredProjects.length}',
                   Icons.flag,
                   Colors.blue,
                 ),
                 _buildStatCard(
                   context,
                   l10n.flashRate,
-                  '${(filteredFlashRate * 100).toStringAsFixed(1)}%',
+                  '${(filteredLeadFlashRate * 100).toStringAsFixed(1)}%',
                   Icons.flash_on,
                   Colors.orange,
-                ),
-                _buildStatCard(
-                  context,
-                  l10n.averageAttempts,
-                  filteredAverageAttempts.toStringAsFixed(1),
-                  Icons.repeat,
-                  Colors.blue,
                 ),
                 _buildStatCard(
                   context,
@@ -166,6 +162,20 @@ class PerformanceSummaryCard extends StatelessWidget {
                   filteredHardestGrade ?? stats!.hardestGrade ?? 'N/A',
                   Icons.emoji_events,
                   Colors.purple,
+                ),
+                _buildStatCard(
+                  context,
+                  l10n.trAverageAttempts,
+                  filteredTopRopeAverageAttempts.toStringAsFixed(1),
+                  Icons.arrow_upward,
+                  Colors.blue,
+                ),
+                _buildStatCard(
+                  context,
+                  l10n.leadAverageAttempts,
+                  filteredLeadAverageAttempts.toStringAsFixed(1),
+                  Icons.trending_up,
+                  Colors.green,
                 ),
               ],
             ),

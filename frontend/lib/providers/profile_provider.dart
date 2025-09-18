@@ -21,9 +21,13 @@ class ProfileProvider extends ChangeNotifier {
   List<Project> _userProjects = [];
   List<GradeStatistics> _gradeStats = [];
   ProfileStats? _profileStats;
-  bool _isLoading = false;
-  String? _error;
   ProfileTimeFilter _timeFilter = ProfileTimeFilter.all;
+
+  // Separate notifiers for specific concerns
+  final ValueNotifier<ProfileTimeFilter> timeFilterNotifier =
+      ValueNotifier(ProfileTimeFilter.all);
+  final ValueNotifier<bool> loadingNotifier = ValueNotifier(false);
+  final ValueNotifier<String?> errorNotifier = ValueNotifier(null);
 
   // Getters
   List<UserTick> get userTicks => _userTicks;
@@ -31,16 +35,44 @@ class ProfileProvider extends ChangeNotifier {
   List<Project> get userProjects => _userProjects;
   List<GradeStatistics> get gradeStats => _gradeStats;
   ProfileStats? get profileStats => _profileStats;
-  bool get isLoading => _isLoading;
-  String? get error => _error;
-  ProfileTimeFilter get timeFilter => _timeFilter;
+  bool get isLoading => loadingNotifier.value;
+  String? get error => errorNotifier.value;
+  ProfileTimeFilter get timeFilter => timeFilterNotifier.value;
 
   // Filtered getters based on time filter
   List<UserTick> get filteredTicks {
     final startDate = _timeFilter.startDate;
     if (startDate == null) return _userTicks;
     return _userTicks
-        .where((tick) => tick.createdAt.isAfter(startDate))
+        .where((tick) => tick.updatedAt.isAfter(startDate))
+        .toList();
+  }
+
+  // New getter for lead sends only
+  List<UserTick> get filteredLeadSends {
+    final startDate = _timeFilter.startDate;
+    final baseTicks = startDate == null
+        ? _userTicks
+        : _userTicks
+            .where((tick) => tick.createdAt.isAfter(startDate))
+            .toList();
+
+    return baseTicks.where((tick) => tick.leadSend).toList();
+  }
+
+  // New getter for routes in progress (attempts without lead send)
+  List<UserTick> get filteredInProgressRoutes {
+    final startDate = _timeFilter.startDate;
+    final baseTicks = startDate == null
+        ? _userTicks
+        : _userTicks
+            .where((tick) => tick.createdAt.isAfter(startDate))
+            .toList();
+
+    return baseTicks
+        .where((tick) =>
+            (tick.topRopeAttempts > 0 || tick.leadAttempts > 0) &&
+            !tick.leadSend)
         .toList();
   }
 
@@ -74,23 +106,8 @@ class ProfileProvider extends ChangeNotifier {
     return filteredTicksMap.entries.map((entry) {
       final grade = entry.key;
       final ticks = entry.value;
-      final tickCount = ticks.length;
-      final totalAttempts = ticks.fold<int>(
-        0,
-        (sum, tick) => sum + tick.attempts,
-      );
-      final flashCount = ticks.where((tick) => tick.flash).length;
-      final averageAttempts = tickCount > 0 ? totalAttempts / tickCount : 0.0;
-      final flashRate = tickCount > 0 ? flashCount / tickCount : 0.0;
 
-      return GradeStatistics(
-        grade: grade,
-        tickCount: tickCount,
-        totalAttempts: totalAttempts,
-        flashCount: flashCount,
-        averageAttempts: averageAttempts,
-        flashRate: flashRate,
-      );
+      return GradeStatistics(grade: grade, ticks: ticks);
     }).toList()
       ..sort((a, b) => _gradeOrder(a.grade).compareTo(_gradeOrder(b.grade)));
   }
@@ -120,24 +137,24 @@ class ProfileProvider extends ChangeNotifier {
 
   void setTimeFilter(ProfileTimeFilter filter) {
     _timeFilter = filter;
-    notifyListeners();
+    timeFilterNotifier.value = filter;
+    // Don't call notifyListeners() here - only specific consumers should rebuild
   }
 
   Future<void> loadProfile({bool forceRefresh = false}) async {
     _setLoading(true);
-    _error = null;
+    errorNotifier.value = null;
 
     try {
       await Future.wait([
         _loadUserTicks(forceRefresh: forceRefresh),
         _loadUserLikes(forceRefresh: forceRefresh),
         _loadUserProjects(forceRefresh: forceRefresh),
-        _loadProfileStats(forceRefresh: forceRefresh),
       ]);
 
       _calculateGradeStats();
     } catch (e) {
-      _error = 'Failed to load profile: $e';
+      errorNotifier.value = 'Failed to load profile: $e';
     } finally {
       _setLoading(false);
     }
@@ -172,15 +189,6 @@ class ProfileProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> _loadProfileStats({bool forceRefresh = false}) async {
-    try {
-      final data = await _apiService.getUserStats(forceRefresh: forceRefresh);
-      _profileStats = ProfileStats.fromJson(data);
-    } catch (e) {
-      throw 'Failed to load profile stats: $e';
-    }
-  }
-
   void _calculateGradeStats() {
     final gradeTicksMap = <String, List<UserTick>>{};
 
@@ -191,37 +199,114 @@ class ProfileProvider extends ChangeNotifier {
     _gradeStats = gradeTicksMap.entries.map((entry) {
       final grade = entry.key;
       final ticks = entry.value;
-      final tickCount = ticks.length;
-      final totalAttempts = ticks.fold<int>(
-        0,
-        (sum, tick) => sum + tick.attempts,
-      );
-      final flashCount = ticks.where((tick) => tick.flash).length;
-      final averageAttempts = tickCount > 0 ? totalAttempts / tickCount : 0.0;
-      final flashRate = tickCount > 0 ? flashCount / tickCount : 0.0;
 
       return GradeStatistics(
         grade: grade,
-        tickCount: tickCount,
-        totalAttempts: totalAttempts,
-        flashCount: flashCount,
-        averageAttempts: averageAttempts,
-        flashRate: flashRate,
+        ticks: ticks,
       );
     }).toList()
       ..sort(
         (a, b) => _gradeOrder(a.grade).compareTo(_gradeOrder(b.grade)),
       );
+
+    // Recalculate profile stats from frontend data
+    _calculateProfileStats();
+  }
+
+  void _calculateProfileStats() {
+    // Calculate all statistics from frontend data
+    final totalLikes = _userLikes.length;
+    final totalProjects = _userProjects.length;
+
+    // Send statistics
+    final topRopeSends = _userTicks.where((tick) => tick.topRopeSend).length;
+    final leadSends = _userTicks.where((tick) => tick.leadSend).length;
+
+    // Flash statistics
+    final topRopeFlashes = _userTicks
+        .where((tick) => tick.topRopeAttempts == 0 && tick.topRopeSend)
+        .length;
+    final leadFlashes = _userTicks
+        .where((tick) => tick.leadAttempts == 0 && tick.leadSend)
+        .length;
+
+    // Grade achievements
+    final grades = _userTicks.map((tick) => tick.routeGrade).toSet().toList();
+    String? hardestGrade;
+    String? hardestTopRopeGrade;
+    String? hardestLeadGrade;
+
+    if (grades.isNotEmpty) {
+      // Sort grades to find hardest overall
+      grades.sort((a, b) {
+        final aOrder = _gradeOrder(a);
+        final bOrder = _gradeOrder(b);
+        return bOrder.compareTo(aOrder); // Descending order for hardest first
+      });
+      hardestGrade = grades.first;
+
+      // Find hardest top rope grade
+      final topRopeGrades = _userTicks
+          .where((tick) => tick.topRopeSend)
+          .map((tick) => tick.routeGrade)
+          .toSet()
+          .toList();
+      if (topRopeGrades.isNotEmpty) {
+        topRopeGrades.sort((a, b) => _gradeOrder(b).compareTo(_gradeOrder(a)));
+        hardestTopRopeGrade = topRopeGrades.first;
+      }
+
+      // Find hardest lead grade
+      final leadGrades = _userTicks
+          .where((tick) => tick.leadSend)
+          .map((tick) => tick.routeGrade)
+          .toSet()
+          .toList();
+      if (leadGrades.isNotEmpty) {
+        leadGrades.sort((a, b) => _gradeOrder(b).compareTo(_gradeOrder(a)));
+        hardestLeadGrade = leadGrades.first;
+      }
+    }
+
+    // Achieved grades (sorted by difficulty)
+    final achievedGrades = grades
+      ..sort((a, b) => _gradeOrder(a).compareTo(_gradeOrder(b)));
+
+    _profileStats = ProfileStats(
+      totalLikes: totalLikes,
+      totalComments: 0, // Comments not tracked in frontend
+      totalProjects: totalProjects,
+      topRopeAttempts:
+          _userTicks.fold<int>(0, (sum, tick) => sum + tick.topRopeAttempts),
+      leadAttempts:
+          _userTicks.fold<int>(0, (sum, tick) => sum + tick.leadAttempts),
+      topRopeSends: topRopeSends,
+      leadSends: leadSends,
+      topRopeFlashes: topRopeFlashes,
+      leadFlashes: leadFlashes,
+      hardestGrade: hardestGrade,
+      hardestTopRopeGrade: hardestTopRopeGrade,
+      hardestLeadGrade: hardestLeadGrade,
+      achievedGrades: achievedGrades,
+    );
   }
 
   void _setLoading(bool loading) {
-    _isLoading = loading;
+    loadingNotifier.value = loading;
     notifyListeners();
   }
 
   void clearError() {
-    _error = null;
+    errorNotifier.value = null;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    timeFilterNotifier.dispose();
+    loadingNotifier.dispose();
+    errorNotifier.dispose();
+    super.dispose();
   }
 
   Future<void> refresh() async {

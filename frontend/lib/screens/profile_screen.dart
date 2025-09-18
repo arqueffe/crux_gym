@@ -167,12 +167,14 @@ class _ProfileScreenState extends State<ProfileScreen>
           title: l10n.profileTitle,
           actions: [
             // Time filter dropdown
-            Consumer<ProfileProvider>(
-              builder: (context, profileProvider, child) {
+            ValueListenableBuilder<ProfileTimeFilter>(
+              valueListenable:
+                  context.read<ProfileProvider>().timeFilterNotifier,
+              builder: (context, timeFilter, child) {
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: DropdownButton<ProfileTimeFilter>(
-                    value: profileProvider.timeFilter,
+                    value: timeFilter,
                     underline: Container(),
                     items: ProfileTimeFilter.values.map((filter) {
                       return DropdownMenuItem(
@@ -185,7 +187,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     }).toList(),
                     onChanged: (filter) {
                       if (filter != null) {
-                        profileProvider.setTimeFilter(filter);
+                        context.read<ProfileProvider>().setTimeFilter(filter);
                       }
                     },
                   ),
@@ -211,62 +213,90 @@ class _ProfileScreenState extends State<ProfileScreen>
             ],
           ),
         ),
-        body: Consumer2<ProfileProvider, AuthProvider>(
-          builder: (context, profileProvider, authProvider, child) {
-            final l10n = AppLocalizations.of(context);
-
-            if (profileProvider.isLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            if (profileProvider.error != null) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error_outline,
-                        size: 64, color: Colors.red),
-                    const SizedBox(height: 16),
-                    Text(
-                      '${l10n.error}: ${profileProvider.error}',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 16),
+        body: Column(
+          children: [
+            // Loading and error state handling
+            ValueListenableBuilder<bool>(
+              valueListenable: context.read<ProfileProvider>().loadingNotifier,
+              builder: (context, isLoading, child) {
+                if (isLoading) {
+                  return const Expanded(
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+            ValueListenableBuilder<String?>(
+              valueListenable: context.read<ProfileProvider>().errorNotifier,
+              builder: (context, error, child) {
+                if (error != null) {
+                  return Expanded(
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.error_outline,
+                              size: 64, color: Colors.red),
+                          const SizedBox(height: 16),
+                          Text(
+                            '${l10n.error}: $error',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () =>
+                                context.read<ProfileProvider>().loadProfile(),
+                            child: Text(l10n.retry),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () => profileProvider.loadProfile(),
-                      child: Text(l10n.retry),
-                    ),
-                  ],
-                ),
-              );
-            }
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+            // Main content - only rebuild when data changes, not when filter changes
+            Expanded(
+              child: Consumer<ProfileProvider>(
+                builder: (context, profileProvider, child) {
+                  // This Consumer only rebuilds when the actual data changes,
+                  // not when the time filter changes
+                  if (profileProvider.isLoading ||
+                      profileProvider.error != null) {
+                    return const SizedBox.shrink();
+                  }
 
-            return TabBarView(
-              controller: _tabController,
-              children: [
-                // Performance Tab
-                RefreshIndicator(
-                  onRefresh: () => profileProvider.refresh(),
-                  child: const PerformanceTab(),
-                ),
-                // Routes Tab
-                RefreshIndicator(
-                  onRefresh: () => profileProvider.refresh(),
-                  child: RoutesTab(
-                    onRouteReturn: () => _refreshProfileData(),
-                  ),
-                ),
-                // Settings Tab
-                RefreshIndicator(
-                  onRefresh: () => profileProvider.refresh(),
-                  child: SettingsTab(
-                    onEditNickname: () => _promptEditNickname(context),
-                  ),
-                ),
-              ],
-            );
-          },
+                  return TabBarView(
+                    controller: _tabController,
+                    children: [
+                      // Performance Tab
+                      RefreshIndicator(
+                        onRefresh: () => profileProvider.refresh(),
+                        child: const PerformanceTab(),
+                      ),
+                      // Routes Tab
+                      RefreshIndicator(
+                        onRefresh: () => profileProvider.refresh(),
+                        child: RoutesTab(
+                          onRouteReturn: () => _refreshProfileData(),
+                        ),
+                      ),
+                      // Settings Tab
+                      RefreshIndicator(
+                        onRefresh: () => profileProvider.refresh(),
+                        child: SettingsTab(
+                          onEditNickname: () => _promptEditNickname(context),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -289,11 +319,21 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 }
 
-class PerformanceTab extends StatelessWidget {
+class PerformanceTab extends StatefulWidget {
   const PerformanceTab({super.key});
 
   @override
+  State<PerformanceTab> createState() => _PerformanceTabState();
+}
+
+class _PerformanceTabState extends State<PerformanceTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     final l10n = AppLocalizations.of(context);
 
     return Consumer<ProfileProvider>(
@@ -303,34 +343,45 @@ class PerformanceTab extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Performance Summary
-              PerformanceSummaryCard(
-                stats: profileProvider.profileStats,
-                filteredTicks: profileProvider.filteredTicks,
-                timeFilter: profileProvider.timeFilter,
-                gradeDefinitions:
-                    context.read<RouteProvider>().gradeDefinitions,
+              // Performance Summary - uses ValueListenableBuilder internally for time filter
+              ValueListenableBuilder<ProfileTimeFilter>(
+                valueListenable: profileProvider.timeFilterNotifier,
+                builder: (context, timeFilter, child) {
+                  return PerformanceSummaryCard(
+                    stats: profileProvider.profileStats,
+                    filteredTicks: profileProvider.filteredTicks,
+                    filteredProjects: profileProvider.filteredProjects,
+                    timeFilter: timeFilter,
+                    gradeDefinitions:
+                        context.read<RouteProvider>().gradeDefinitions,
+                  );
+                },
               ),
               const SizedBox(height: 16),
 
-              // Grade Statistics Chart
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.gradeBreakdown,
-                        style: Theme.of(context).textTheme.titleLarge,
+              // Grade Statistics Chart - also filtered
+              ValueListenableBuilder<ProfileTimeFilter>(
+                valueListenable: profileProvider.timeFilterNotifier,
+                builder: (context, timeFilter, child) {
+                  return Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.gradeBreakdown,
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: 16),
+                          GradeStatisticsChart(
+                            gradeStats: profileProvider.filteredGradeStats,
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      GradeStatisticsChart(
-                        gradeStats: profileProvider.filteredGradeStats,
-                      ),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -352,7 +403,10 @@ class RoutesTab extends StatefulWidget {
   State<RoutesTab> createState() => _RoutesTabState();
 }
 
-class _RoutesTabState extends State<RoutesTab> {
+class _RoutesTabState extends State<RoutesTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
   int _selectedIndex = 0;
   final PageController _pageController = PageController();
 
@@ -375,6 +429,7 @@ class _RoutesTabState extends State<RoutesTab> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     final l10n = AppLocalizations.of(context);
 
     return Column(
@@ -393,7 +448,7 @@ class _RoutesTabState extends State<RoutesTab> {
                 child: _buildSegmentButton(
                   context: context,
                   index: 0,
-                  icon: Icons.check_circle,
+                  icon: Icons.trending_up,
                   label: l10n.ticksTab,
                   isSelected: _selectedIndex == 0,
                 ),
@@ -402,8 +457,8 @@ class _RoutesTabState extends State<RoutesTab> {
                 child: _buildSegmentButton(
                   context: context,
                   index: 1,
-                  icon: Icons.favorite,
-                  label: l10n.likesTab,
+                  icon: Icons.schedule,
+                  label: l10n.inProgressTab,
                   isSelected: _selectedIndex == 1,
                 ),
               ),
@@ -411,9 +466,18 @@ class _RoutesTabState extends State<RoutesTab> {
                 child: _buildSegmentButton(
                   context: context,
                   index: 2,
+                  icon: Icons.favorite,
+                  label: l10n.likesTab,
+                  isSelected: _selectedIndex == 2,
+                ),
+              ),
+              Expanded(
+                child: _buildSegmentButton(
+                  context: context,
+                  index: 3,
                   icon: Icons.flag,
                   label: l10n.projectsTab,
-                  isSelected: _selectedIndex == 2,
+                  isSelected: _selectedIndex == 3,
                 ),
               ),
             ],
@@ -429,8 +493,10 @@ class _RoutesTabState extends State<RoutesTab> {
               });
             },
             children: [
-              // Ticks
-              _buildTicksContent(),
+              // Lead Sends (previously Ticks)
+              _buildLeadSendsContent(),
+              // In Progress
+              _buildInProgressContent(),
               // Likes
               _buildLikesContent(),
               // Projects
@@ -500,124 +566,185 @@ class _RoutesTabState extends State<RoutesTab> {
     );
   }
 
-  Widget _buildTicksContent() {
-    return Consumer<ProfileProvider>(
-      builder: (context, profileProvider, child) {
-        final l10n = AppLocalizations.of(context);
-        final ticks = profileProvider.filteredTicks;
+  Widget _buildLeadSendsContent() {
+    return ValueListenableBuilder<ProfileTimeFilter>(
+      valueListenable: context.read<ProfileProvider>().timeFilterNotifier,
+      builder: (context, timeFilter, child) {
+        return Consumer<ProfileProvider>(
+          builder: (context, profileProvider, child) {
+            final l10n = AppLocalizations.of(context);
+            final leadSends = profileProvider.filteredLeadSends;
 
-        if (ticks.isEmpty) {
-          return _buildEmptyState(
-            icon: Icons.check_circle_outline,
-            title: l10n.noTicksFound,
-            description: l10n.noTicksDescription,
-          );
-        }
+            if (leadSends.isEmpty) {
+              return _buildEmptyState(
+                icon: Icons.trending_up_outlined,
+                title: l10n.noTicksFound,
+                description: l10n.noTicksDescription,
+              );
+            }
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Stats summary card
-              _buildStatsCard(
-                title: '${ticks.length} ${l10n.ticksTab}',
-                icon: Icons.check_circle,
-                color: Colors.green,
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Stats summary card
+                  _buildStatsCard(
+                    title: '${leadSends.length} ${l10n.ticksTab}',
+                    icon: Icons.trending_up,
+                    color: Colors.green,
+                  ),
+                  const SizedBox(height: 16),
+                  // List
+                  Expanded(
+                    child: TicksList(
+                      ticks: leadSends,
+                      gradeColors: context.read<RouteProvider>().gradeColors,
+                      onRouteSelected: widget.onRouteReturn,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              // List
-              Expanded(
-                child: TicksList(
-                  ticks: ticks,
-                  gradeColors: context.read<RouteProvider>().gradeColors,
-                  onRouteSelected: widget.onRouteReturn,
-                ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildInProgressContent() {
+    return ValueListenableBuilder<ProfileTimeFilter>(
+      valueListenable: context.read<ProfileProvider>().timeFilterNotifier,
+      builder: (context, timeFilter, child) {
+        return Consumer<ProfileProvider>(
+          builder: (context, profileProvider, child) {
+            final l10n = AppLocalizations.of(context);
+            final inProgressRoutes = profileProvider.filteredInProgressRoutes;
+
+            if (inProgressRoutes.isEmpty) {
+              return _buildEmptyState(
+                icon: Icons.schedule_outlined,
+                title: l10n.noInProgressFound,
+                description: l10n.noInProgressDescription,
+              );
+            }
+
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Stats summary card
+                  _buildStatsCard(
+                    title: '${inProgressRoutes.length} ${l10n.inProgressTab}',
+                    icon: Icons.schedule,
+                    color: Colors.orange,
+                  ),
+                  const SizedBox(height: 16),
+                  // List
+                  Expanded(
+                    child: TicksList(
+                      ticks: inProgressRoutes,
+                      gradeColors: context.read<RouteProvider>().gradeColors,
+                      onRouteSelected: widget.onRouteReturn,
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
 
   Widget _buildLikesContent() {
-    return Consumer<ProfileProvider>(
-      builder: (context, profileProvider, child) {
-        final l10n = AppLocalizations.of(context);
-        final likes = profileProvider.filteredLikes;
+    return ValueListenableBuilder<ProfileTimeFilter>(
+      valueListenable: context.read<ProfileProvider>().timeFilterNotifier,
+      builder: (context, timeFilter, child) {
+        return Consumer<ProfileProvider>(
+          builder: (context, profileProvider, child) {
+            final l10n = AppLocalizations.of(context);
+            final likes = profileProvider.filteredLikes;
 
-        if (likes.isEmpty) {
-          return _buildEmptyState(
-            icon: Icons.favorite_outline,
-            title: l10n.noLikesFound,
-            description: l10n.noLikesDescription,
-          );
-        }
+            if (likes.isEmpty) {
+              return _buildEmptyState(
+                icon: Icons.favorite_outline,
+                title: l10n.noLikesFound,
+                description: l10n.noLikesDescription,
+              );
+            }
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Stats summary card
-              _buildStatsCard(
-                title: '${likes.length} ${l10n.likesTab}',
-                icon: Icons.favorite,
-                color: Colors.red,
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Stats summary card
+                  _buildStatsCard(
+                    title: '${likes.length} ${l10n.likesTab}',
+                    icon: Icons.favorite,
+                    color: Colors.red,
+                  ),
+                  const SizedBox(height: 16),
+                  // List
+                  Expanded(
+                    child: LikesList(
+                      likes: likes,
+                      gradeColors: context.read<RouteProvider>().gradeColors,
+                      onRouteSelected: widget.onRouteReturn,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              // List
-              Expanded(
-                child: LikesList(
-                  likes: likes,
-                  gradeColors: context.read<RouteProvider>().gradeColors,
-                  onRouteSelected: widget.onRouteReturn,
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
 
   Widget _buildProjectsContent() {
-    return Consumer<ProfileProvider>(
-      builder: (context, profileProvider, child) {
-        final l10n = AppLocalizations.of(context);
-        final projects = profileProvider.filteredProjects;
+    return ValueListenableBuilder<ProfileTimeFilter>(
+      valueListenable: context.read<ProfileProvider>().timeFilterNotifier,
+      builder: (context, timeFilter, child) {
+        return Consumer<ProfileProvider>(
+          builder: (context, profileProvider, child) {
+            final l10n = AppLocalizations.of(context);
+            final projects = profileProvider.filteredProjects;
 
-        if (projects.isEmpty) {
-          return _buildEmptyState(
-            icon: Icons.flag_outlined,
-            title: l10n.noProjectsFound,
-            description: l10n.noProjectsDescription,
-          );
-        }
+            if (projects.isEmpty) {
+              return _buildEmptyState(
+                icon: Icons.flag_outlined,
+                title: l10n.noProjectsFound,
+                description: l10n.noProjectsDescription,
+              );
+            }
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Stats summary card
-              _buildStatsCard(
-                title: '${projects.length} ${l10n.projectsTab}',
-                icon: Icons.flag,
-                color: Colors.orange,
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Stats summary card
+                  _buildStatsCard(
+                    title: '${projects.length} ${l10n.projectsTab}',
+                    icon: Icons.flag,
+                    color: Colors.orange,
+                  ),
+                  const SizedBox(height: 16),
+                  // List
+                  Expanded(
+                    child: ProjectsList(
+                      projects: projects,
+                      gradeColors: context.read<RouteProvider>().gradeColors,
+                      onRouteSelected: widget.onRouteReturn,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              // List
-              Expanded(
-                child: ProjectsList(
-                  projects: projects,
-                  gradeColors: context.read<RouteProvider>().gradeColors,
-                  onRouteSelected: widget.onRouteReturn,
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -712,7 +839,7 @@ class _RoutesTabState extends State<RoutesTab> {
   }
 }
 
-class SettingsTab extends StatelessWidget {
+class SettingsTab extends StatefulWidget {
   final VoidCallback onEditNickname;
 
   const SettingsTab({
@@ -721,7 +848,17 @@ class SettingsTab extends StatelessWidget {
   });
 
   @override
+  State<SettingsTab> createState() => _SettingsTabState();
+}
+
+class _SettingsTabState extends State<SettingsTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     final l10n = AppLocalizations.of(context);
 
     return Consumer2<AuthProvider, ThemeProvider>(
@@ -779,7 +916,7 @@ class SettingsTab extends StatelessWidget {
                               IconButton(
                                 tooltip: l10n.editNicknameTooltip,
                                 icon: const Icon(Icons.edit_outlined),
-                                onPressed: onEditNickname,
+                                onPressed: widget.onEditNickname,
                               ),
                             ],
                           ),

@@ -347,13 +347,11 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
       final route = models.Route(
         id: 0, // Will be set by the server
         name: _nameController.text.trim(),
-        grade: _selectedGradeId!
-            .toString(), // Store as string for now, but will be converted to grade_id in toJson
+        gradeId: _selectedGradeId!,
         routeSetter: _routeSetterController.text.trim(),
         wallSection: _selectedWallSection!,
         lane: _selectedLane!,
-        color: _selectedColorId
-            ?.toString(), // Store as string for now, but will be converted to hold_color_id in toJson
+        holdColorId: _selectedColorId!,
         description: _descriptionController.text.trim().isEmpty
             ? null
             : _descriptionController.text.trim(),

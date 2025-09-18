@@ -29,10 +29,6 @@ class GradeStatisticsChart extends StatelessWidget {
       );
     }
 
-    final maxTicks = gradeStats
-        .map((stat) => stat.tickCount)
-        .reduce((a, b) => a > b ? a : b);
-
     return Column(
       children: [
         // Legend
@@ -55,7 +51,7 @@ class GradeStatisticsChart extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: gradeStats
                   .map((stat) => _buildGradeBar(
-                      context, stat, maxTicks, l10n, routeProvider))
+                      context, stat, stat.leadSends, l10n, routeProvider))
                   .toList(),
             ),
           ),
@@ -105,7 +101,7 @@ class GradeStatisticsChart extends StatelessWidget {
         12; // Extra padding to prevent overflow
 
     final barHeight =
-        maxTicks > 0 ? (stat.tickCount / maxTicks) * availableBarHeight : 0.0;
+        maxTicks > 0 ? (stat.leadSends / maxTicks) * availableBarHeight : 0.0;
     final flashHeight = barHeight * stat.flashRate;
 
     return Padding(
@@ -179,7 +175,7 @@ class GradeStatisticsChart extends StatelessWidget {
 
             // Tick count
             Text(
-              '${stat.tickCount}',
+              '${stat.leadSends}',
               style: const TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
@@ -249,7 +245,7 @@ class GradeStatisticsChart extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            DataCell(Text('${stat.tickCount}')),
+                            DataCell(Text('${stat.leadSends}')),
                             DataCell(Text('${stat.flashCount}')),
                             DataCell(
                                 Text(stat.averageAttempts.toStringAsFixed(1))),
@@ -276,8 +272,9 @@ class GradeStatisticsChart extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildDetailRow(l10n.routesCompleted, '${stat.tickCount}'),
-            _buildDetailRow(l10n.totalAttemptsColon, '${stat.totalAttempts}'),
+            _buildDetailRow(l10n.routesCompleted, '${stat.leadSends}'),
+            _buildDetailRow(l10n.totalAttemptsColon,
+                '${stat.leadAttempts + stat.topRopeAttempts}'),
             _buildDetailRow(l10n.flashes, '${stat.flashCount}'),
             _buildDetailRow(
                 l10n.averageAttempts, stat.averageAttempts.toStringAsFixed(1)),
