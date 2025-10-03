@@ -51,9 +51,17 @@ $hold_colors = Crux_Hold_Colors::get_all();
                             <?php endif; ?>
                         </td>
                         <td>
-                            <span class="grade-badge" style="background-color: <?php echo esc_attr($route->grade_color); ?>; color: white; padding: 2px 6px; border-radius: 3px;">
-                                <?php echo esc_html($route->grade); ?>
-                            </span>
+                            <?php if (isset($route->grade_id) && $route->grade_id): ?>
+                                <span class="grade-badge" style="background-color: 
+                                <?php 
+                                    $grade = Crux_Grade::get_by_id($route->grade_id);
+                                    echo esc_attr($grade ? $grade['color'] : '#000'); 
+                                ?>; color: white; padding: 2px 6px; border-radius: 3px;">
+                                <?php echo esc_html($grade ? $grade['french_name'] : 'N/A'); ?>
+                                </span>
+                            <?php else: ?>
+                                <span class="grade-badge">—</span>
+                            <?php endif; ?>
                         </td>
                         <td><?php echo esc_html($route->route_setter); ?></td>
                         <td><?php echo esc_html($route->wall_section); ?></td>
