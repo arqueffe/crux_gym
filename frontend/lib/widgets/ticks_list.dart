@@ -170,10 +170,10 @@ class TicksList extends StatelessWidget {
                       ),
                     ],
                   ),
-                  if (tick.notes != null && tick.notes!.isNotEmpty) ...[
+                  if (tick.notes.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Text(
-                      '${l10n.notes} ${tick.notes!}',
+                      '${l10n.notes} ${tick.notes}',
                       style: const TextStyle(fontStyle: FontStyle.italic),
                     ),
                   ],

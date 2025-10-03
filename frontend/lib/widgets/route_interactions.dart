@@ -469,7 +469,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                                   Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(Icons.arrow_upward,
+                                      const Icon(Icons.arrow_upward,
                                           size: 14, color: Colors.blue),
                                       const SizedBox(width: 2),
                                       Text(
@@ -480,7 +480,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                                         ),
                                       ),
                                       const SizedBox(width: 8),
-                                      Icon(Icons.trending_up,
+                                      const Icon(Icons.trending_up,
                                           size: 14, color: Colors.green),
                                       const SizedBox(width: 2),
                                       Text(
