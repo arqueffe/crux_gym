@@ -4,7 +4,6 @@ import '../models/route_models.dart';
 import '../models/lane_models.dart';
 import '../providers/auth_provider.dart';
 import 'cache_service.dart';
-import 'js_auth_service.dart';
 import 'package:flutter/foundation.dart';
 
 /// Cached API service that wraps HTTP requests with intelligent caching
@@ -18,9 +17,6 @@ class CachedApiService {
   late final CacheService _cacheService = CacheService();
 
   CachedApiService({required this.authProvider});
-
-  // Get headers with authentication (for fallback HTTP requests)
-  Map<String, String> get _headers => authProvider.getAuthHeaders();
 
   /// Generic cached GET request using JavaScript interop for web, HTTP for others
   Future<Map<String, dynamic>> get(
@@ -48,91 +44,67 @@ class CachedApiService {
       }
     }
 
-    if (kIsWeb) {
-      // Use JavaScript interop for web platform with cookie authentication
-      try {
-        // Build URL with query parameters
-        String url = '$baseUrl$endpoint';
-        if (params != null && params.isNotEmpty) {
-          final queryString = params.entries
-              .map((e) => '${e.key}=${Uri.encodeComponent(e.value.toString())}')
-              .join('&');
-          url = '$url?$queryString';
-        }
+    // Use standard HTTP requests with JWT token
+    // Build URL with query parameters
+    String url = kIsWeb ? '$baseUrl$endpoint' : '$fallbackUrl$endpoint';
+    var uri = Uri.parse(url);
+    if (params != null && params.isNotEmpty) {
+      uri = uri.replace(
+          queryParameters:
+              params.map((key, value) => MapEntry(key, value.toString())));
+    }
 
-        final response = await JSAuthService.makeJSRequest(url);
+    try {
+      // Get auth headers (includes JWT token if logged in)
+      final headers = authProvider.getAuthHeaders();
 
-        if (response != null) {
-          final responseData = {
-            'success': true,
-            'data': response['data'] ?? response,
-            'fromCache': false,
-          };
+      final response = await http.get(uri, headers: headers);
 
-          // Cache the successful response
-          if (isPermanentCache) {
-            _cacheService.putPermanent(cacheKey, responseData);
-          } else {
-            _cacheService.put(cacheKey, responseData);
-          }
+      if (response.statusCode == 200) {
+        final responseData = {
+          'success': true,
+          'data': json.decode(response.body),
+          'fromCache': false,
+        };
 
-          return responseData;
+        // Cache the successful response
+        if (isPermanentCache) {
+          _cacheService.putPermanent(cacheKey, responseData);
         } else {
-          return {
-            'success': false,
-            'error': 'JavaScript request failed',
-            'fromCache': false,
-          };
+          _cacheService.put(cacheKey, responseData);
         }
-      } catch (e) {
+
+        return responseData;
+      } else {
+        // Try to parse error response
+        try {
+          final errorData = json.decode(response.body);
+          if (errorData is Map &&
+              errorData.containsKey('code') &&
+              errorData.containsKey('message')) {
+            return {
+              'success': false,
+              'error': errorData['message'] ?? 'Request failed',
+              'errorCode': errorData['code'],
+              'fromCache': false,
+            };
+          }
+        } catch (e) {
+          // Couldn't parse error, continue with generic message
+        }
+
         return {
           'success': false,
-          'error': 'JavaScript request error: $e',
+          'error': 'Request failed with status ${response.statusCode}',
           'fromCache': false,
         };
       }
-    } else {
-      // Fallback to HTTP client for non-web platforms
-      // Build URL with query parameters
-      var uri = Uri.parse('$fallbackUrl$endpoint');
-      if (params != null && params.isNotEmpty) {
-        uri = uri.replace(
-            queryParameters:
-                params.map((key, value) => MapEntry(key, value.toString())));
-      }
-
-      try {
-        final response = await http.get(uri, headers: _headers);
-
-        if (response.statusCode == 200) {
-          final responseData = {
-            'success': true,
-            'data': json.decode(response.body),
-            'fromCache': false,
-          };
-
-          // Cache the successful response
-          if (isPermanentCache) {
-            _cacheService.putPermanent(cacheKey, responseData);
-          } else {
-            _cacheService.put(cacheKey, responseData);
-          }
-
-          return responseData;
-        } else {
-          return {
-            'success': false,
-            'error': 'Request failed with status ${response.statusCode}',
-            'fromCache': false,
-          };
-        }
-      } catch (e) {
-        return {
-          'success': false,
-          'error': 'Network error: $e',
-          'fromCache': false,
-        };
-      }
+    } catch (e) {
+      return {
+        'success': false,
+        'error': 'Network error: $e',
+        'fromCache': false,
+      };
     }
   }
 
@@ -142,74 +114,58 @@ class CachedApiService {
     Map<String, dynamic> body, {
     List<String>? invalidatePatterns,
   }) async {
-    if (kIsWeb) {
-      try {
-        final response = await JSAuthService.makeJSRequest(
-          '$baseUrl$endpoint',
-          method: 'POST',
-          body: body,
-        );
+    // Use standard HTTP requests with JWT token
+    String url = kIsWeb ? '$baseUrl$endpoint' : '$fallbackUrl$endpoint';
 
+    try {
+      // Get auth headers (includes JWT token if logged in)
+      final headers = authProvider.getAuthHeaders();
+
+      final response = await http.post(
+        Uri.parse(url),
+        headers: headers,
+        body: json.encode(body),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
         // Invalidate related cache entries after successful POST
-        if (response != null) {
-          if (invalidatePatterns != null) {
-            for (final pattern in invalidatePatterns) {
-              _cacheService.invalidatePattern(pattern);
-            }
+        if (invalidatePatterns != null) {
+          for (final pattern in invalidatePatterns) {
+            _cacheService.invalidatePattern(pattern);
           }
         }
 
-        if (response != null) {
-          return {
-            'success': true,
-            'data': response['data'] ?? response,
-          };
-        } else {
-          return {
-            'success': false,
-            'error': 'JavaScript POST request failed',
-          };
-        }
-      } catch (e) {
         return {
-          'success': false,
-          'error': 'JavaScript POST error: $e',
+          'success': true,
+          'data': json.decode(response.body),
         };
-      }
-    } else {
-      try {
-        final response = await http.post(
-          Uri.parse('$fallbackUrl$endpoint'),
-          headers: _headers,
-          body: json.encode(body),
-        );
-
-        // Invalidate related cache entries after successful POST
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          if (invalidatePatterns != null) {
-            for (final pattern in invalidatePatterns) {
-              _cacheService.invalidatePattern(pattern);
-            }
+      } else {
+        // Try to parse error response
+        try {
+          final errorData = json.decode(response.body);
+          if (errorData is Map &&
+              errorData.containsKey('code') &&
+              errorData.containsKey('message')) {
+            return {
+              'success': false,
+              'error': errorData['message'] ?? 'Request failed',
+              'errorCode': errorData['code'],
+            };
           }
+        } catch (e) {
+          // Couldn't parse error, continue with generic message
         }
 
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          return {
-            'success': true,
-            'data': json.decode(response.body),
-          };
-        } else {
-          return {
-            'success': false,
-            'error': 'Request failed with status ${response.statusCode}',
-          };
-        }
-      } catch (e) {
         return {
           'success': false,
-          'error': 'Network error: $e',
+          'error': 'Request failed with status ${response.statusCode}',
         };
       }
+    } catch (e) {
+      return {
+        'success': false,
+        'error': 'Network error: $e',
+      };
     }
   }
 
@@ -219,74 +175,58 @@ class CachedApiService {
     Map<String, dynamic> body, {
     List<String>? invalidatePatterns,
   }) async {
-    if (kIsWeb) {
-      try {
-        final response = await JSAuthService.makeJSRequest(
-          '$baseUrl$endpoint',
-          method: 'PUT',
-          body: body,
-        );
+    // Use standard HTTP requests with JWT token
+    String url = kIsWeb ? '$baseUrl$endpoint' : '$fallbackUrl$endpoint';
 
+    try {
+      // Get auth headers (includes JWT token if logged in)
+      final headers = authProvider.getAuthHeaders();
+
+      final response = await http.put(
+        Uri.parse(url),
+        headers: headers,
+        body: json.encode(body),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
         // Invalidate related cache entries after successful PUT
-        if (response != null) {
-          if (invalidatePatterns != null) {
-            for (final pattern in invalidatePatterns) {
-              _cacheService.invalidatePattern(pattern);
-            }
+        if (invalidatePatterns != null) {
+          for (final pattern in invalidatePatterns) {
+            _cacheService.invalidatePattern(pattern);
           }
         }
 
-        if (response != null) {
-          return {
-            'success': true,
-            'data': response['data'] ?? response,
-          };
-        } else {
-          return {
-            'success': false,
-            'error': 'JavaScript PUT request failed',
-          };
-        }
-      } catch (e) {
         return {
-          'success': false,
-          'error': 'JavaScript PUT error: $e',
+          'success': true,
+          'data': json.decode(response.body),
         };
-      }
-    } else {
-      try {
-        final response = await http.put(
-          Uri.parse('$fallbackUrl$endpoint'),
-          headers: _headers,
-          body: json.encode(body),
-        );
-
-        // Invalidate related cache entries after successful PUT
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          if (invalidatePatterns != null) {
-            for (final pattern in invalidatePatterns) {
-              _cacheService.invalidatePattern(pattern);
-            }
+      } else {
+        // Try to parse error response
+        try {
+          final errorData = json.decode(response.body);
+          if (errorData is Map &&
+              errorData.containsKey('code') &&
+              errorData.containsKey('message')) {
+            return {
+              'success': false,
+              'error': errorData['message'] ?? 'Request failed',
+              'errorCode': errorData['code'],
+            };
           }
+        } catch (e) {
+          // Couldn't parse error, continue with generic message
         }
 
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          return {
-            'success': true,
-            'data': json.decode(response.body),
-          };
-        } else {
-          return {
-            'success': false,
-            'error': 'Request failed with status ${response.statusCode}',
-          };
-        }
-      } catch (e) {
         return {
           'success': false,
-          'error': 'Network error: $e',
+          'error': 'Request failed with status ${response.statusCode}',
         };
       }
+    } catch (e) {
+      return {
+        'success': false,
+        'error': 'Network error: $e',
+      };
     }
   }
 
@@ -295,13 +235,19 @@ class CachedApiService {
     String endpoint, {
     List<String>? invalidatePatterns,
   }) async {
-    if (kIsWeb) {
-      try {
-        final response = await JSAuthService.makeJSRequest(
-          '$baseUrl$endpoint',
-          method: 'DELETE',
-        );
+    // Use standard HTTP requests with JWT token
+    String url = kIsWeb ? '$baseUrl$endpoint' : '$fallbackUrl$endpoint';
 
+    try {
+      // Get auth headers (includes JWT token if logged in)
+      final headers = authProvider.getAuthHeaders();
+
+      final response = await http.delete(
+        Uri.parse(url),
+        headers: headers,
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
         // Invalidate related cache entries after successful DELETE
         if (invalidatePatterns != null) {
           for (final pattern in invalidatePatterns) {
@@ -311,47 +257,35 @@ class CachedApiService {
 
         return {
           'success': true,
-          'data': response?['data'] ?? response ?? {},
+          'data': response.body.isNotEmpty ? json.decode(response.body) : {},
         };
-      } catch (e) {
-        return {
-          'success': false,
-          'error': 'JavaScript DELETE error: $e',
-        };
-      }
-    } else {
-      try {
-        final response = await http.delete(
-          Uri.parse('$fallbackUrl$endpoint'),
-          headers: _headers,
-        );
-
-        // Invalidate related cache entries after successful DELETE
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          if (invalidatePatterns != null) {
-            for (final pattern in invalidatePatterns) {
-              _cacheService.invalidatePattern(pattern);
-            }
+      } else {
+        // Try to parse error response
+        try {
+          final errorData = json.decode(response.body);
+          if (errorData is Map &&
+              errorData.containsKey('code') &&
+              errorData.containsKey('message')) {
+            return {
+              'success': false,
+              'error': errorData['message'] ?? 'Request failed',
+              'errorCode': errorData['code'],
+            };
           }
+        } catch (e) {
+          // Couldn't parse error, continue with generic message
         }
 
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          return {
-            'success': true,
-            'data': response.body.isNotEmpty ? json.decode(response.body) : {},
-          };
-        } else {
-          return {
-            'success': false,
-            'error': 'Request failed with status ${response.statusCode}',
-          };
-        }
-      } catch (e) {
         return {
           'success': false,
-          'error': 'Network error: $e',
+          'error': 'Request failed with status ${response.statusCode}',
         };
       }
+    } catch (e) {
+      return {
+        'success': false,
+        'error': 'Network error: $e',
+      };
     }
   }
 

@@ -18,7 +18,26 @@ class Crux_API
     {
         $namespace = 'crux/v1';
 
-        // Authentication endpoints
+        // New Authentication endpoints (JWT-based)
+        register_rest_route($namespace, '/auth/register', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'register_user'),
+            'permission_callback' => '__return_true'
+        ));
+
+        register_rest_route($namespace, '/auth/login', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'login_user'),
+            'permission_callback' => '__return_true'
+        ));
+
+        register_rest_route($namespace, '/auth/validate', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'validate_token'),
+            'permission_callback' => '__return_true'
+        ));
+
+        // Legacy WordPress cookie authentication endpoints
         register_rest_route($namespace, '/auth/me', array(
             'methods' => 'GET',
             'callback' => array($this, 'get_current_user'),
@@ -216,10 +235,42 @@ class Crux_API
 
 
     /**
-     * Check if user is authenticated (any role)
+     * New authentication methods using JWT
+     */
+    public function register_user($request)
+    {
+        require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-crux-auth.php';
+        $auth = new Crux_Auth();
+        return $auth->register_user($request);
+    }
+
+    public function login_user($request)
+    {
+        require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-crux-auth.php';
+        $auth = new Crux_Auth();
+        return $auth->login_user($request);
+    }
+
+    public function validate_token($request)
+    {
+        require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-crux-auth.php';
+        $auth = new Crux_Auth();
+        return $auth->validate_token($request);
+    }
+
+    /**
+     * Check if user is authenticated (any role) - supports both JWT and WordPress cookies
      */
     public function check_user_permissions($request = null)
     {
+        // Try JWT authentication first
+        $user_id = $this->determine_user_from_jwt($request);
+        if ($user_id) {
+            wp_set_current_user($user_id);
+            return true;
+        }
+
+        // Fall back to WordPress cookie authentication
         $user_id = $this->determine_user_from_cookie();
         if (!$user_id) {
             return false;
@@ -232,10 +283,18 @@ class Crux_API
      */
     public function check_admin_permissions($request = null)
     {
-        $user_id = $this->determine_user_from_cookie();
+        // Try JWT authentication first
+        $user_id = $this->determine_user_from_jwt($request);
+        if (!$user_id) {
+            // Fall back to WordPress cookie authentication
+            $user_id = $this->determine_user_from_cookie();
+        }
+        
         if (!$user_id) {
             return false;
         }
+        
+        wp_set_current_user($user_id);
         $role_id = $this->get_user_primary_role_id($user_id);
         return $role_id === 1;
     }
@@ -245,12 +304,56 @@ class Crux_API
      */
     public function check_route_setter_permissions($request = null)
     {
-        $user_id = $this->determine_user_from_cookie();
+        // Try JWT authentication first
+        $user_id = $this->determine_user_from_jwt($request);
+        if (!$user_id) {
+            // Fall back to WordPress cookie authentication
+            $user_id = $this->determine_user_from_cookie();
+        }
+        
         if (!$user_id) {
             return false;
         }
+        
+        wp_set_current_user($user_id);
         $role_id = $this->get_user_primary_role_id($user_id);
         return in_array($role_id, array(1, 2));
+    }
+
+    /**
+     * Determine user from JWT token
+     */
+    private function determine_user_from_jwt($request)
+    {
+        if (!$request) {
+            return false;
+        }
+
+        require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-crux-auth.php';
+        $auth = new Crux_Auth();
+        
+        // Get token from Authorization header or X-Auth-Token header
+        $auth_header = $request->get_header('Authorization');
+        $token = null;
+        
+        if ($auth_header && strpos($auth_header, 'Bearer ') === 0) {
+            $token = substr($auth_header, 7);
+        } else {
+            $token = $request->get_header('X-Auth-Token');
+        }
+
+        if (!$token) {
+            return false;
+        }
+
+        // Validate token using reflection to access private method
+        $reflection = new ReflectionClass($auth);
+        $decode_method = $reflection->getMethod('decode_token');
+        $decode_method->setAccessible(true);
+        
+        $user_id = $decode_method->invoke($auth, $token);
+        
+        return $user_id ?: false;
     }
 
     /**

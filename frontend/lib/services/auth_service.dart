@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 import '../models/user_models.dart';
 import '../services/js_auth_service.dart';
 
@@ -15,11 +16,11 @@ class AuthService {
   // Getters
   String? get token => _token;
   User? get currentUser => _currentUser;
-  bool get isAuthenticated => _currentUser != null;
+  bool get isAuthenticated => _currentUser != null && _token != null;
 
   // Initialize auth service
   Future<void> initialize() async {
-    print('🚀 Initializing AuthService with JavaScript interop');
+    print('🚀 Initializing AuthService');
 
     final prefs = await SharedPreferences.getInstance();
     _token = prefs.getString(_tokenKey);
@@ -30,7 +31,20 @@ class AuthService {
       print('📁 Loaded cached user: ${_currentUser?.username}');
     }
 
-    // Try JavaScript authentication for WordPress cookies
+    // If we have a JWT token, validate it
+    if (_token != null) {
+      print('🔑 Found JWT token, validating...');
+      final isValid = await _validateToken();
+      if (isValid) {
+        print('✅ JWT token is valid');
+        return;
+      } else {
+        print('❌ JWT token is invalid, clearing auth');
+        await _clearAuth();
+      }
+    }
+
+    // Fallback: Try JavaScript authentication for WordPress cookies (legacy support)
     try {
       print('🌐 Attempting JavaScript cookie authentication...');
       Map<String, dynamic>? jsUserResponse =
@@ -86,11 +100,45 @@ class AuthService {
       print('❌ JavaScript authentication error: $e');
     }
 
-    // Fallback: check if we have a valid cached user
+    // If we get here, no valid authentication found
     if (_currentUser == null) {
       print('❌ No valid authentication found');
       await _clearAuth();
     }
+  }
+
+  // Validate JWT token
+  Future<bool> _validateToken() async {
+    if (_token == null) {
+      return false;
+    }
+
+    try {
+      final response = await JSAuthService.makeJSRequest(
+        '$baseUrl/auth/validate',
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer $_token',
+        },
+      );
+
+      if (response != null && response['success'] == true) {
+        final userData = response['user'];
+        if (userData != null) {
+          _currentUser = User.fromJson(userData);
+
+          // Update cached user data
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(_userKey, jsonEncode(_currentUser!.toJson()));
+
+          return true;
+        }
+      }
+    } catch (e) {
+      print('❌ Token validation error: $e');
+    }
+
+    return false;
   }
 
   // Check authentication status
@@ -257,12 +305,176 @@ class AuthService {
     }
   }
 
-  // Get headers with authorization (for cookie-based auth, headers are simpler)
+  // Register new user with JWT authentication
+  Future<Map<String, dynamic>> register({
+    required String email,
+    required String username,
+    required String password,
+  }) async {
+    try {
+      print('🚀 Registering user: $username');
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'username': username,
+          'password': password,
+        }),
+      );
+
+      print('📨 Register response status: ${response.statusCode}');
+      print('📨 Register response body: ${response.body}');
+
+      if (response.statusCode != 200) {
+        // Try to parse error response
+        try {
+          final errorData = jsonDecode(response.body);
+          if (errorData is Map && errorData.containsKey('message')) {
+            print('❌ Registration error: ${errorData['message']}');
+            return {'success': false, 'message': errorData['message']};
+          }
+        } catch (e) {
+          // Couldn't parse error
+        }
+        print('❌ Registration failed with status ${response.statusCode}');
+        return {'success': false, 'message': 'Registration failed'};
+      }
+
+      final responseData = jsonDecode(response.body);
+
+      // Check for WordPress REST API errors (have 'code' and 'message')
+      if (responseData.containsKey('code') &&
+          responseData.containsKey('message')) {
+        final errorMessage = responseData['message'] ?? 'Registration failed';
+        print('❌ Registration error: ${responseData['code']} - $errorMessage');
+        return {'success': false, 'message': errorMessage};
+      }
+
+      // Check for successful registration
+      if (responseData['success'] == true) {
+        final token = responseData['token'];
+        final userData = responseData['user'];
+
+        if (token != null && userData != null) {
+          _token = token;
+          _currentUser = User.fromJson(userData);
+
+          // Save to local storage
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(_tokenKey, _token!);
+          await prefs.setString(_userKey, jsonEncode(_currentUser!.toJson()));
+
+          print('✅ Registration successful: ${_currentUser?.username}');
+          return {
+            'success': true,
+            'message': responseData['message'] ?? 'Registration successful'
+          };
+        }
+      }
+
+      // Unknown response format
+      final errorMessage = responseData['message'] ?? 'Registration failed';
+      print('❌ Registration failed: $errorMessage');
+      return {'success': false, 'message': errorMessage};
+    } catch (e) {
+      print('❌ Registration error: $e');
+      return {'success': false, 'message': 'Registration error: $e'};
+    }
+  }
+
+  // Login user with JWT authentication
+  Future<Map<String, dynamic>> login(String username, String password) async {
+    try {
+      print('🚀 Logging in user: $username');
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username': username,
+          'password': password,
+        }),
+      );
+
+      print('📨 Login response status: ${response.statusCode}');
+      print('📨 Login response body: ${response.body}');
+
+      if (response.statusCode != 200) {
+        // Try to parse error response
+        try {
+          final errorData = jsonDecode(response.body);
+          if (errorData is Map && errorData.containsKey('message')) {
+            print('❌ Login error: ${errorData['message']}');
+            return {'success': false, 'message': errorData['message']};
+          }
+        } catch (e) {
+          // Couldn't parse error
+        }
+        print('❌ Login failed with status ${response.statusCode}');
+        return {'success': false, 'message': 'Login failed'};
+      }
+
+      final responseData = jsonDecode(response.body);
+
+      // Check for WordPress REST API errors (have 'code' and 'message')
+      if (responseData.containsKey('code') &&
+          responseData.containsKey('message')) {
+        final errorMessage = responseData['message'] ?? 'Login failed';
+        print('❌ Login error: ${responseData['code']} - $errorMessage');
+        return {'success': false, 'message': errorMessage};
+      }
+
+      // Check for successful login
+      if (responseData['success'] == true) {
+        final token = responseData['token'];
+        final userData = responseData['user'];
+
+        if (token != null && userData != null) {
+          _token = token;
+          _currentUser = User.fromJson(userData);
+
+          // Save to local storage
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(_tokenKey, _token!);
+          await prefs.setString(_userKey, jsonEncode(_currentUser!.toJson()));
+
+          print('✅ Login successful: ${_currentUser?.username}');
+          return {
+            'success': true,
+            'message': responseData['message'] ?? 'Login successful'
+          };
+        }
+      }
+
+      // Unknown response format
+      final errorMessage =
+          responseData['message'] ?? 'Invalid username or password';
+      print('❌ Login failed: $errorMessage');
+      return {'success': false, 'message': errorMessage};
+    } catch (e) {
+      print('❌ Login error: $e');
+      return {'success': false, 'message': 'Login error: $e'};
+    }
+  }
+
+  // Logout user
+  Future<void> logout() async {
+    print('🚪 Logging out user');
+    await _clearAuth();
+  }
+
+  // Get headers with authorization (JWT token)
   Map<String, String> getAuthHeaders() {
+    if (_token != null) {
+      return {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $_token',
+      };
+    }
     return {
       'Content-Type': 'application/json',
-      // For cookie-based auth, we don't need to include tokens in headers
-      // The cookies are sent automatically by the browser
     };
   }
 

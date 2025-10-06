@@ -75,7 +75,12 @@ class JSAuthService {
                 try {
                   final parsed = jsonDecode(data);
                   print('✅ Parsed JSON string data: $parsed');
-                  return {'data': parsed};
+                  // Return the parsed data directly (not wrapped in 'data')
+                  if (parsed is Map<String, dynamic>) {
+                    return parsed;
+                  } else {
+                    return {'data': parsed};
+                  }
                 } catch (e) {
                   print('❌ Failed to parse JSON string: $e');
                   return {'data': data};
@@ -101,6 +106,23 @@ class JSAuthService {
             }
           } else {
             print('❌ Request failed with status: $status');
+            // Try to parse error response
+            final data = responseMap['data'];
+            if (data is String) {
+              try {
+                final parsed = jsonDecode(data);
+                print('⚠️ Error response: $parsed');
+                if (parsed is Map<String, dynamic>) {
+                  return parsed;
+                }
+              } catch (e) {
+                print('❌ Failed to parse error response: $e');
+              }
+            }
+            return {
+              'success': false,
+              'message': 'Request failed with status $status'
+            };
           }
         } catch (e) {
           print('💥 Response parsing error: $e');

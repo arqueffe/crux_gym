@@ -1,11 +1,9 @@
 import 'package:flutter/foundation.dart';
 import '../services/auth_service.dart';
-import '../services/cache_service.dart';
 import '../models/user_models.dart';
 
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
-  final CacheService _cacheService = CacheService();
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -21,11 +19,75 @@ class AuthProvider with ChangeNotifier {
     _setLoading(true);
     try {
       await _authService.initialize();
-      if (_authService.isAuthenticated) {
-        await _authService.getCurrentUser();
-      }
     } catch (e) {
       _setError('Initialization failed: $e');
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // Register new user
+  Future<bool> register({
+    required String email,
+    required String username,
+    required String password,
+  }) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final result = await _authService.register(
+        email: email,
+        username: username,
+        password: password,
+      );
+
+      if (result['success'] == true) {
+        notifyListeners();
+        return true;
+      } else {
+        _setError(result['message'] ?? 'Registration failed');
+        return false;
+      }
+    } catch (e) {
+      _setError('Registration failed: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // Login user
+  Future<bool> login(String username, String password) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final result = await _authService.login(username, password);
+
+      if (result['success'] == true) {
+        notifyListeners();
+        return true;
+      } else {
+        _setError(result['message'] ?? 'Login failed');
+        return false;
+      }
+    } catch (e) {
+      _setError('Login failed: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // Logout user
+  Future<void> logout() async {
+    _setLoading(true);
+    try {
+      await _authService.logout();
+      notifyListeners();
+    } catch (e) {
+      _setError('Logout failed: $e');
     } finally {
       _setLoading(false);
     }
