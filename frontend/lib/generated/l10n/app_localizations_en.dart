@@ -138,6 +138,63 @@ class AppLocalizationsEn extends AppLocalizations {
   String get initializing => 'Initializing...';
 
   @override
+  String get welcomeBack => 'Welcome Back';
+
+  @override
+  String get signInToContinue => 'Sign in to continue';
+
+  @override
+  String get usernameOrEmail => 'Username or Email';
+
+  @override
+  String get pleaseEnterUsernameOrEmail => 'Please enter your username or email';
+
+  @override
+  String get loginButton => 'Login';
+
+  @override
+  String get dontHaveAccount => 'Don\'t have an account? ';
+
+  @override
+  String get registerLink => 'Register';
+
+  @override
+  String get joinCruxClimbingGym => 'Join Crux Climbing Gym';
+
+  @override
+  String get createAccountToGetStarted => 'Create an account to get started';
+
+  @override
+  String get atLeastThreeCharacters => 'At least 3 characters';
+
+  @override
+  String get atLeastSixCharacters => 'At least 6 characters';
+
+  @override
+  String get confirmPassword => 'Confirm Password';
+
+  @override
+  String get pleaseConfirmPassword => 'Please confirm your password';
+
+  @override
+  String get passwordsDoNotMatch => 'Passwords do not match';
+
+  @override
+  String get alreadyHaveAccount => 'Already have an account? ';
+
+  @override
+  String get loginLink => 'Login';
+
+  @override
+  String get loginFailed => 'Login failed';
+
+  @override
+  String get registrationSuccessful => 'Registration successful! You are now logged in.';
+
+  @override
+  String get registrationFailed => 'Registration failed';
+
+  @override
   String get profileTitle => 'Profile';
 
   @override

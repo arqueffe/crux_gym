@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class LocaleProvider with ChangeNotifier {
   static const String _localeKey = 'locale';
-  Locale _locale = const Locale('en');
+  Locale _locale = const Locale('fr'); // Default to French
 
   Locale get locale => _locale;
 

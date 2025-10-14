@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../generated/l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
+import '../providers/locale_provider.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -47,18 +49,24 @@ class _LoginScreenState extends State<LoginScreen> {
       if (success) {
         // Navigation will happen automatically via AuthWrapper
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(authProvider.errorMessage ?? 'Login failed'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(authProvider.errorMessage ??
+                  AppLocalizations.of(context).loginFailed),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final localeProvider = context.watch<LocaleProvider>();
+
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -70,16 +78,40 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Language selector
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: DropdownButton<Locale>(
+                      value: localeProvider.locale,
+                      underline: Container(),
+                      icon: const Icon(Icons.language),
+                      items: LocaleProvider.supportedLocales.map((locale) {
+                        return DropdownMenuItem(
+                          value: locale,
+                          child: Text(
+                            LocaleProvider.languageNames[locale.languageCode] ??
+                                locale.languageCode,
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (locale) {
+                        if (locale != null) {
+                          localeProvider.setLocale(locale);
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
                   // Logo
                   Image.asset(
                     'assets/logo/logo_black.png',
                     height: 120,
                   ),
-                  const SizedBox(height: 48),
-
-                  // Title
+                  const SizedBox(height: 48), // Title
                   Text(
-                    'Welcome Back',
+                    l10n.welcomeBack,
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -87,7 +119,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Sign in to continue',
+                    l10n.signInToContinue,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: Colors.grey[600],
                         ),
@@ -99,7 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextFormField(
                     controller: _usernameController,
                     decoration: InputDecoration(
-                      labelText: 'Username or Email',
+                      labelText: l10n.usernameOrEmail,
                       prefixIcon: const Icon(Icons.person),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -110,7 +142,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     enabled: !_isLoading,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Please enter your username or email';
+                        return l10n.pleaseEnterUsernameOrEmail;
                       }
                       return null;
                     },
@@ -121,7 +153,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextFormField(
                     controller: _passwordController,
                     decoration: InputDecoration(
-                      labelText: 'Password',
+                      labelText: l10n.password,
                       prefixIcon: const Icon(Icons.lock),
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -145,7 +177,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     onFieldSubmitted: (_) => _handleLogin(),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter your password';
+                        return l10n.pleaseEnterPassword;
                       }
                       return null;
                     },
@@ -167,9 +199,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             width: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text(
-                            'Login',
-                            style: TextStyle(fontSize: 16),
+                        : Text(
+                            l10n.loginButton,
+                            style: const TextStyle(fontSize: 16),
                           ),
                   ),
                   const SizedBox(height: 16),
@@ -179,7 +211,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "Don't have an account? ",
+                        l10n.dontHaveAccount,
                         style: TextStyle(color: Colors.grey[600]),
                       ),
                       TextButton(
@@ -193,7 +225,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 );
                               },
-                        child: const Text('Register'),
+                        child: Text(l10n.registerLink),
                       ),
                     ],
                   ),

@@ -138,6 +138,63 @@ class AppLocalizationsFr extends AppLocalizations {
   String get initializing => 'Initialisation...';
 
   @override
+  String get welcomeBack => 'Bon retour';
+
+  @override
+  String get signInToContinue => 'Connectez-vous pour continuer';
+
+  @override
+  String get usernameOrEmail => 'Nom d\'utilisateur ou Email';
+
+  @override
+  String get pleaseEnterUsernameOrEmail => 'Veuillez saisir votre nom d\'utilisateur ou email';
+
+  @override
+  String get loginButton => 'Connexion';
+
+  @override
+  String get dontHaveAccount => 'Pas de compte ? ';
+
+  @override
+  String get registerLink => 'S\'inscrire';
+
+  @override
+  String get joinCruxClimbingGym => 'Rejoindre Crux Climbing Gym';
+
+  @override
+  String get createAccountToGetStarted => 'Créez un compte pour commencer';
+
+  @override
+  String get atLeastThreeCharacters => 'Au moins 3 caractères';
+
+  @override
+  String get atLeastSixCharacters => 'Au moins 6 caractères';
+
+  @override
+  String get confirmPassword => 'Confirmer le mot de passe';
+
+  @override
+  String get pleaseConfirmPassword => 'Veuillez confirmer votre mot de passe';
+
+  @override
+  String get passwordsDoNotMatch => 'Les mots de passe ne correspondent pas';
+
+  @override
+  String get alreadyHaveAccount => 'Vous avez déjà un compte ? ';
+
+  @override
+  String get loginLink => 'Se connecter';
+
+  @override
+  String get loginFailed => 'Échec de la connexion';
+
+  @override
+  String get registrationSuccessful => 'Inscription réussie ! Vous êtes maintenant connecté.';
+
+  @override
+  String get registrationFailed => 'Échec de l\'inscription';
+
+  @override
   String get profileTitle => 'Profil';
 
   @override
