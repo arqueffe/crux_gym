@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import '../models/role_models.dart';
 import '../services/role_service.dart';
 import '../providers/auth_provider.dart';
+import '../config/api_config.dart';
 
 /// Provider for managing roles and user capabilities
 class RoleProvider extends ChangeNotifier {
@@ -11,7 +12,7 @@ class RoleProvider extends ChangeNotifier {
   RoleProvider({required AuthProvider authProvider})
       : _authProvider = authProvider {
     _roleService = RoleService(
-      baseUrl: 'http://localhost/crux-climbing-gym/wp-json/crux/v1',
+      baseUrl: ApiConfig.fullWordPressUrl,
       authProvider: authProvider,
     );
   }

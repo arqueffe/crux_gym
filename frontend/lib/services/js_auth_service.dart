@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'dart:js_interop';
+import '../config/api_config.dart';
 
 // JavaScript interop for making requests with HttpOnly cookies
 @JS()
@@ -9,7 +10,7 @@ external JSPromise<JSAny?> _makeRequestWithCookies(
 
 class JSAuthService {
   // WordPress API endpoint (same-origin)
-  static const String baseUrl = '/crux-climbing-gym/wp-json/crux/v1';
+  static String get baseUrl => ApiConfig.wordPressApiPath;
 
   // Make HTTP request through JavaScript to include HttpOnly cookies
   static Future<Map<String, dynamic>?> makeJSRequest(

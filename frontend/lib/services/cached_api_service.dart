@@ -3,15 +3,11 @@ import 'package:http/http.dart' as http;
 import '../models/route_models.dart';
 import '../models/lane_models.dart';
 import '../providers/auth_provider.dart';
+import '../config/api_config.dart';
 import 'cache_service.dart';
-import 'package:flutter/foundation.dart';
 
 /// Cached API service that wraps HTTP requests with intelligent caching
 class CachedApiService {
-  // WordPress API endpoint for authenticated requests
-  static const String baseUrl = '/crux-climbing-gym/wp-json/crux/v1';
-  // Fallback to Python backend for non-web platforms
-  static const String fallbackUrl = 'http://localhost:5000/api';
   final AuthProvider authProvider;
 
   late final CacheService _cacheService = CacheService();
@@ -46,7 +42,7 @@ class CachedApiService {
 
     // Use standard HTTP requests with JWT token
     // Build URL with query parameters
-    String url = kIsWeb ? '$baseUrl$endpoint' : '$fallbackUrl$endpoint';
+    String url = '${ApiConfig.baseUrl}$endpoint';
     var uri = Uri.parse(url);
     if (params != null && params.isNotEmpty) {
       uri = uri.replace(
@@ -115,7 +111,7 @@ class CachedApiService {
     List<String>? invalidatePatterns,
   }) async {
     // Use standard HTTP requests with JWT token
-    String url = kIsWeb ? '$baseUrl$endpoint' : '$fallbackUrl$endpoint';
+    String url = '${ApiConfig.baseUrl}$endpoint';
 
     try {
       // Get auth headers (includes JWT token if logged in)
@@ -176,7 +172,7 @@ class CachedApiService {
     List<String>? invalidatePatterns,
   }) async {
     // Use standard HTTP requests with JWT token
-    String url = kIsWeb ? '$baseUrl$endpoint' : '$fallbackUrl$endpoint';
+    String url = '${ApiConfig.baseUrl}$endpoint';
 
     try {
       // Get auth headers (includes JWT token if logged in)
@@ -236,7 +232,7 @@ class CachedApiService {
     List<String>? invalidatePatterns,
   }) async {
     // Use standard HTTP requests with JWT token
-    String url = kIsWeb ? '$baseUrl$endpoint' : '$fallbackUrl$endpoint';
+    String url = '${ApiConfig.baseUrl}$endpoint';
 
     try {
       // Get auth headers (includes JWT token if logged in)

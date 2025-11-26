@@ -3,10 +3,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import '../models/user_models.dart';
 import '../services/js_auth_service.dart';
+import '../config/api_config.dart';
 
 class AuthService {
   // WordPress API endpoint (same-origin)
-  static const String baseUrl = '/crux-climbing-gym/wp-json/crux/v1';
+  static String get baseUrl => ApiConfig.wordPressApiPath;
   static const String _tokenKey = 'auth_token';
   static const String _userKey = 'user_data';
 
