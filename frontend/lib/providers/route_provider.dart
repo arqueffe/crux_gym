@@ -1029,6 +1029,7 @@ class RouteProvider extends ChangeNotifier {
       gradeId: route.gradeId,
       gradeName: gradeInfo['french_name'],
       gradeColor: gradeInfo['color'],
+      image: route.image,
       routeSetter: route.routeSetter,
       wallSection: route.wallSection,
       lane: route.lane,

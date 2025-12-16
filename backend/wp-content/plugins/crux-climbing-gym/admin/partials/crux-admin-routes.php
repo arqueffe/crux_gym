@@ -34,6 +34,7 @@ $hold_colors = Crux_Hold_Colors::get_all();
                     <th scope="col" class="manage-column">Name</th>
                     <th scope="col" class="manage-column">Grade</th>
                     <th scope="col" class="manage-column">Setter</th>
+                    <th scope="col" class="manage-column">Image</th>
                     <th scope="col" class="manage-column">Wall Section</th>
                     <th scope="col" class="manage-column">Lane</th>
                     <th scope="col" class="manage-column">Color</th>
@@ -64,6 +65,13 @@ $hold_colors = Crux_Hold_Colors::get_all();
                             <?php endif; ?>
                         </td>
                         <td><?php echo esc_html($route->route_setter); ?></td>
+                        <td>
+                            <?php if (isset($route->image)): ?>
+                                <img title="<?php echo esc_html($route->image); ?>" style="height:100px;max-width:100px;max-height:100px" src="<?php echo esc_html($route->image); ?>">
+                            <?php else: ?>
+                                <p>No image</p>
+                            <?php endif; ?>
+                        </td>
                         <td><?php echo esc_html($route->wall_section); ?></td>
                         <td>Lane <?php echo esc_html(isset($route->lane_id) ? $route->lane_id : 'N/A'); ?></td>
                         <td>

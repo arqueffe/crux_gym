@@ -588,6 +588,7 @@ class Crux_API
             'name' => sanitize_text_field($data['name']),
             'grade_id' => intval($data['grade_id']),
             'route_setter' => sanitize_text_field($data['route_setter']),
+            'image' => sanitize_text_field($data['image']),
             'wall_section' => sanitize_text_field($data['wall_section']),
             'lane_id' => intval($data['lane_id']),
             'hold_color_id' => isset($data['hold_color_id']) && $data['hold_color_id'] !== null ? intval($data['hold_color_id']) : null,
