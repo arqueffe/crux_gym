@@ -10,7 +10,7 @@ import 'package:flutter/foundation.dart';
 /// Cached API service that wraps HTTP requests with intelligent caching
 class CachedApiService {
   // WordPress API endpoint for authenticated requests
-  static const String baseUrl = '/crux-climbing-gym/wp-json/crux/v1';
+  static const String baseUrl = JSAuthService.baseUrl;
   // Fallback to Python backend for non-web platforms
   static const String fallbackUrl = 'http://localhost:5000/api';
   final AuthProvider authProvider;

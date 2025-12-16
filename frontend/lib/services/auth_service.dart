@@ -5,7 +5,7 @@ import '../services/js_auth_service.dart';
 
 class AuthService {
   // WordPress API endpoint (same-origin)
-  static const String baseUrl = '/crux-climbing-gym/wp-json/crux/v1';
+  static const String baseUrl = JSAuthService.baseUrl;
   static const String _tokenKey = 'auth_token';
   static const String _userKey = 'user_data';
 

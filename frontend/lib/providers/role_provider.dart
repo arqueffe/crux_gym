@@ -11,7 +11,7 @@ class RoleProvider extends ChangeNotifier {
   RoleProvider({required AuthProvider authProvider})
       : _authProvider = authProvider {
     _roleService = RoleService(
-      baseUrl: 'http://localhost/crux-climbing-gym/wp-json/crux/v1',
+      baseUrl: 'http://localhost${AuthProvider.baseUrl}',
       authProvider: authProvider,
     );
   }

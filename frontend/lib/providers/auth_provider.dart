@@ -4,6 +4,7 @@ import '../services/cache_service.dart';
 import '../models/user_models.dart';
 
 class AuthProvider with ChangeNotifier {
+  static const String baseUrl = AuthService.baseUrl;
   final AuthService _authService = AuthService();
   final CacheService _cacheService = CacheService();
 
