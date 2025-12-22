@@ -350,12 +350,16 @@ class Crux_Admin {
         global $wpdb;
 
         if ($file['route_image']['name'] != '') {
+            $isAnImage = getimagesize($file['route_image']['tmp_name']) ? true : false;
+            if (!$isAnImage) {
+                return array('success' => false, 'message' => 'Uploaded file is not a valid image.');
+            }
+            // Could limit image size & resize using wp_get_image_editor
             $upload_overrides = array( 'test_form' => false );
-            // TODO: Sanitize if this is correctly an image.
             $upload = wp_handle_upload($file['route_image'], $upload_overrides);
 
             if ($upload == null || isset($upload['error'])) {
-                return array('success' => false, 'message' => 'Failed to upload route image: '. $upload['error'] . ' and ' . json_encode($file['route_image']));
+                return array('success' => false, 'message' => 'Failed to upload route image: '. $upload['error']);
             }
         } else {
             $upload = null;
