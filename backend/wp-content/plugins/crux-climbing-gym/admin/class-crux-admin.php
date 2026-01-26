@@ -169,7 +169,10 @@ class Crux_Admin {
                     'page' => 'crux-add-route',
                     'route_created' => '1'
                 ), admin_url('admin.php'));
-                wp_redirect($redirect_url);
+                // Cannot use wp_redirect here as header are already sent.
+                // wp_redirect($redirect_url);
+                // Dirty hack instead for redirection
+                echo("<script>location.href = '".$redirect_url."'</script>");
                 exit;
             } else {
                 // Store error in transient for display after redirect
@@ -178,7 +181,8 @@ class Crux_Admin {
                     'page' => 'crux-add-route',
                     'error' => '1'
                 ), admin_url('admin.php'));
-                wp_redirect($redirect_url);
+                //wp_redirect($redirect_url);
+                echo("<script>location.href = '".$redirect_url."'</script>");
                 exit;
             }
         }
