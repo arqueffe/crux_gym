@@ -353,6 +353,120 @@ abstract class AppLocalizations {
   /// **'Initializing...'**
   String get initializing;
 
+  /// No description provided for @welcomeBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome Back'**
+  String get welcomeBack;
+
+  /// No description provided for @signInToContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to continue'**
+  String get signInToContinue;
+
+  /// No description provided for @usernameOrEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Username or Email'**
+  String get usernameOrEmail;
+
+  /// No description provided for @pleaseEnterUsernameOrEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your username or email'**
+  String get pleaseEnterUsernameOrEmail;
+
+  /// No description provided for @loginButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Login'**
+  String get loginButton;
+
+  /// No description provided for @dontHaveAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t have an account? '**
+  String get dontHaveAccount;
+
+  /// No description provided for @registerLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Register'**
+  String get registerLink;
+
+  /// No description provided for @joinCruxClimbingGym.
+  ///
+  /// In en, this message translates to:
+  /// **'Join Crux Climbing Gym'**
+  String get joinCruxClimbingGym;
+
+  /// No description provided for @createAccountToGetStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Create an account to get started'**
+  String get createAccountToGetStarted;
+
+  /// No description provided for @atLeastThreeCharacters.
+  ///
+  /// In en, this message translates to:
+  /// **'At least 3 characters'**
+  String get atLeastThreeCharacters;
+
+  /// No description provided for @atLeastSixCharacters.
+  ///
+  /// In en, this message translates to:
+  /// **'At least 6 characters'**
+  String get atLeastSixCharacters;
+
+  /// No description provided for @confirmPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Password'**
+  String get confirmPassword;
+
+  /// No description provided for @pleaseConfirmPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Please confirm your password'**
+  String get pleaseConfirmPassword;
+
+  /// No description provided for @passwordsDoNotMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords do not match'**
+  String get passwordsDoNotMatch;
+
+  /// No description provided for @alreadyHaveAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Already have an account? '**
+  String get alreadyHaveAccount;
+
+  /// No description provided for @loginLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Login'**
+  String get loginLink;
+
+  /// No description provided for @loginFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Login failed'**
+  String get loginFailed;
+
+  /// No description provided for @registrationSuccessful.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration successful! You are now logged in.'**
+  String get registrationSuccessful;
+
+  /// No description provided for @registrationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration failed'**
+  String get registrationFailed;
+
   /// No description provided for @profileTitle.
   ///
   /// In en, this message translates to:
