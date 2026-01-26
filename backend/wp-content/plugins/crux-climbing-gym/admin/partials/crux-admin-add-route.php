@@ -66,10 +66,20 @@ if (!defined('ABSPATH')) {
                                 <label for="route_setter">Route Setter *</label>
                             </th>
                             <td>
-                                <input name="route_setter" type="text" id="route_setter" 
+                                <select name="route_setter_select" id="route_setter_select">
+                                    <option value="">Select Existing Setter</option>
+                                    <?php foreach ($route_setters as $setter): ?>
+                                        <option value="<?php echo esc_attr($setter); ?>">
+                                            <?php echo esc_html($setter); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                    <option value="__custom__">+ Add New Setter</option>
+                                </select>
+                                <input name="route_setter" type="text" id="route_setter_custom" 
                                        value="<?php echo isset($_POST['route_setter']) ? esc_attr($_POST['route_setter']) : ''; ?>" 
-                                       class="regular-text" required />
-                                <p class="description">Name of the person who set this route</p>
+                                       class="regular-text" style="display:none; margin-top: 8px;" 
+                                       placeholder="Enter new setter name" />
+                                <p class="description">Select an existing setter or add a new one</p>
                             </td>
                         </tr>
                         
@@ -78,20 +88,20 @@ if (!defined('ABSPATH')) {
                                 <label for="wall_section">Wall Section *</label>
                             </th>
                             <td>
-                                <input name="wall_section" type="text" id="wall_section" 
-                                       value="<?php echo isset($_POST['wall_section']) ? esc_attr($_POST['wall_section']) : ''; ?>" 
-                                       class="regular-text" list="wall_sections" required />
-                                <datalist id="wall_sections">
-                                    <?php foreach ($wall_sections as $section): ?>
-                                        <option value="<?php echo esc_attr($section); ?>">
-                                    <?php endforeach; ?>
-                                    <option value="Overhang Wall">
-                                    <option value="Slab Wall">
-                                    <option value="Vertical Wall">
-                                    <option value="Steep Wall">
-                                    <option value="Roof Section">
-                                </datalist>
-                                <p class="description">Location of the route in the gym (e.g., "Overhang Wall")</p>
+                                <select name="wall_section" id="wall_section" required>
+                                    <option value="">Select Wall Section</option>
+                                    <?php if (empty($wall_sections)): ?>
+                                        <option value="" disabled>No wall sections found - add one in Settings</option>
+                                    <?php else: ?>
+                                        <?php foreach ($wall_sections as $section): ?>
+                                            <option value="<?php echo esc_attr($section->name); ?>"
+                                                    <?php selected(isset($_POST['wall_section']) ? $_POST['wall_section'] : '', $section->name); ?>>
+                                                <?php echo esc_html($section->name); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
+                                <p class="description">Select the wall section where the route is located</p>
                             </td>
                         </tr>
                         
@@ -249,3 +259,28 @@ if (!defined('ABSPATH')) {
     }
 }
 </style>
+
+<script type="text/javascript">
+jQuery(document).ready(function($) {
+    // Handle route setter selection
+    $('#route_setter_select').on('change', function() {
+        var value = $(this).val();
+        var $customInput = $('#route_setter_custom');
+        
+        if (value === '__custom__') {
+            // Show custom input and require it
+            $customInput.show().prop('required', true);
+            $customInput.val('');
+            $(this).prop('required', false);
+        } else {
+            // Hide custom input and use selected value
+            $customInput.hide().prop('required', false);
+            $customInput.val(value);
+            $(this).prop('required', true);
+        }
+    });
+    
+    // Initialize on page load
+    $('#route_setter_select').trigger('change');
+});
+</script>

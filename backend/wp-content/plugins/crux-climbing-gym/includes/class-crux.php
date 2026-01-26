@@ -62,6 +62,7 @@ class Crux {
         require_once CRUX_CLIMBING_GYM_PLUGIN_DIR . 'includes/models/class-crux-user.php';
         require_once CRUX_CLIMBING_GYM_PLUGIN_DIR . 'includes/models/class-crux-grade.php';
         require_once CRUX_CLIMBING_GYM_PLUGIN_DIR . 'includes/models/class-crux-hold-colors.php';
+        require_once CRUX_CLIMBING_GYM_PLUGIN_DIR . 'includes/models/class-crux-wall-section.php';
 
         $this->loader = new Crux_Loader();
     }
@@ -83,6 +84,12 @@ class Crux {
         $this->loader->add_action('admin_enqueue_scripts', $plugin_admin, 'enqueue_styles');
         $this->loader->add_action('admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts');
         $this->loader->add_action('admin_menu', $plugin_admin, 'add_admin_menu');
+        
+        // AJAX actions for settings management
+        $this->loader->add_action('wp_ajax_crux_add_wall_section', $plugin_admin, 'ajax_add_wall_section');
+        $this->loader->add_action('wp_ajax_crux_delete_wall_section', $plugin_admin, 'ajax_delete_wall_section');
+        $this->loader->add_action('wp_ajax_crux_add_hold_color', $plugin_admin, 'ajax_add_hold_color');
+        $this->loader->add_action('wp_ajax_crux_delete_hold_color', $plugin_admin, 'ajax_delete_hold_color');
     }
 
     /**

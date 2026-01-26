@@ -224,20 +224,15 @@ class Crux_Admin {
             echo '</div>';
         }
         
-        $wall_sections = array(
-            'Main Wall',
-            'Overhang', 
-            'Slab',
-            'Traverse Wall',
-            'Kids Wall',
-            'Training Area'
-        );
+        // Get wall sections from database
+        $wall_sections = Crux_Wall_Section::get_all(true);
         
-        // Get existing wall sections from routes
-        $existing_sections = $wpdb->get_col("SELECT DISTINCT wall_section FROM {$wpdb->prefix}crux_routes WHERE wall_section IS NOT NULL AND wall_section != '' ORDER BY wall_section ASC");
-        if (!empty($existing_sections)) {
-            $wall_sections = array_unique(array_merge($wall_sections, $existing_sections));
-        }
+        // Get distinct route setters from existing routes
+        $route_setters = $wpdb->get_col(
+            "SELECT DISTINCT route_setter FROM {$wpdb->prefix}crux_routes 
+             WHERE route_setter IS NOT NULL AND route_setter != '' 
+             ORDER BY route_setter ASC"
+        );
 
         include_once CRUX_CLIMBING_GYM_PLUGIN_DIR . 'admin/partials/crux-admin-add-route.php';
     }
@@ -412,5 +407,118 @@ class Crux_Admin {
 
         // Delete the route
         $wpdb->delete($wpdb->prefix . 'crux_routes', array('id' => $route_id));
+    }
+
+    /**
+     * AJAX handler: Add wall section
+     */
+    public function ajax_add_wall_section() {
+        check_ajax_referer('crux_admin_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Unauthorized'));
+            return;
+        }
+        
+        $name = sanitize_text_field($_POST['name']);
+        $description = isset($_POST['description']) ? sanitize_textarea_field($_POST['description']) : '';
+        
+        if (empty($name)) {
+            wp_send_json_error(array('message' => 'Name is required'));
+            return;
+        }
+        
+        $id = Crux_Wall_Section::create(array(
+            'name' => $name,
+            'description' => $description,
+            'sort_order' => 0,
+            'is_active' => 1
+        ));
+        
+        if ($id) {
+            $section = Crux_Wall_Section::get_by_id($id);
+            wp_send_json_success(array(
+                'message' => 'Wall section added successfully',
+                'section' => $section
+            ));
+        } else {
+            wp_send_json_error(array('message' => 'Failed to add wall section'));
+        }
+    }
+
+    /**
+     * AJAX handler: Delete wall section
+     */
+    public function ajax_delete_wall_section() {
+        check_ajax_referer('crux_admin_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Unauthorized'));
+            return;
+        }
+        
+        $id = intval($_POST['id']);
+        
+        if (Crux_Wall_Section::delete($id)) {
+            wp_send_json_success(array('message' => 'Wall section deleted successfully'));
+        } else {
+            wp_send_json_error(array('message' => 'Failed to delete wall section'));
+        }
+    }
+
+    /**
+     * AJAX handler: Add hold color
+     */
+    public function ajax_add_hold_color() {
+        check_ajax_referer('crux_admin_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Unauthorized'));
+            return;
+        }
+        
+        $name = sanitize_text_field($_POST['name']);
+        $hex_code = isset($_POST['hex_code']) ? sanitize_hex_color($_POST['hex_code']) : '';
+        
+        if (empty($name)) {
+            wp_send_json_error(array('message' => 'Name is required'));
+            return;
+        }
+        
+        $id = Crux_Hold_Colors::create(array(
+            'name' => $name,
+            'hex_code' => $hex_code,
+            'value' => 0
+        ));
+        
+        if ($id) {
+            $color = Crux_Hold_Colors::get_by_id($id);
+            wp_send_json_success(array(
+                'message' => 'Hold color added successfully',
+                'color' => $color
+            ));
+        } else {
+            wp_send_json_error(array('message' => 'Failed to add hold color'));
+        }
+    }
+
+    /**
+     * AJAX handler: Delete hold color
+     */
+    public function ajax_delete_hold_color() {
+        check_ajax_referer('crux_admin_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Unauthorized'));
+            return;
+        }
+        
+        $id = intval($_POST['id']);
+        
+        if (Crux_Hold_Colors::delete($id)) {
+            wp_send_json_success(array('message' => 'Hold color deleted successfully'));
+        } else {
+            wp_send_json_error(array('message' => 'Failed to delete hold color'));
+        }
     }
 }

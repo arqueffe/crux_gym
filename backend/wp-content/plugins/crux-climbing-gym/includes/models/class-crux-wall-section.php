@@ -1,31 +1,36 @@
 <?php
 
 /**
- * Hold Colors model class
+ * Wall Section model class
  */
-class Crux_Hold_Colors {
+class Crux_Wall_Section {
     
     /**
-     * Get all hold colors
+     * Get all wall sections
      */
-    public static function get_all() {
+    public static function get_all($active_only = false) {
         global $wpdb;
 
-        $table_name = $wpdb->prefix . 'crux_hold_colors';
+        $table_name = $wpdb->prefix . 'crux_wall_sections';
 
+        $sql = "SELECT * FROM $table_name";
         
-        $sql = "SELECT * FROM $table_name ORDER BY value ASC";
+        if ($active_only) {
+            $sql .= " WHERE is_active = 1";
+        }
+        
+        $sql .= " ORDER BY sort_order ASC, name ASC";
         
         return $wpdb->get_results($sql);
     }
     
     /**
-     * Get hold color by ID
+     * Get wall section by ID
      */
     public static function get_by_id($id) {
         global $wpdb;
 
-        $table_name = $wpdb->prefix . 'crux_hold_colors';
+        $table_name = $wpdb->prefix . 'crux_wall_sections';
 
         $sql = $wpdb->prepare("SELECT * FROM $table_name WHERE id = %d", $id);
         
@@ -33,12 +38,12 @@ class Crux_Hold_Colors {
     }
     
     /**
-     * Get hold color by name
+     * Get wall section by name
      */
     public static function get_by_name($name) {
         global $wpdb;
 
-        $table_name = $wpdb->prefix . 'crux_hold_colors';
+        $table_name = $wpdb->prefix . 'crux_wall_sections';
 
         $sql = $wpdb->prepare("SELECT * FROM $table_name WHERE name = %s", $name);
         
@@ -46,17 +51,18 @@ class Crux_Hold_Colors {
     }
     
     /**
-     * Create new hold color
+     * Create new wall section
      */
     public static function create($data) {
         global $wpdb;
 
-        $table_name = $wpdb->prefix . 'crux_hold_colors';
+        $table_name = $wpdb->prefix . 'crux_wall_sections';
         
         $insert_data = array(
             'name' => sanitize_text_field($data['name']),
-            'hex_code' => isset($data['hex_code']) ? sanitize_hex_color($data['hex_code']) : null,
-            'value' => isset($data['value']) ? intval($data['value']) : 0,
+            'description' => isset($data['description']) ? sanitize_textarea_field($data['description']) : '',
+            'sort_order' => isset($data['sort_order']) ? intval($data['sort_order']) : 0,
+            'is_active' => isset($data['is_active']) ? intval($data['is_active']) : 1,
         );
         
         $result = $wpdb->insert($table_name, $insert_data);
@@ -69,12 +75,12 @@ class Crux_Hold_Colors {
     }
     
     /**
-     * Update hold color
+     * Update wall section
      */
     public static function update($id, $data) {
         global $wpdb;
 
-        $table_name = $wpdb->prefix . 'crux_hold_colors';
+        $table_name = $wpdb->prefix . 'crux_wall_sections';
         
         $update_data = array();
         
@@ -82,12 +88,16 @@ class Crux_Hold_Colors {
             $update_data['name'] = sanitize_text_field($data['name']);
         }
         
-        if (isset($data['hex_code'])) {
-            $update_data['hex_code'] = sanitize_hex_color($data['hex_code']);
+        if (isset($data['description'])) {
+            $update_data['description'] = sanitize_textarea_field($data['description']);
         }
         
-        if (isset($data['value'])) {
-            $update_data['value'] = intval($data['value']);
+        if (isset($data['sort_order'])) {
+            $update_data['sort_order'] = intval($data['sort_order']);
+        }
+        
+        if (isset($data['is_active'])) {
+            $update_data['is_active'] = intval($data['is_active']);
         }
         
         if (empty($update_data)) {
@@ -104,15 +114,26 @@ class Crux_Hold_Colors {
     }
     
     /**
-     * Delete hold color
+     * Delete wall section
      */
     public static function delete($id) {
         global $wpdb;
 
-        $table_name = $wpdb->prefix . 'crux_hold_colors';
+        $table_name = $wpdb->prefix . 'crux_wall_sections';
         
         $result = $wpdb->delete($table_name, array('id' => $id));
         
         return $result !== false;
+    }
+    
+    /**
+     * Get wall sections as simple name list
+     */
+    public static function get_names_list($active_only = true) {
+        $sections = self::get_all($active_only);
+        
+        return array_map(function($section) {
+            return $section->name;
+        }, $sections);
     }
 }

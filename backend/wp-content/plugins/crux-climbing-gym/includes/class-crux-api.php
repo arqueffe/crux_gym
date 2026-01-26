@@ -711,12 +711,7 @@ class Crux_API
      */
     public function get_wall_sections($request)
     {
-        global $wpdb;
-        
-        $table_name = $wpdb->prefix . 'crux_routes';
-        $sql = "SELECT DISTINCT wall_section FROM $table_name WHERE wall_section IS NOT NULL AND wall_section != '' ORDER BY wall_section";
-        
-        $sections = $wpdb->get_col($sql);
+        $sections = Crux_Wall_Section::get_names_list(true);
         return array_values($sections);
     }
 
