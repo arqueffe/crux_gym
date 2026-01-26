@@ -985,32 +985,118 @@ class RouteProvider extends ChangeNotifier {
 
   /// Get hold color info by ID
   Map<String, String> getHoldColorById(int holdColorId) {
-    final colorObj = _holdColors.firstWhere(
-      (color) => int.parse(color['id']) == holdColorId,
-    );
-    return {
-      'name': colorObj['name']?.toString() ?? '',
-      'hex_code': colorObj['hex_code']?.toString() ?? '',
-    };
+    print('🔍 getHoldColorById: Looking for holdColorId=$holdColorId');
+    print('🔍 getHoldColorById: _holdColors has ${_holdColors.length} items');
+
+    if (_holdColors.isEmpty) {
+      print('⚠️ getHoldColorById: _holdColors is empty, returning default');
+      return {'name': 'Unknown', 'hex_code': '#808080'};
+    }
+
+    try {
+      final colorObj = _holdColors.cast<Map<String, dynamic>>().firstWhere(
+        (color) {
+          final colorId = int.tryParse(color['id']?.toString() ?? '');
+          print('🔍 Comparing: color id=$colorId vs holdColorId=$holdColorId');
+          return colorId == holdColorId;
+        },
+        orElse: () {
+          print(
+              '⚠️ getHoldColorById: No match found for holdColorId=$holdColorId, returning default');
+          return {
+            'id': holdColorId.toString(),
+            'name': 'Unknown',
+            'hex_code': '#808080'
+          };
+        },
+      );
+      print('✅ getHoldColorById: Found color: $colorObj');
+      return {
+        'name': colorObj['name']?.toString() ?? 'Unknown',
+        'hex_code': colorObj['hex_code']?.toString() ?? '#808080',
+      };
+    } catch (e) {
+      print('❌ getHoldColorById error: $e');
+      return {'name': 'Unknown', 'hex_code': '#808080'};
+    }
   }
 
   /// Get grade info by ID
   Map<String, String> getGradeById(int? gradeId) {
-    final gradeObj = _gradeDefinitions.firstWhere(
-      (grade) => int.parse(grade['id']) == gradeId,
-    );
-    return {
-      'french_name': gradeObj['french_name']?.toString() ?? '',
-      'color': gradeObj['color']?.toString() ?? '',
-    };
+    print('🔍 getGradeById: Looking for gradeId=$gradeId');
+    print(
+        '🔍 getGradeById: _gradeDefinitions has ${_gradeDefinitions.length} items');
+
+    if (gradeId == null) {
+      print('⚠️ getGradeById: gradeId is null, returning default');
+      return {'french_name': 'Unknown', 'color': '#808080'};
+    }
+
+    if (_gradeDefinitions.isEmpty) {
+      print('⚠️ getGradeById: _gradeDefinitions is empty, returning default');
+      return {'french_name': 'Unknown', 'color': '#808080'};
+    }
+
+    try {
+      final gradeObj =
+          _gradeDefinitions.cast<Map<String, dynamic>>().firstWhere(
+        (grade) {
+          final gId = int.tryParse(grade['id']?.toString() ?? '');
+          print('🔍 Comparing: grade id=$gId vs gradeId=$gradeId');
+          return gId == gradeId;
+        },
+        orElse: () {
+          print(
+              '⚠️ getGradeById: No match found for gradeId=$gradeId, returning default');
+          return {
+            'id': gradeId.toString(),
+            'french_name': 'Unknown',
+            'color': '#808080'
+          };
+        },
+      );
+      print('✅ getGradeById: Found grade: $gradeObj');
+      return {
+        'french_name': gradeObj['french_name']?.toString() ?? 'Unknown',
+        'color': gradeObj['color']?.toString() ?? '#808080',
+      };
+    } catch (e) {
+      print('❌ getGradeById error: $e');
+      return {'french_name': 'Unknown', 'color': '#808080'};
+    }
   }
 
   /// Populate route information (colors and grades) for routes after loading
   void _populateRouteData() {
+    print('🔧 _populateRouteData: Processing ${_routes.length} routes');
+    print(
+        '🔧 _populateRouteData: _holdColors has ${_holdColors.length} colors');
+    print(
+        '🔧 _populateRouteData: _gradeDefinitions has ${_gradeDefinitions.length} grades');
+
+    // Debug: print first few hold colors
+    if (_holdColors.isNotEmpty) {
+      print('🔧 _populateRouteData: First hold color: ${_holdColors.first}');
+    }
+    if (_gradeDefinitions.isNotEmpty) {
+      print(
+          '🔧 _populateRouteData: First grade definition: ${_gradeDefinitions.first}');
+    }
+
     for (int i = 0; i < _routes.length; i++) {
       final route = _routes[i];
+      print(
+          '🔧 Processing route $i: id=${route.id}, name=${route.name}, holdColorId=${route.holdColorId}, gradeId=${route.gradeId}');
 
-      _routes[i] = _populateRouteDataForSingleRoute(route);
+      try {
+        _routes[i] = _populateRouteDataForSingleRoute(route);
+        print('✅ Route $i processed successfully');
+      } catch (e) {
+        print('❌ Error processing route $i (${route.name}): $e');
+        print(
+            '❌ Route details: holdColorId=${route.holdColorId}, gradeId=${route.gradeId}');
+        rethrow;
+      }
     }
   }
 

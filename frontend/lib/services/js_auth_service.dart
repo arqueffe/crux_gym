@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'dart:js_interop';
+import '../config/api_config.dart';
 
 // JavaScript interop for making requests with HttpOnly cookies
 @JS()
@@ -9,7 +10,7 @@ external JSPromise<JSAny?> _makeRequestWithCookies(
 
 class JSAuthService {
   // WordPress API endpoint (same-origin)
-  static const String baseUrl = '/crux-climbing-gym/wp-json/crux/v1';
+  static String get baseUrl => ApiConfig.wordPressApiPath;
 
   // Make HTTP request through JavaScript to include HttpOnly cookies
   static Future<Map<String, dynamic>?> makeJSRequest(
@@ -75,7 +76,12 @@ class JSAuthService {
                 try {
                   final parsed = jsonDecode(data);
                   print('✅ Parsed JSON string data: $parsed');
-                  return {'data': parsed};
+                  // Return the parsed data directly (not wrapped in 'data')
+                  if (parsed is Map<String, dynamic>) {
+                    return parsed;
+                  } else {
+                    return {'data': parsed};
+                  }
                 } catch (e) {
                   print('❌ Failed to parse JSON string: $e');
                   return {'data': data};
@@ -101,6 +107,23 @@ class JSAuthService {
             }
           } else {
             print('❌ Request failed with status: $status');
+            // Try to parse error response
+            final data = responseMap['data'];
+            if (data is String) {
+              try {
+                final parsed = jsonDecode(data);
+                print('⚠️ Error response: $parsed');
+                if (parsed is Map<String, dynamic>) {
+                  return parsed;
+                }
+              } catch (e) {
+                print('❌ Failed to parse error response: $e');
+              }
+            }
+            return {
+              'success': false,
+              'message': 'Request failed with status $status'
+            };
           }
         } catch (e) {
           print('💥 Response parsing error: $e');

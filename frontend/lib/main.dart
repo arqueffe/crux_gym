@@ -10,6 +10,7 @@ import 'providers/theme_provider.dart';
 import 'providers/locale_provider.dart';
 import 'providers/role_provider.dart';
 import 'screens/main_navigation_screen.dart';
+import 'screens/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -119,55 +120,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
           );
         }
 
-        // Show login message if not authenticated
+        // Show login screen if not authenticated
         if (!authProvider.isAuthenticated) {
-          return Scaffold(
-            appBar: AppBar(
-              title: const Text('Crux Climbing Gym'),
-            ),
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.info_outline,
-                    size: 64,
-                    color: Colors.orange,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Please log in to WordPress',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'You need to be logged in to the WordPress website\nto access the climbing gym app.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: () => authProvider.checkAuth(),
-                    child: const Text('Check Login Status'),
-                  ),
-                  if (authProvider.errorMessage != null) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      authProvider.errorMessage!,
-                      style: const TextStyle(
-                        color: Colors.red,
-                        fontSize: 14,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          );
+          return const LoginScreen();
         }
 
         // Show main app if authenticated

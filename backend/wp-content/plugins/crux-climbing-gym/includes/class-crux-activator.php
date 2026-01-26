@@ -433,42 +433,82 @@ class Crux_Activator {
             error_log("Crux Plugin: Grades table already populated ($grade_count records)");
         }
 
-        // Populate hold colors
+        // Populate hold colors from JSON file
         $colors_table = $wpdb->prefix . 'crux_hold_colors';
         $color_count = $wpdb->get_var("SELECT COUNT(*) FROM $colors_table");
         
         if ($color_count == 0) {
-            $colors = array(
-                array('Red', '#FF0000', 1),
-                array('Blue', '#0000FF', 2),
-                array('Green', '#00FF00', 3),
-                array('Yellow', '#FFFF00', 4),
-                array('Orange', '#FFA500', 5),
-                array('Purple', '#800080', 6),
-                array('Pink', '#FFC0CB', 7),
-                array('Black', '#000000', 8),
-                array('White', '#FFFFFF', 9),
-                array('Gray', '#808080', 10)
-            );
-
+            $json_file = plugin_dir_path(dirname(__FILE__)) . 'crux_hold_colors.json';
             $inserted = 0;
-            foreach ($colors as $color) {
-                $result = $wpdb->insert(
-                    $colors_table,
-                    array(
-                        'name' => $color[0],
-                        'hex_code' => $color[1],
-                        'value' => $color[2]
-                    ),
-                    array('%s', '%s', '%d')
-                );
-                
-                if ($result) {
-                    $inserted++;
-                }
-            }
             
-            error_log("Crux Plugin: Inserted $inserted hold colors");
+            if (file_exists($json_file)) {
+                $json_content = file_get_contents($json_file);
+                $json_data = json_decode($json_content, true);
+                
+                // Find the table data in the JSON structure (PHPMyAdmin export format)
+                $colors = array();
+                foreach ($json_data as $item) {
+                    if (isset($item['type']) && $item['type'] === 'table' && 
+                        isset($item['name']) && strpos($item['name'], 'crux_hold_colors') !== false) {
+                        $colors = $item['data'];
+                        break;
+                    }
+                }
+                
+                foreach ($colors as $color) {
+                    $result = $wpdb->insert(
+                        $colors_table,
+                        array(
+                            'name' => $color['name'],
+                            'hex_code' => $color['hex_code'],
+                            'value' => intval($color['value'])
+                        ),
+                        array('%s', '%s', '%d')
+                    );
+                    
+                    if ($result) {
+                        $inserted++;
+                    } else {
+                        error_log("Crux Plugin: Failed to insert hold color {$color['name']}: " . $wpdb->last_error);
+                    }
+                }
+                
+                error_log("Crux Plugin: Inserted $inserted hold colors from JSON file");
+            } else {
+                error_log("Crux Plugin: Hold colors JSON file not found at $json_file, using defaults");
+                
+                // Fallback to default colors if JSON file is missing
+                $default_colors = array(
+                    array('Red', '#FF0000', 1),
+                    array('Blue', '#0000FF', 2),
+                    array('Green', '#00FF00', 3),
+                    array('Yellow', '#FFFF00', 4),
+                    array('Orange', '#FFA500', 5),
+                    array('Purple', '#800080', 6),
+                    array('Pink', '#FFC0CB', 7),
+                    array('Black', '#000000', 8),
+                    array('White', '#FFFFFF', 9),
+                    array('Gray', '#808080', 10)
+                );
+
+                foreach ($default_colors as $color) {
+                    $result = $wpdb->insert(
+                        $colors_table,
+                        array(
+                            'name' => $color[0],
+                            'hex_code' => $color[1],
+                            'value' => $color[2]
+                        ),
+                        array('%s', '%s', '%d')
+                    );
+                    
+                    if ($result) {
+                        $inserted++;
+                    }
+                }
+                
+                error_log("Crux Plugin: Inserted $inserted default hold colors");
+            }
         }
 
         // Populate lanes
@@ -574,6 +614,60 @@ class Crux_Activator {
             }
             
             error_log("Crux Plugin: Inserted $inserted roles");
+        }
+
+        // Import routes from JSON file only if routes table is empty
+        $routes_table = $wpdb->prefix . 'crux_routes';
+        $route_count = $wpdb->get_var("SELECT COUNT(*) FROM $routes_table");
+        
+        if ($route_count == 0) {
+            $json_file = plugin_dir_path(dirname(__FILE__)) . 'crux_routes.json';
+            $inserted = 0;
+            
+            if (file_exists($json_file)) {
+                $json_content = file_get_contents($json_file);
+                $json_data = json_decode($json_content, true);
+                
+                // Find the table data in the JSON structure (PHPMyAdmin export format)
+                $routes = array();
+                foreach ($json_data as $item) {
+                    if (isset($item['type']) && $item['type'] === 'table' && 
+                        isset($item['name']) && strpos($item['name'], 'crux_routes') !== false) {
+                        $routes = $item['data'];
+                        break;
+                    }
+                }
+                
+                foreach ($routes as $route) {
+                    $result = $wpdb->insert(
+                        $routes_table,
+                        array(
+                            'name' => $route['name'],
+                            'grade_id' => intval($route['grade_id']),
+                            'route_setter' => $route['route_setter'],
+                            'wall_section' => $route['wall_section'],
+                            'lane_id' => intval($route['lane_id']),
+                            'hold_color_id' => intval($route['hold_color_id']),
+                            'description' => $route['description'],
+                            'active' => intval($route['active']),
+                            'created_at' => $route['created_at']
+                        ),
+                        array('%s', '%d', '%s', '%s', '%d', '%d', '%s', '%d', '%s')
+                    );
+                    
+                    if ($result) {
+                        $inserted++;
+                    } else {
+                        error_log("Crux Plugin: Failed to insert route {$route['name']}: " . $wpdb->last_error);
+                    }
+                }
+                
+                error_log("Crux Plugin: Imported $inserted routes from JSON file");
+            } else {
+                error_log("Crux Plugin: Routes JSON file not found at $json_file");
+            }
+        } else {
+            error_log("Crux Plugin: Routes table already has data ($route_count records), skipping import");
         }
         
         error_log('Crux Plugin: Sample data population completed');
