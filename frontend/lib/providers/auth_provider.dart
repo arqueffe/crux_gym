@@ -3,7 +3,7 @@ import '../services/auth_service.dart';
 import '../models/user_models.dart';
 
 class AuthProvider with ChangeNotifier {
-  static const String baseUrl = AuthService.baseUrl;
+  static String baseUrl = AuthService.baseUrl;
   final AuthService _authService = AuthService();
 
   bool _isLoading = false;
