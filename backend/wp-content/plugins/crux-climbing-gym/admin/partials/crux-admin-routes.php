@@ -62,6 +62,11 @@ sort($lane_numbers);
                                         ?>;"></span>
                                     <?php endif; ?>
                                 </div>
+                                <?php if (isset($route->image)): ?>
+                                    <div class="crux-route-image">
+                                        <img title="<?php echo esc_html($route->image); ?>" src="<?php echo esc_html($route->image); ?>">
+                                    </div>
+                                <?php endif; ?>
                                 
                                 <?php if ($route->description): ?>
                                     <p class="crux-route-description"><?php echo esc_html(wp_trim_words($route->description, 15)); ?></p>
@@ -236,6 +241,16 @@ sort($lane_numbers);
         font-weight: 600;
         color: #2c3e50;
         flex: 1;
+    }
+    
+    .crux-route-image {
+        text-align: center;
+    }
+    .crux-route-image img {
+        display: inline-block;
+        height:100px;
+        max-width:100px;
+        max-height:100px
     }
     
     .crux-color-indicator {
