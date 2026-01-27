@@ -344,8 +344,37 @@ class Crux_Admin {
     private function create_route($data, $file) {
         global $wpdb;
 
-
-        if ($file['route_image']['name'] != '') {
+        // Check if we have an edited image (base64 data)
+        if (!empty($data['route_image_edited'])) {
+            // Handle edited image from canvas
+            $image_data = $data['route_image_edited'];
+            
+            // Remove data URL prefix (data:image/png;base64,)
+            if (strpos($image_data, 'data:image') === 0) {
+                $image_data = substr($image_data, strpos($image_data, ',') + 1);
+            }
+            
+            $decoded_image = base64_decode($image_data);
+            
+            if ($decoded_image === false) {
+                return array('success' => false, 'message' => 'Failed to decode edited image.');
+            }
+            
+            // Verify it's a valid image by checking the header
+            $image_info = @getimagesizefromstring($decoded_image);
+            if ($image_info === false) {
+                return array('success' => false, 'message' => 'Decoded data is not a valid image.');
+            }
+            
+            // Use wp_upload_bits which is designed for programmatic uploads
+            $filename = 'route-edited-' . time() . '.png';
+            $upload = wp_upload_bits($filename, null, $decoded_image);
+            
+            if ($upload['error'] !== false) {
+                return array('success' => false, 'message' => 'Failed to upload edited image: ' . $upload['error']);
+            }
+        } elseif ($file['route_image']['name'] != '') {
+            // Handle regular file upload
             $isAnImage = getimagesize($file['route_image']['tmp_name']) ? true : false;
             if (!$isAnImage) {
                 return array('success' => false, 'message' => 'Uploaded file is not a valid image.');
