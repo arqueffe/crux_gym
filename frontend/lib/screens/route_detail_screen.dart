@@ -24,19 +24,25 @@ class RouteImageDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(20),
       child: InteractiveViewer(
         boundaryMargin: const EdgeInsets.all(20.0),
         minScale: 0.1,
-        maxScale: 4.0, // Should depend on image res
+        maxScale: 4.0,
         child: Container(
           decoration: BoxDecoration(
-            image: DecorationImage(
-              image: NetworkImage(url),
-              fit: BoxFit.contain
-            )
+            border: Border.all(
+              color: Colors.white,
+              width: 2,
+            ),
+          ),
+          child: Image.network(
+            url,
+            fit: BoxFit.contain,
           ),
         ),
-      )
+      ),
     );
   }
 }
@@ -53,18 +59,15 @@ class RouteImage extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(8.0),
       child: GestureDetector(
-        onTap: () async {
-          await showDialog(
-            context: context,
-            builder: (_) => RouteImageDialog(url)
-          );
-        },
-        child: Image.network(
-          url,
-          width: width,
-          fit: BoxFit.contain,
-        )
-      ),
+          onTap: () async {
+            await showDialog(
+                context: context, builder: (_) => RouteImageDialog(url));
+          },
+          child: Image.network(
+            url,
+            width: width,
+            fit: BoxFit.contain,
+          )),
     );
   }
 }
@@ -124,485 +127,653 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
 
           final screenWidth = MediaQuery.of(context).size.width;
           final isWideScreen = screenWidth > 600;
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Route Header
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (!isWideScreen && route.image != null) ...[
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              RouteImage(route.image!), // Take full width
-                              const SizedBox(height: 8),
-                            ],
-                          )
-                        ],
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (isWideScreen && route.image != null) ...[
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  RouteImage(route.image!, width: 250)
-                                ],
-                              ),
-                              const SizedBox(width: 16),
-                            ],
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    route.name == 'Unnamed'
-                                        ? l10n.unnamed
-                                        : route.name,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .headlineMedium,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      GradeChip(
-                                        grade: route.gradeName!,
-                                        gradeColorHex: route.gradeColor,
-                                      ),
-                                      // Show averaged proposed grade if available
-                                      Consumer<RouteProvider>(
-                                        builder:
-                                            (context, routeProvider, child) {
-                                          try {
-                                            final averageGrade = GradeUtils
-                                                .calculateAverageProposedGrade(
-                                              route.gradeProposals,
-                                              routeProvider.gradeDefinitions,
-                                            );
 
-                                            if (averageGrade == null) {
-                                              return const SizedBox.shrink();
-                                            }
-
-                                            final averageGradeColor =
-                                                routeProvider.getGradeColor(
-                                                    averageGrade);
-
-                                            return Padding(
-                                              padding: const EdgeInsets.only(
-                                                  left: 8),
-                                              child: AverageGradeChip(
-                                                grade: averageGrade,
-                                                gradeColorHex:
-                                                    averageGradeColor,
-                                              ),
-                                            );
-                                          } catch (e) {
-                                            // If there's an error calculating average grade, just don't show it
-                                            print(
-                                                'Error calculating average grade: $e');
-                                            return const SizedBox.shrink();
-                                          }
-                                        },
-                                      ),
-                                      if (route.colorHex != null) ...[
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          width: 20,
-                                          height: 20,
-                                          decoration: BoxDecoration(
-                                            color: ColorUtils.parseHexColor(
-                                                route.colorHex ?? '#808080'),
-                                            shape: BoxShape.circle,
-                                            border:
-                                                Border.all(color: Colors.grey),
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                  // Explanation for averaged proposed grade
-                                  Consumer<RouteProvider>(
-                                    builder: (context, routeProvider, child) {
-                                      try {
-                                        final averageGrade = GradeUtils
-                                            .calculateAverageProposedGrade(
-                                          route.gradeProposals,
-                                          routeProvider.gradeDefinitions,
-                                        );
-
-                                        if (averageGrade == null) {
-                                          return const SizedBox.shrink();
-                                        }
-
-                                        return Padding(
-                                          padding:
-                                              const EdgeInsets.only(top: 4),
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                Icons.info_outline,
-                                                size: 14,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurfaceVariant,
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                l10n.communitySuggested(
-                                                    averageGrade,
-                                                    route.gradeProposalsCount),
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurfaceVariant,
-                                                  fontStyle: FontStyle.italic,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        );
-                                      } catch (e) {
-                                        // If there's an error calculating average grade, just don't show it
-                                        print(
-                                            'Error calculating average grade: $e');
-                                        return const SizedBox.shrink();
-                                      }
-                                    },
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      Icon(Icons.person,
-                                          size: 16,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurfaceVariant),
-                                      const SizedBox(width: 4),
-                                      Text(l10n.setBy(route.routeSetter)),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      Icon(Icons.location_on,
-                                          size: 16,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurfaceVariant),
-                                      const SizedBox(width: 4),
-                                      Text(route.wallSection),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      Icon(Icons.format_list_numbered,
-                                          size: 16,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurfaceVariant),
-                                      const SizedBox(width: 4),
-                                      Text(l10n.laneLabel(route.lane)),
-                                    ],
-                                  ),
-                                  if (route.description != null) ...[
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      route.description!,
-                                      style: Theme.of(context).textTheme.bodyMedium,
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                            // Social
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Row(
-                                  children: [
-                                    const Icon(Icons.favorite,
-                                        color: Colors.red, size: 16),
-                                    const SizedBox(width: 4),
-                                    Text('${route.likesCount}'),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    const Icon(Icons.comment,
-                                        color: Colors.blue, size: 16),
-                                    const SizedBox(width: 4),
-                                    Text('${route.commentsCount}'),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    const Icon(Icons.check_circle,
-                                        color: Colors.green, size: 16),
-                                    const SizedBox(width: 4),
-                                    Text('${route.ticksCount}'),
-                                  ],
-                                ),
-                                if (route.warningsCount > 0) ...[
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.warning,
-                                          color: Colors.orange, size: 16),
-                                      const SizedBox(width: 4),
-                                      Text('${route.warningsCount}'),
-                                    ],
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ],
-                        ),
-                      ],
+          return Stack(
+            children: [
+              // Background Image
+              if (route.image != null)
+                Positioned.fill(
+                  child: GestureDetector(
+                    onTap: () async {
+                      await showDialog(
+                        context: context,
+                        builder: (_) => RouteImageDialog(route.image!),
+                      );
+                    },
+                    child: Image.network(
+                      route.image!,
+                      fit: BoxFit.cover,
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
 
-                // User Interactions
-                RouteInteractions(route: route),
-
-                // Name Proposals Section (only for unnamed routes)
-                if (route.name == 'Unnamed') ...[
-                  const SizedBox(height: 16),
-                  _NameProposalSection(route: route),
-                ],
-
-                // Comments Section
-                if (route.comments != null && route.comments!.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            l10n.comments,
-                            style: Theme.of(context).textTheme.titleLarge,
+              // Zoom indicator for background
+              if (route.image != null)
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: GestureDetector(
+                    onTap: () async {
+                      await showDialog(
+                        context: context,
+                        builder: (_) => RouteImageDialog(route.image!),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.7),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.5),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(
+                            Icons.zoom_in,
+                            color: Colors.white,
+                            size: 16,
                           ),
-                          const SizedBox(height: 16),
-                          ...route.comments!.map((comment) => Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Text(
-                                          comment.userName,
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.bold),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          _formatDate(comment.createdAt),
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(comment.content),
-                                  ],
-                                ),
-                              )),
+                          SizedBox(width: 4),
+                          Text(
+                            'Tap to zoom',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                         ],
                       ),
                     ),
                   ),
-                ],
+                ),
 
-                // Grade Proposals Section
-                if (route.gradeProposals != null &&
-                    route.gradeProposals!.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            l10n.gradeProposals,
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          const SizedBox(height: 16),
-                          ...route.gradeProposals!.map((proposal) => Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
+              // Scrollable Content with top spacing
+              SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Empty space to show the background image - transparent to taps
+                    if (route.image != null)
+                      GestureDetector(
+                        onTap: () async {
+                          await showDialog(
+                            context: context,
+                            builder: (_) => RouteImageDialog(route.image!),
+                          );
+                        },
+                        child: Container(
+                          height: isWideScreen ? 300 : 250,
+                          color: Colors.transparent,
+                        ),
+                      ),
+
+                    // Content area with semi-transparent background
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Theme.of(context)
+                                .colorScheme
+                                .surface
+                                .withOpacity(0.92),
+                            Theme.of(context)
+                                .colorScheme
+                                .surface
+                                .withOpacity(0.97),
+                          ],
+                        ),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(32),
+                          topRight: Radius.circular(32),
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Route Header Card
+                            Card(
+                              elevation: 4,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .surface
+                                  .withOpacity(0.95),
+                              child: Padding(
+                                padding: const EdgeInsets.all(20),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        Text(
-                                          proposal.userName,
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.bold),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 2,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: context
-                                                        .read<RouteProvider>()
-                                                        .getGradeColor(proposal
-                                                            .proposedGrade) !=
-                                                    null
-                                                ? ColorUtils.parseHexColor(
-                                                    context
-                                                        .read<RouteProvider>()
-                                                        .getGradeColor(proposal
-                                                            .proposedGrade)!)
-                                                : Colors.grey,
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                          ),
-                                          child: Text(
-                                            proposal.proposedGrade,
-                                            style: TextStyle(
-                                              color: GradeChip.getTextColor(
-                                                context
-                                                            .read<
-                                                                RouteProvider>()
-                                                            .getGradeColor(proposal
-                                                                .proposedGrade) !=
-                                                        null
-                                                    ? ColorUtils.parseHexColor(
-                                                        context
-                                                            .read<
-                                                                RouteProvider>()
-                                                            .getGradeColor(proposal
-                                                                .proposedGrade)!)
-                                                    : Colors.grey,
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                route.name == 'Unnamed'
+                                                    ? l10n.unnamed
+                                                    : route.name,
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .headlineMedium
+                                                    ?.copyWith(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
                                               ),
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                                              const SizedBox(height: 12),
+                                              Wrap(
+                                                spacing: 8,
+                                                runSpacing: 8,
+                                                crossAxisAlignment:
+                                                    WrapCrossAlignment.center,
+                                                children: [
+                                                  GradeChip(
+                                                    grade: route.gradeName!,
+                                                    gradeColorHex:
+                                                        route.gradeColor,
+                                                  ),
+                                                  // Show averaged proposed grade if available
+                                                  Consumer<RouteProvider>(
+                                                    builder: (context,
+                                                        routeProvider, child) {
+                                                      try {
+                                                        final averageGrade =
+                                                            GradeUtils
+                                                                .calculateAverageProposedGrade(
+                                                          route.gradeProposals,
+                                                          routeProvider
+                                                              .gradeDefinitions,
+                                                        );
+
+                                                        if (averageGrade ==
+                                                            null) {
+                                                          return const SizedBox
+                                                              .shrink();
+                                                        }
+
+                                                        final averageGradeColor =
+                                                            routeProvider
+                                                                .getGradeColor(
+                                                                    averageGrade);
+
+                                                        return AverageGradeChip(
+                                                          grade: averageGrade,
+                                                          gradeColorHex:
+                                                              averageGradeColor,
+                                                        );
+                                                      } catch (e) {
+                                                        print(
+                                                            'Error calculating average grade: $e');
+                                                        return const SizedBox
+                                                            .shrink();
+                                                      }
+                                                    },
+                                                  ),
+                                                  if (route.colorHex != null)
+                                                    Container(
+                                                      width: 24,
+                                                      height: 24,
+                                                      decoration: BoxDecoration(
+                                                        color: ColorUtils
+                                                            .parseHexColor(route
+                                                                    .colorHex ??
+                                                                '#808080'),
+                                                        shape: BoxShape.circle,
+                                                        border: Border.all(
+                                                          color: Colors
+                                                              .grey.shade300,
+                                                          width: 2,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                ],
+                                              ),
+                                              // Explanation for averaged proposed grade
+                                              Consumer<RouteProvider>(
+                                                builder: (context,
+                                                    routeProvider, child) {
+                                                  try {
+                                                    final averageGrade = GradeUtils
+                                                        .calculateAverageProposedGrade(
+                                                      route.gradeProposals,
+                                                      routeProvider
+                                                          .gradeDefinitions,
+                                                    );
+
+                                                    if (averageGrade == null) {
+                                                      return const SizedBox
+                                                          .shrink();
+                                                    }
+
+                                                    return Padding(
+                                                      padding:
+                                                          const EdgeInsets.only(
+                                                              top: 8),
+                                                      child: Row(
+                                                        children: [
+                                                          Icon(
+                                                            Icons.info_outline,
+                                                            size: 14,
+                                                            color: Theme.of(
+                                                                    context)
+                                                                .colorScheme
+                                                                .primary,
+                                                          ),
+                                                          const SizedBox(
+                                                              width: 4),
+                                                          Flexible(
+                                                            child: Text(
+                                                              l10n.communitySuggested(
+                                                                  averageGrade,
+                                                                  route
+                                                                      .gradeProposalsCount),
+                                                              style: TextStyle(
+                                                                fontSize: 12,
+                                                                color: Theme.of(
+                                                                        context)
+                                                                    .colorScheme
+                                                                    .primary,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    );
+                                                  } catch (e) {
+                                                    print(
+                                                        'Error calculating average grade: $e');
+                                                    return const SizedBox
+                                                        .shrink();
+                                                  }
+                                                },
+                                              ),
+                                              const SizedBox(height: 16),
+                                              const Divider(),
+                                              const SizedBox(height: 12),
+                                              _InfoRow(
+                                                icon: Icons.person,
+                                                label: l10n
+                                                    .setBy(route.routeSetter),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              _InfoRow(
+                                                icon: Icons.location_on,
+                                                label: route.wallSection,
+                                              ),
+                                              const SizedBox(height: 8),
+                                              _InfoRow(
+                                                icon:
+                                                    Icons.format_list_numbered,
+                                                label:
+                                                    l10n.laneLabel(route.lane),
+                                              ),
+                                              if (route.description !=
+                                                  null) ...[
+                                                const SizedBox(height: 16),
+                                                const Divider(),
+                                                const SizedBox(height: 12),
+                                                Text(
+                                                  route.description!,
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .bodyLarge
+                                                      ?.copyWith(height: 1.5),
+                                                ),
+                                              ],
+                                            ],
                                           ),
                                         ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          _formatDate(proposal.createdAt),
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                            fontSize: 12,
-                                          ),
+                                        // Social Stats
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.end,
+                                          children: [
+                                            _StatChip(
+                                              icon: Icons.favorite,
+                                              count: route.likesCount,
+                                              color: Colors.red,
+                                            ),
+                                            const SizedBox(height: 8),
+                                            _StatChip(
+                                              icon: Icons.comment,
+                                              count: route.commentsCount,
+                                              color: Colors.blue,
+                                            ),
+                                            const SizedBox(height: 8),
+                                            _StatChip(
+                                              icon: Icons.check_circle,
+                                              count: route.ticksCount,
+                                              color: Colors.green,
+                                            ),
+                                            if (route.warningsCount > 0) ...[
+                                              const SizedBox(height: 8),
+                                              _StatChip(
+                                                icon: Icons.warning,
+                                                count: route.warningsCount,
+                                                color: Colors.orange,
+                                              ),
+                                            ],
+                                          ],
                                         ),
                                       ],
                                     ),
-                                    if (proposal.reasoning != null) ...[
-                                      const SizedBox(height: 4),
-                                      Text(proposal.reasoning!),
-                                    ],
                                   ],
                                 ),
-                              )),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+                              ),
+                            ),
+                            const SizedBox(height: 20),
 
-                // Warnings Section
-                if (route.warnings != null && route.warnings!.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  Card(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.orange.withOpacity(0.1)
-                        : Colors.orange[50],
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.warning, color: Colors.orange),
-                              const SizedBox(width: 8),
-                              Text(
-                                l10n.warnings,
-                                style: Theme.of(context).textTheme.titleLarge,
+                            // User Interactions
+                            RouteInteractions(route: route),
+
+                            // Name Proposals Section (only for unnamed routes)
+                            if (route.name == 'Unnamed') ...[
+                              const SizedBox(height: 20),
+                              _NameProposalSection(route: route),
+                            ],
+
+                            // Comments Section
+                            if (route.comments != null &&
+                                route.comments!.isNotEmpty) ...[
+                              const SizedBox(height: 20),
+                              Card(
+                                elevation: 4,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .surface
+                                    .withOpacity(0.95),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        l10n.comments,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleLarge,
+                                      ),
+                                      const SizedBox(height: 16),
+                                      ...route.comments!.map((comment) =>
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                                bottom: 12),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  children: [
+                                                    Text(
+                                                      comment.userName,
+                                                      style: const TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Text(
+                                                      _formatDate(
+                                                          comment.createdAt),
+                                                      style: TextStyle(
+                                                        color: Colors.grey[600],
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(comment.content),
+                                              ],
+                                            ),
+                                          )),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ],
-                          ),
-                          const SizedBox(height: 16),
-                          ...route.warnings!.map((warning) => Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Text(
-                                          warning.userName,
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.bold),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 2,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.orange,
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                          ),
-                                          child: Text(
-                                            warning.warningType
-                                                .replaceAll('_', ' '),
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          _formatDate(warning.createdAt),
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(warning.description),
-                                  ],
+
+                            // Grade Proposals Section
+                            if (route.gradeProposals != null &&
+                                route.gradeProposals!.isNotEmpty) ...[
+                              const SizedBox(height: 20),
+                              Card(
+                                elevation: 4,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
                                 ),
-                              )),
-                        ],
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .surface
+                                    .withOpacity(0.95),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        l10n.gradeProposals,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleLarge,
+                                      ),
+                                      const SizedBox(height: 16),
+                                      ...route.gradeProposals!.map((proposal) =>
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                                bottom: 12),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  children: [
+                                                    Text(
+                                                      proposal.userName,
+                                                      style: const TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Container(
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 2,
+                                                      ),
+                                                      decoration: BoxDecoration(
+                                                        color: context
+                                                                    .read<
+                                                                        RouteProvider>()
+                                                                    .getGradeColor(
+                                                                        proposal
+                                                                            .proposedGrade) !=
+                                                                null
+                                                            ? ColorUtils.parseHexColor(context
+                                                                .read<
+                                                                    RouteProvider>()
+                                                                .getGradeColor(
+                                                                    proposal
+                                                                        .proposedGrade)!)
+                                                            : Colors.grey,
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(12),
+                                                      ),
+                                                      child: Text(
+                                                        proposal.proposedGrade,
+                                                        style: TextStyle(
+                                                          color: GradeChip
+                                                              .getTextColor(
+                                                            context.read<RouteProvider>().getGradeColor(
+                                                                        proposal
+                                                                            .proposedGrade) !=
+                                                                    null
+                                                                ? ColorUtils.parseHexColor(context
+                                                                    .read<
+                                                                        RouteProvider>()
+                                                                    .getGradeColor(
+                                                                        proposal
+                                                                            .proposedGrade)!)
+                                                                : Colors.grey,
+                                                          ),
+                                                          fontSize: 12,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Text(
+                                                      _formatDate(
+                                                          proposal.createdAt),
+                                                      style: TextStyle(
+                                                        color: Colors.grey[600],
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                if (proposal.reasoning !=
+                                                    null) ...[
+                                                  const SizedBox(height: 4),
+                                                  Text(proposal.reasoning!),
+                                                ],
+                                              ],
+                                            ),
+                                          )),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+
+                            // Warnings Section
+                            if (route.warnings != null &&
+                                route.warnings!.isNotEmpty) ...[
+                              const SizedBox(height: 20),
+                              Card(
+                                elevation: 4,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.orange.withOpacity(0.15)
+                                    : Colors.orange[50]?.withOpacity(0.95),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.warning,
+                                              color: Colors.orange),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            l10n.warnings,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleLarge,
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      ...route.warnings!.map((warning) =>
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                                bottom: 12),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  children: [
+                                                    Text(
+                                                      warning.userName,
+                                                      style: const TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Container(
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 2,
+                                                      ),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.orange,
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(12),
+                                                      ),
+                                                      child: Text(
+                                                        warning.warningType
+                                                            .replaceAll(
+                                                                '_', ' '),
+                                                        style: const TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 12,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Text(
+                                                      _formatDate(
+                                                          warning.createdAt),
+                                                      style: TextStyle(
+                                                        color: Colors.grey[600],
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(warning.description),
+                                              ],
+                                            ),
+                                          )),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ],
-            ),
+                  ],
+                ),
+              ),
+            ],
           );
         },
       ),
@@ -611,6 +782,179 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
+  }
+}
+
+// Hero Image Widget for top of screen
+class _HeroImageSection extends StatelessWidget {
+  final String imageUrl;
+  final bool isWideScreen;
+
+  const _HeroImageSection({
+    required this.imageUrl,
+    required this.isWideScreen,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () async {
+        await showDialog(
+          context: context,
+          builder: (_) => RouteImageDialog(imageUrl),
+        );
+      },
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: isWideScreen ? 500 : 400,
+        ),
+        width: double.infinity,
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Stack(
+          fit: StackFit.passthrough,
+          children: [
+            Image.network(
+              imageUrl,
+              fit: BoxFit.cover,
+              width: double.infinity,
+            ),
+            // Gradient overlay for better text visibility if needed
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: 100,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.3),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // Tap indicator
+            Positioned(
+              bottom: 12,
+              right: 12,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.zoom_in,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Tap to zoom',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Info row widget for cleaner code
+class _InfoRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 18,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// Stat chip widget for modern social stats
+class _StatChip extends StatelessWidget {
+  final IconData icon;
+  final int count;
+  final Color color;
+
+  const _StatChip({
+    required this.icon,
+    required this.count,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: color.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(width: 6),
+          Text(
+            '$count',
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -781,7 +1125,11 @@ class _NameProposalSectionState extends State<_NameProposalSection> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Card(
-      color: Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.3),
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      color: Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.85),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
