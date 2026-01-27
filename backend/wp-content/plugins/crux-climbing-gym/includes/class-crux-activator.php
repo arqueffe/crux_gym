@@ -375,7 +375,50 @@ class Crux_Activator {
             error_log("Crux Plugin: Failed to create $table_name - " . $wpdb->last_error);
         }
 
-        error_log("Crux Plugin: Created $tables_created out of 13 tables");
+        // 14. Route Name Proposals table
+        $table_name = $wpdb->prefix . 'crux_route_name_proposals';
+        $sql = "CREATE TABLE $table_name (
+            id mediumint(9) NOT NULL AUTO_INCREMENT,
+            route_id mediumint(9) NOT NULL,
+            user_id bigint(20) NOT NULL,
+            proposed_name varchar(100) NOT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY user_route (user_id, route_id),
+            KEY route_id (route_id),
+            KEY user_id (user_id)
+        ) $charset_collate;";
+        
+        $result = dbDelta($sql);
+        if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name) {
+            $tables_created++;
+            error_log("Crux Plugin: Successfully created $table_name");
+        } else {
+            error_log("Crux Plugin: Failed to create $table_name - " . $wpdb->last_error);
+        }
+
+        // 15. Route Name Proposal Votes table
+        $table_name = $wpdb->prefix . 'crux_route_name_votes';
+        $sql = "CREATE TABLE $table_name (
+            id mediumint(9) NOT NULL AUTO_INCREMENT,
+            proposal_id mediumint(9) NOT NULL,
+            user_id bigint(20) NOT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY user_proposal (user_id, proposal_id),
+            KEY proposal_id (proposal_id),
+            KEY user_id (user_id)
+        ) $charset_collate;";
+        
+        $result = dbDelta($sql);
+        if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name) {
+            $tables_created++;
+            error_log("Crux Plugin: Successfully created $table_name");
+        } else {
+            error_log("Crux Plugin: Failed to create $table_name - " . $wpdb->last_error);
+        }
+
+        error_log("Crux Plugin: Created $tables_created out of 15 tables");
     }
 
     /**

@@ -90,6 +90,11 @@ class Crux {
         $this->loader->add_action('wp_ajax_crux_delete_wall_section', $plugin_admin, 'ajax_delete_wall_section');
         $this->loader->add_action('wp_ajax_crux_add_hold_color', $plugin_admin, 'ajax_add_hold_color');
         $this->loader->add_action('wp_ajax_crux_delete_hold_color', $plugin_admin, 'ajax_delete_hold_color');
+        
+        // AJAX actions for routes management
+        $this->loader->add_action('wp_ajax_crux_rename_route', $plugin_admin, 'ajax_rename_route');
+        $this->loader->add_action('wp_ajax_crux_get_route', $plugin_admin, 'ajax_get_route');
+        $this->loader->add_action('wp_ajax_crux_update_route', $plugin_admin, 'ajax_update_route');
     }
 
     /**

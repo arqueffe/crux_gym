@@ -25,13 +25,18 @@ if (!defined('ABSPATH')) {
                     <tbody>
                         <tr>
                             <th scope="row">
-                                <label for="route_name">Route Name *</label>
+                                <label for="route_name">Route Name</label>
                             </th>
                             <td>
                                 <input name="route_name" type="text" id="route_name" 
                                        value="<?php echo isset($_POST['route_name']) ? esc_attr($_POST['route_name']) : ''; ?>" 
-                                       class="regular-text" required />
-                                <p class="description">Enter a creative name for the climbing route</p>
+                                       class="regular-text" />
+                                <label style="display: block; margin-top: 8px;">
+                                    <input type="checkbox" name="unnamed_route" id="unnamed_route" value="1"
+                                           <?php checked(isset($_POST['unnamed_route']), true); ?> />
+                                    Leave unnamed (route will be named "Unnamed" until users propose names)
+                                </label>
+                                <p class="description">Enter a creative name for the climbing route, or check the box above to leave it unnamed</p>
                             </td>
                         </tr>
                         
@@ -280,7 +285,20 @@ jQuery(document).ready(function($) {
         }
     });
     
+    // Handle unnamed route checkbox
+    $('#unnamed_route').on('change', function() {
+        var $routeNameInput = $('#route_name');
+        if ($(this).is(':checked')) {
+            // Disable and clear route name field when unnamed is checked
+            $routeNameInput.prop('required', false).prop('disabled', true).val('');
+        } else {
+            // Enable route name field when unnamed is unchecked
+            $routeNameInput.prop('required', false).prop('disabled', false);
+        }
+    });
+    
     // Initialize on page load
     $('#route_setter_select').trigger('change');
+    $('#unnamed_route').trigger('change');
 });
 </script>

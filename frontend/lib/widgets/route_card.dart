@@ -40,7 +40,7 @@ class RouteCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          route.name,
+                          route.name == 'Unnamed' ? l10n.unnamed : route.name,
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         const SizedBox(height: 8),

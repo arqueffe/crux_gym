@@ -24,6 +24,7 @@ class Route {
   final List<GradeProposal>? gradeProposals;
   final List<Warning>? warnings;
   final List<Tick>? ticks;
+  final List<NameProposal>? nameProposals;
 
   Route({
     required this.id,
@@ -51,6 +52,7 @@ class Route {
     this.gradeProposals,
     this.warnings,
     this.ticks,
+    this.nameProposals,
   });
 
   factory Route.fromJson(Map<String, dynamic> json) {
@@ -91,6 +93,11 @@ class Route {
           : null,
       ticks: json['ticks'] != null
           ? (json['ticks'] as List).map((e) => Tick.fromJson(e)).toList()
+          : null,
+      nameProposals: json['name_proposals'] != null
+          ? (json['name_proposals'] as List)
+              .map((e) => NameProposal.fromJson(e))
+              .toList()
           : null,
     );
   }
@@ -359,5 +366,34 @@ class Project {
     return {
       'notes': notes,
     };
+  }
+}
+
+class NameProposal {
+  final int id;
+  final String proposedName;
+  final int userId;
+  final String userName;
+  final DateTime createdAt;
+  final int voteCount;
+
+  NameProposal({
+    required this.id,
+    required this.proposedName,
+    required this.userId,
+    required this.userName,
+    required this.createdAt,
+    required this.voteCount,
+  });
+
+  factory NameProposal.fromJson(Map<String, dynamic> json) {
+    return NameProposal(
+      id: int.parse(json['id'].toString()),
+      proposedName: json['proposed_name'],
+      userId: int.parse(json['user_id'].toString()),
+      userName: json['user_name'],
+      createdAt: DateTime.parse(json['created_at']),
+      voteCount: int.parse(json['vote_count'].toString()),
+    );
   }
 }

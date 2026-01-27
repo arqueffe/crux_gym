@@ -213,6 +213,31 @@ class Crux_API
             'permission_callback' => array($this, 'check_user_permissions')
         ));
 
+        // Route name proposal endpoints
+        register_rest_route($namespace, '/routes/(?P<id>\d+)/name-proposals', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_route_name_proposals'),
+            'permission_callback' => array($this, 'check_user_permissions')
+        ));
+
+        register_rest_route($namespace, '/routes/(?P<id>\d+)/name-proposals', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'propose_route_name'),
+            'permission_callback' => array($this, 'check_user_permissions')
+        ));
+
+        register_rest_route($namespace, '/name-proposals/(?P<id>\d+)/vote', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'vote_for_name_proposal'),
+            'permission_callback' => array($this, 'check_user_permissions')
+        ));
+
+        register_rest_route($namespace, '/routes/(?P<id>\d+)/name-proposals/user-action', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_user_name_proposal_action'),
+            'permission_callback' => array($this, 'check_user_permissions')
+        ));
+
         // User nickname endpoints
         register_rest_route($namespace, '/user/nickname', array(
             'methods' => 'GET',
@@ -680,7 +705,10 @@ class Crux_API
     {
         $data = $request->get_json_params();
         
-        $required_fields = array('name', 'grade_id', 'route_setter', 'wall_section', 'lane_id');
+        // Allow empty name if it will be set to "Unnamed"
+        $route_name = isset($data['name']) && !empty(trim($data['name'])) ? sanitize_text_field($data['name']) : 'Unnamed';
+        
+        $required_fields = array('grade_id', 'route_setter', 'wall_section', 'lane_id');
         foreach ($required_fields as $field) {
             if (!isset($data[$field])) {
                 return new WP_Error('missing_field', "Missing required field: $field", array('status' => 400));
@@ -688,7 +716,7 @@ class Crux_API
         }
 
         $route_data = array(
-            'name' => sanitize_text_field($data['name']),
+            'name' => $route_name,
             'grade_id' => intval($data['grade_id']),
             'route_setter' => sanitize_text_field($data['route_setter']),
             'wall_section' => sanitize_text_field($data['wall_section']),
@@ -2288,6 +2316,229 @@ class Crux_API
             'success' => true,
             'message' => 'Notes updated successfully',
             'notes' => $notes
+        );
+    }
+
+    /**
+     * Get route name proposals with vote counts
+     */
+    public function get_route_name_proposals($request) {
+        global $wpdb;
+        
+        $route_id = $request['id'];
+        $proposals_table = $wpdb->prefix . 'crux_route_name_proposals';
+        $votes_table = $wpdb->prefix . 'crux_route_name_votes';
+        $users_table = $wpdb->prefix . 'users';
+        
+        $proposals = $wpdb->get_results($wpdb->prepare(
+            "SELECT p.id, p.proposed_name, p.user_id, u.display_name as user_name, p.created_at,
+                    COUNT(DISTINCT v.id) as vote_count
+             FROM $proposals_table p
+             LEFT JOIN $users_table u ON p.user_id = u.ID
+             LEFT JOIN $votes_table v ON p.id = v.proposal_id
+             WHERE p.route_id = %d
+             GROUP BY p.id
+             ORDER BY vote_count DESC, p.created_at ASC",
+            $route_id
+        ));
+        
+        return $proposals;
+    }
+
+    /**
+     * Propose a name for a route
+     */
+    public function propose_route_name($request) {
+        global $wpdb;
+        
+        $route_id = $request['id'];
+        $data = $request->get_json_params();
+        
+        if (empty($data['proposed_name'])) {
+            return new WP_Error('missing_name', 'Proposed name is required', array('status' => 400));
+        }
+        
+        $current_user = $this->_get_current_user();
+        if (!$current_user) {
+            return new WP_Error('not_authenticated', 'User is not authenticated', array('status' => 401));
+        }
+        
+        $user_id = $current_user->ID;
+        $proposals_table = $wpdb->prefix . 'crux_route_name_proposals';
+        $votes_table = $wpdb->prefix . 'crux_route_name_votes';
+        
+        // Check if route is unnamed
+        $route = $wpdb->get_row($wpdb->prepare(
+            "SELECT name FROM {$wpdb->prefix}crux_routes WHERE id = %d",
+            $route_id
+        ));
+        
+        if (!$route || $route->name !== 'Unnamed') {
+            return new WP_Error('not_unnamed', 'Can only propose names for unnamed routes', array('status' => 400));
+        }
+        
+        // Check if user has already voted for any proposal
+        $has_voted = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $votes_table v
+             INNER JOIN $proposals_table p ON v.proposal_id = p.id
+             WHERE p.route_id = %d AND v.user_id = %d",
+            $route_id,
+            $user_id
+        ));
+        
+        if ($has_voted > 0) {
+            return new WP_Error('already_voted', 'You cannot propose a name after voting', array('status' => 400));
+        }
+        
+        // Check if user has already proposed a name
+        $existing = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM $proposals_table WHERE route_id = %d AND user_id = %d",
+            $route_id,
+            $user_id
+        ));
+        
+        if ($existing) {
+            return new WP_Error('already_proposed', 'You have already proposed a name for this route', array('status' => 400));
+        }
+        
+        // Insert the proposal
+        $result = $wpdb->insert(
+            $proposals_table,
+            array(
+                'route_id' => $route_id,
+                'user_id' => $user_id,
+                'proposed_name' => sanitize_text_field($data['proposed_name'])
+            ),
+            array('%d', '%d', '%s')
+        );
+        
+        if (!$result) {
+            return new WP_Error('proposal_failed', 'Failed to create proposal', array('status' => 500));
+        }
+        
+        return array(
+            'success' => true,
+            'message' => 'Name proposal submitted successfully',
+            'proposal_id' => $wpdb->insert_id
+        );
+    }
+
+    /**
+     * Vote for a name proposal
+     */
+    public function vote_for_name_proposal($request) {
+        global $wpdb;
+        
+        $proposal_id = $request['id'];
+        
+        $current_user = $this->_get_current_user();
+        if (!$current_user) {
+            return new WP_Error('not_authenticated', 'User is not authenticated', array('status' => 401));
+        }
+        
+        $user_id = $current_user->ID;
+        $proposals_table = $wpdb->prefix . 'crux_route_name_proposals';
+        $votes_table = $wpdb->prefix . 'crux_route_name_votes';
+        
+        // Get the proposal and route info
+        $proposal = $wpdb->get_row($wpdb->prepare(
+            "SELECT p.*, r.name as route_name
+             FROM $proposals_table p
+             INNER JOIN {$wpdb->prefix}crux_routes r ON p.route_id = r.id
+             WHERE p.id = %d",
+            $proposal_id
+        ));
+        
+        if (!$proposal) {
+            return new WP_Error('proposal_not_found', 'Proposal not found', array('status' => 404));
+        }
+        
+        if ($proposal->route_name !== 'Unnamed') {
+            return new WP_Error('not_unnamed', 'Can only vote on proposals for unnamed routes', array('status' => 400));
+        }
+        
+        // Check if user has already proposed a name for this route
+        $has_proposed = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $proposals_table WHERE route_id = %d AND user_id = %d",
+            $proposal->route_id,
+            $user_id
+        ));
+        
+        if ($has_proposed > 0) {
+            return new WP_Error('already_proposed', 'You cannot vote after proposing a name', array('status' => 400));
+        }
+        
+        // Check if user has already voted for any proposal on this route
+        $has_voted = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $votes_table v
+             INNER JOIN $proposals_table p ON v.proposal_id = p.id
+             WHERE p.route_id = %d AND v.user_id = %d",
+            $proposal->route_id,
+            $user_id
+        ));
+        
+        if ($has_voted > 0) {
+            return new WP_Error('already_voted', 'You have already voted for a name proposal on this route', array('status' => 400));
+        }
+        
+        // Insert the vote
+        $result = $wpdb->insert(
+            $votes_table,
+            array(
+                'proposal_id' => $proposal_id,
+                'user_id' => $user_id
+            ),
+            array('%d', '%d')
+        );
+        
+        if (!$result) {
+            return new WP_Error('vote_failed', 'Failed to record vote', array('status' => 500));
+        }
+        
+        return array(
+            'success' => true,
+            'message' => 'Vote recorded successfully'
+        );
+    }
+
+    /**
+     * Get user's action status for a route (proposed or voted)
+     */
+    public function get_user_name_proposal_action($request) {
+        global $wpdb;
+        
+        $route_id = $request['id'];
+        
+        $current_user = $this->_get_current_user();
+        if (!$current_user) {
+            return new WP_Error('not_authenticated', 'User is not authenticated', array('status' => 401));
+        }
+        
+        $user_id = $current_user->ID;
+        $proposals_table = $wpdb->prefix . 'crux_route_name_proposals';
+        $votes_table = $wpdb->prefix . 'crux_route_name_votes';
+        
+        // Check if user has proposed
+        $proposal = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, proposed_name FROM $proposals_table WHERE route_id = %d AND user_id = %d",
+            $route_id,
+            $user_id
+        ));
+        
+        // Check if user has voted
+        $voted_proposal = $wpdb->get_row($wpdb->prepare(
+            "SELECT p.id, p.proposed_name FROM $votes_table v
+             INNER JOIN $proposals_table p ON v.proposal_id = p.id
+             WHERE p.route_id = %d AND v.user_id = %d",
+            $route_id,
+            $user_id
+        ));
+        
+        return array(
+            'has_proposed' => $proposal !== null,
+            'proposal' => $proposal,
+            'has_voted' => $voted_proposal !== null,
+            'voted_for' => $voted_proposal
         );
     }
 

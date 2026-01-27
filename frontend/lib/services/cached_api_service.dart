@@ -811,4 +811,59 @@ class CachedApiService {
   Map<String, dynamic> getCacheStats() {
     return _cacheService.getStats();
   }
+
+  /// Get name proposals for a route
+  Future<List<NameProposal>> getRouteNameProposals(int routeId,
+      {bool forceRefresh = false}) async {
+    final response = await get('/routes/$routeId/name-proposals',
+        forceRefresh: forceRefresh);
+
+    if (response['success']) {
+      final List<dynamic> data = response['data'] as List<dynamic>;
+      return data
+          .map((json) => NameProposal.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } else {
+      throw Exception(response['error'] ?? 'Failed to load name proposals');
+    }
+  }
+
+  /// Propose a name for a route
+  Future<void> proposeRouteName(int routeId, String proposedName) async {
+    final body = {'proposed_name': proposedName};
+
+    final response = await post('/routes/$routeId/name-proposals', body,
+        invalidatePatterns: [
+          '/routes/$routeId/name-proposals',
+          '/routes/$routeId'
+        ]);
+
+    if (!response['success']) {
+      throw Exception(response['error'] ?? 'Failed to propose name');
+    }
+  }
+
+  /// Vote for a name proposal
+  Future<void> voteForNameProposal(int routeId, int proposalId) async {
+    final response = await post('/name-proposals/$proposalId/vote', {},
+        invalidatePatterns: [
+          '/routes/$routeId/name-proposals',
+          '/routes/$routeId'
+        ]);
+
+    if (!response['success']) {
+      throw Exception(response['error'] ?? 'Failed to vote for proposal');
+    }
+  }
+
+  /// Get user's action status for a route's name proposals
+  Future<Map<String, dynamic>> getUserNameProposalAction(int routeId) async {
+    final response = await get('/routes/$routeId/name-proposals/user-action');
+
+    if (response['success']) {
+      return response['data'] as Map<String, dynamic>;
+    } else {
+      throw Exception(response['error'] ?? 'Failed to get user action status');
+    }
+  }
 }

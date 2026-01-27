@@ -58,6 +58,7 @@ class RouteProvider extends ChangeNotifier {
   FilterState get likedFilter => _likedFilter;
   FilterState get warnedFilter => _warnedFilter;
   FilterState get projectFilter => _projectFilter;
+  CachedApiService get apiService => _apiService;
 
   bool get hasActiveFilters =>
       _selectedWallSection != null ||
