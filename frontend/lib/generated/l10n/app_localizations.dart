@@ -113,6 +113,12 @@ abstract class AppLocalizations {
   /// **'Profile'**
   String get navProfile;
 
+  /// No description provided for @unnamed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unnamed'**
+  String get unnamed;
+
   /// No description provided for @cancel.
   ///
   /// In en, this message translates to:
@@ -2044,6 +2050,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Propose'**
   String get propose;
+
+  /// No description provided for @leaveUnnamed.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave unnamed'**
+  String get leaveUnnamed;
+
+  /// No description provided for @leaveUnnamedDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Route will be named \"Unnamed\" until users propose names'**
+  String get leaveUnnamedDescription;
+
+  /// No description provided for @proposeAName.
+  ///
+  /// In en, this message translates to:
+  /// **'Propose a Name'**
+  String get proposeAName;
+
+  /// No description provided for @unnamedRouteDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'This route is unnamed. Help give it a creative name!'**
+  String get unnamedRouteDescription;
+
+  /// No description provided for @yourProposedName.
+  ///
+  /// In en, this message translates to:
+  /// **'Your proposed name'**
+  String get yourProposedName;
+
+  /// No description provided for @enterCreativeNameProposal.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a creative name...'**
+  String get enterCreativeNameProposal;
+
+  /// No description provided for @proposeButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Propose'**
+  String get proposeButton;
+
+  /// No description provided for @proposalWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'⚠️ Warning: Once you propose a name, you cannot vote for other proposals.'**
+  String get proposalWarning;
+
+  /// No description provided for @confirmProposalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Proposal'**
+  String get confirmProposalTitle;
+
+  /// No description provided for @confirmProposalMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Once you propose a name, you cannot change it or vote for other proposals. Are you sure?'**
+  String get confirmProposalMessage;
+
+  /// No description provided for @confirmVoteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Vote'**
+  String get confirmVoteTitle;
+
+  /// No description provided for @confirmVoteMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Vote for \"{proposedName}\"? Once you vote, you cannot change your vote or propose a name. This action is permanent.'**
+  String confirmVoteMessage(String proposedName);
+
+  /// No description provided for @youProposed.
+  ///
+  /// In en, this message translates to:
+  /// **'You proposed: \"{proposedName}\"'**
+  String youProposed(String proposedName);
+
+  /// No description provided for @youVotedFor.
+  ///
+  /// In en, this message translates to:
+  /// **'You voted for: \"{proposedName}\"'**
+  String youVotedFor(String proposedName);
+
+  /// No description provided for @proposedNames.
+  ///
+  /// In en, this message translates to:
+  /// **'Proposed Names ({count})'**
+  String proposedNames(int count);
+
+  /// No description provided for @byUser.
+  ///
+  /// In en, this message translates to:
+  /// **'by {userName}'**
+  String byUser(String userName);
+
+  /// No description provided for @voteButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Vote'**
+  String get voteButton;
+
+  /// No description provided for @nameProposedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Name proposed successfully!'**
+  String get nameProposedSuccess;
+
+  /// No description provided for @voteRecordedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Vote recorded successfully!'**
+  String get voteRecordedSuccess;
+
+  /// No description provided for @pleaseEnterName.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a name'**
+  String get pleaseEnterName;
+
+  /// No description provided for @errorLoadingProposals.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading proposals: {error}'**
+  String errorLoadingProposals(String error);
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

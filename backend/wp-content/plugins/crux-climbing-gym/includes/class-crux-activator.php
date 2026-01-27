@@ -99,7 +99,28 @@ class Crux_Activator {
             error_log("Crux Plugin: Failed to create $table_name - " . $wpdb->last_error);
         }
 
-        // 3. Lanes table
+        // 3. Wall Sections table
+        $table_name = $wpdb->prefix . 'crux_wall_sections';
+        $sql = "CREATE TABLE $table_name (
+            id mediumint(9) NOT NULL AUTO_INCREMENT,
+            name varchar(100) NOT NULL,
+            description text DEFAULT NULL,
+            sort_order int(11) DEFAULT 0,
+            is_active tinyint(1) DEFAULT 1,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY name (name)
+        ) $charset_collate;";
+        
+        $result = dbDelta($sql);
+        if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name) {
+            $tables_created++;
+            error_log("Crux Plugin: Successfully created $table_name");
+        } else {
+            error_log("Crux Plugin: Failed to create $table_name - " . $wpdb->last_error);
+        }
+
+        // 4. Lanes table
         $table_name = $wpdb->prefix . 'crux_lanes';
         $sql = "CREATE TABLE $table_name (
             id mediumint(9) NOT NULL AUTO_INCREMENT,
@@ -117,7 +138,7 @@ class Crux_Activator {
             error_log("Crux Plugin: Failed to create $table_name - " . $wpdb->last_error);
         }
 
-        // 4. Routes table
+        // 5. Routes table
         $table_name = $wpdb->prefix . 'crux_routes';
         $sql = "CREATE TABLE $table_name (
             id mediumint(9) NOT NULL AUTO_INCREMENT,
@@ -145,7 +166,7 @@ class Crux_Activator {
             error_log("Crux Plugin: Failed to create $table_name - " . $wpdb->last_error);
         }
 
-        // 5. Likes table
+        // 6. Likes table
         $table_name = $wpdb->prefix . 'crux_likes';
         $sql = "CREATE TABLE $table_name (
             id mediumint(9) NOT NULL AUTO_INCREMENT,
@@ -166,7 +187,7 @@ class Crux_Activator {
             error_log("Crux Plugin: Failed to create $table_name - " . $wpdb->last_error);
         }
 
-        // 6. Comments table
+        // 7. Comments table
         $table_name = $wpdb->prefix . 'crux_comments';
         $sql = "CREATE TABLE $table_name (
             id mediumint(9) NOT NULL AUTO_INCREMENT,
@@ -187,7 +208,7 @@ class Crux_Activator {
             error_log("Crux Plugin: Failed to create $table_name - " . $wpdb->last_error);
         }
 
-        // 7. Grade Proposals table
+        // 8. Grade Proposals table
         $table_name = $wpdb->prefix . 'crux_grade_proposals';
         $sql = "CREATE TABLE $table_name (
             id mediumint(9) NOT NULL AUTO_INCREMENT,
@@ -212,7 +233,7 @@ class Crux_Activator {
             error_log("Crux Plugin: Failed to create $table_name - " . $wpdb->last_error);
         }
 
-        // 8. Ticks table (user climbing attempts/sends)
+        // 9. Ticks table (user climbing attempts/sends)
         $table_name = $wpdb->prefix . 'crux_ticks';
         $sql = "CREATE TABLE $table_name (
             id mediumint(9) NOT NULL AUTO_INCREMENT,
@@ -354,7 +375,50 @@ class Crux_Activator {
             error_log("Crux Plugin: Failed to create $table_name - " . $wpdb->last_error);
         }
 
-        error_log("Crux Plugin: Created $tables_created out of 13 tables");
+        // 14. Route Name Proposals table
+        $table_name = $wpdb->prefix . 'crux_route_name_proposals';
+        $sql = "CREATE TABLE $table_name (
+            id mediumint(9) NOT NULL AUTO_INCREMENT,
+            route_id mediumint(9) NOT NULL,
+            user_id bigint(20) NOT NULL,
+            proposed_name varchar(100) NOT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY user_route (user_id, route_id),
+            KEY route_id (route_id),
+            KEY user_id (user_id)
+        ) $charset_collate;";
+        
+        $result = dbDelta($sql);
+        if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name) {
+            $tables_created++;
+            error_log("Crux Plugin: Successfully created $table_name");
+        } else {
+            error_log("Crux Plugin: Failed to create $table_name - " . $wpdb->last_error);
+        }
+
+        // 15. Route Name Proposal Votes table
+        $table_name = $wpdb->prefix . 'crux_route_name_votes';
+        $sql = "CREATE TABLE $table_name (
+            id mediumint(9) NOT NULL AUTO_INCREMENT,
+            proposal_id mediumint(9) NOT NULL,
+            user_id bigint(20) NOT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY user_proposal (user_id, proposal_id),
+            KEY proposal_id (proposal_id),
+            KEY user_id (user_id)
+        ) $charset_collate;";
+        
+        $result = dbDelta($sql);
+        if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name) {
+            $tables_created++;
+            error_log("Crux Plugin: Successfully created $table_name");
+        } else {
+            error_log("Crux Plugin: Failed to create $table_name - " . $wpdb->last_error);
+        }
+
+        error_log("Crux Plugin: Created $tables_created out of 15 tables");
     }
 
     /**
@@ -527,6 +591,41 @@ class Crux_Activator {
             }
             
             error_log("Crux Plugin: Inserted 20 lanes");
+        }
+
+        // Populate wall sections
+        $wall_sections_table = $wpdb->prefix . 'crux_wall_sections';
+        $section_count = $wpdb->get_var("SELECT COUNT(*) FROM $wall_sections_table");
+        
+        if ($section_count == 0) {
+            $default_sections = array(
+                array('Main Wall', 'Primary climbing wall', 1),
+                array('Overhang', 'Overhanging wall section', 2),
+                array('Slab', 'Slab wall for technique training', 3),
+                array('Traverse Wall', 'Horizontal traverse section', 4),
+                array('Kids Wall', 'Wall section for young climbers', 5),
+                array('Training Area', 'Area for training and warmup', 6)
+            );
+            
+            $inserted = 0;
+            foreach ($default_sections as $section) {
+                $result = $wpdb->insert(
+                    $wall_sections_table,
+                    array(
+                        'name' => $section[0],
+                        'description' => $section[1],
+                        'sort_order' => $section[2],
+                        'is_active' => 1
+                    ),
+                    array('%s', '%s', '%d', '%d')
+                );
+                
+                if ($result) {
+                    $inserted++;
+                }
+            }
+            
+            error_log("Crux Plugin: Inserted $inserted wall sections");
         }
 
         // Populate roles

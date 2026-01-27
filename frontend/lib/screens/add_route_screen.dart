@@ -23,6 +23,7 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
   String? _selectedWallSection;
   int? _selectedLane;
   int? _selectedColorId;
+  bool _isUnnamed = false;
 
   List<Map<String, dynamic>> _gradeDefinitions = [];
   List<Map<String, dynamic>> _holdColors = [];
@@ -106,16 +107,34 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
                           TextFormField(
                             controller: _nameController,
                             decoration: InputDecoration(
-                              labelText: '${l10n.routeName} *',
+                              labelText: l10n.routeName,
                               border: const OutlineInputBorder(),
                               helperText: l10n.enterCreativeName,
                             ),
+                            enabled: !_isUnnamed,
                             validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
+                              if (!_isUnnamed &&
+                                  (value == null || value.trim().isEmpty)) {
                                 return l10n.routeNameRequired;
                               }
                               return null;
                             },
+                          ),
+                          const SizedBox(height: 8),
+                          CheckboxListTile(
+                            title: Text(l10n.leaveUnnamed),
+                            subtitle: Text(l10n.leaveUnnamedDescription),
+                            value: _isUnnamed,
+                            onChanged: (value) {
+                              setState(() {
+                                _isUnnamed = value ?? false;
+                                if (_isUnnamed) {
+                                  _nameController.clear();
+                                }
+                              });
+                            },
+                            controlAffinity: ListTileControlAffinity.leading,
+                            contentPadding: EdgeInsets.zero,
                           ),
                           const SizedBox(height: 16),
 
@@ -346,7 +365,7 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
     if (_formKey.currentState!.validate()) {
       final route = models.Route(
         id: 0, // Will be set by the server
-        name: _nameController.text.trim(),
+        name: _isUnnamed ? '' : _nameController.text.trim(),
         gradeId: _selectedGradeId!,
         routeSetter: _routeSetterController.text.trim(),
         wallSection: _selectedWallSection!,

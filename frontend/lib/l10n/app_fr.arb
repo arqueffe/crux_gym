@@ -7,6 +7,7 @@
   "navRoutes": "Voies",
   "navProfile": "Profil",
   
+  "unnamed": "Sans nom",
   "cancel": "Annuler",
   "save": "Enregistrer",
   "delete": "Supprimer",
@@ -360,5 +361,28 @@
   
   "@_REPORTING": {},
   "report": "Signaler",
-  "propose": "Proposer"
+  "propose": "Proposer",
+  
+  "@_NAME_PROPOSAL": {},
+  "leaveUnnamed": "Laisser sans nom",
+  "leaveUnnamedDescription": "La voie sera nommée \"Unnamed\" jusqu'à ce que les utilisateurs proposent des noms",
+  "proposeAName": "Proposer un Nom",
+  "unnamedRouteDescription": "Cette voie n'a pas de nom. Aidez à lui donner un nom créatif !",
+  "yourProposedName": "Votre proposition de nom",
+  "enterCreativeNameProposal": "Entrez un nom créatif...",
+  "proposeButton": "Proposer",
+  "proposalWarning": "⚠️ Attention : Une fois que vous proposez un nom, vous ne pouvez pas voter pour d'autres propositions.",
+  "confirmProposalTitle": "Confirmer la Proposition",
+  "confirmProposalMessage": "Une fois que vous proposez un nom, vous ne pouvez ni le modifier ni voter pour d'autres propositions. Êtes-vous sûr ?",
+  "confirmVoteTitle": "Confirmer le Vote",
+  "confirmVoteMessage": "Voter pour \"{proposedName}\" ? Une fois que vous votez, vous ne pouvez ni changer votre vote ni proposer un nom. Cette action est définitive.",
+  "youProposed": "Vous avez proposé : \"{proposedName}\"",
+  "youVotedFor": "Vous avez voté pour : \"{proposedName}\"",
+  "proposedNames": "Noms Proposés ({count})",
+  "byUser": "par {userName}",
+  "voteButton": "Voter",
+  "nameProposedSuccess": "Nom proposé avec succès !",
+  "voteRecordedSuccess": "Vote enregistré avec succès !",
+  "pleaseEnterName": "Veuillez entrer un nom",
+  "errorLoadingProposals": "Erreur lors du chargement des propositions : {error}"
 }

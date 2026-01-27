@@ -6,7 +6,7 @@ class ApiConfig {
   ApiConfig._();
 
   /// WordPress API endpoint for web platform (same-origin)
-  static const String wordPressApiPath = '/wp-json/crux/v1';
+  static const String wordPressApiPath = '/crux-climbing-gym/wp-json/crux/v1';
 
   /// Fallback URL for non-web platforms (Python backend)
   static const String fallbackApiUrl = 'http://localhost:5000/api';
