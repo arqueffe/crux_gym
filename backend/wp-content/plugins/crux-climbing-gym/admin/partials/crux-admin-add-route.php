@@ -68,105 +68,6 @@ if (!defined('ABSPATH')) {
                         
                         <tr>
                             <th scope="row">
-                                <label for="route_image">Route Image</label>
-                            </th>
-                            <td>
-                                <input name="route_image" type="file" id="route_image" accept="image/*" />
-                                <input name="route_image_edited" type="hidden" id="route_image_edited" />
-                                <p class="description">Picture of this route</p>
-                                
-                                <!-- Image Editor -->
-                                <div id="image-editor-container" style="display:none; margin-top: 20px; border: 2px solid #ddd; padding: 20px; background: #f9f9f9;">
-                                    <h3>Image Editor</h3>
-                                    
-                                    <!-- Editor Toolbar -->
-                                    <div class="image-editor-toolbar" style="margin-bottom: 15px; padding: 10px; background: #fff; border: 1px solid #ddd;">
-                                        <button type="button" class="button" id="tool-crop">
-                                            <span class="dashicons dashicons-image-crop"></span> Crop
-                                        </button>
-                                        <button type="button" class="button" id="tool-holds">
-                                            <span class="dashicons dashicons-marker"></span> Highlight Holds
-                                        </button>
-                                        <button type="button" class="button" id="tool-crux">
-                                            <span class="dashicons dashicons-image-filter"></span> Highlight Crux
-                                        </button>
-                                        <button type="button" class="button" id="tool-clip">
-                                            <span class="dashicons dashicons-location"></span> Mark Clips
-                                        </button>
-                                        <button type="button" class="button" id="tool-reset">
-                                            <span class="dashicons dashicons-image-rotate"></span> Reset
-                                        </button>
-                                        
-                                        <span style="border-left: 1px solid #ddd; margin: 0 10px; padding-left: 10px;">
-                                            <button type="button" class="button" id="zoom-out" title="Zoom Out">
-                                                <span class="dashicons dashicons-minus"></span>
-                                            </button>
-                                            <span id="zoom-level" style="display: inline-block; min-width: 50px; text-align: center;">100%</span>
-                                            <button type="button" class="button" id="zoom-in" title="Zoom In">
-                                                <span class="dashicons dashicons-plus"></span>
-                                            </button>
-                                            <button type="button" class="button" id="zoom-reset" title="Reset Zoom">
-                                                <span class="dashicons dashicons-image-flip-horizontal"></span>
-                                            </button>
-                                        </span>
-                                        
-                                        <button type="button" class="button button-primary" id="apply-edits" style="float: right;">
-                                            <span class="dashicons dashicons-yes"></span> Apply & Save
-                                        </button>
-                                        <button type="button" class="button" id="cancel-edits" style="float: right; margin-right: 5px;">
-                                            Cancel
-                                        </button>
-                                    </div>
-                                    
-                                    <!-- Tool Options -->
-                                    <div id="tool-options" style="margin-bottom: 10px; padding: 10px; background: #fff; border: 1px solid #ddd; display: none;">
-                                        <!-- Hold Options -->
-                                        <div id="holds-options" style="display: none;">
-                                            <p><em>Click and drag to create circles - drag further for larger circles<br>
-                                            Left-click and drag existing circles to move them<br>
-                                            Right-click on a circle to remove it</em></p>
-                                            <button type="button" class="button button-small" id="clear-holds">Clear All Holds</button>
-                                        </div>
-                                        
-                                        <!-- Crux Options -->
-                                        <div id="crux-options" style="display: none;">
-                                            <p><em>Click and drag to draw a rectangle highlighting the crux section</em></p>
-                                            <button type="button" class="button button-small" id="clear-crux">Clear Crux</button>
-                                        </div>
-                                        
-                                        <!-- Clip Options -->
-                                        <div id="clip-options" style="display: none;">
-                                            <p><em>Click to place clips. Left-click and drag to move. Right-click to remove.</em></p>
-                                            <button type="button" class="button button-small" id="clear-clips">Clear All Clips</button>
-                                        </div>
-                                        
-                                        <!-- Crop Options -->
-                                        <div id="crop-options" style="display: none;">
-                                            <p><em>Drag the blue borders inward to crop the image</em></p>
-                                            <button type="button" class="button button-small" id="reset-crop-borders">Reset Borders</button>
-                                            <button type="button" class="button button-primary button-small" id="apply-crop">Apply Crop</button>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Canvas Container -->
-                                    <div id="canvas-container" style="position: relative; display: inline-block; max-width: 100%; max-height: 600px; overflow: auto; background: #333; border: 2px solid #ddd;">
-                                        <canvas id="image-editor-canvas" style="display: block; cursor: crosshair;"></canvas>
-                                    </div>
-                                    
-                                    <p class="description" style="margin-top: 10px;">
-                                        <strong>Instructions:</strong><br>
-                                        • <strong>Zoom:</strong> Use +/- buttons or Ctrl+Mouse Wheel to zoom in/out for precise placement<br>
-                                        • <strong></strong>Crop:</strong> Drag the blue borders inward to select crop area, then click "Apply Crop"<br>
-                                        • <strong>Highlight Holds:</strong> Click and drag to create circles. Drag existing circles to move. Right-click to remove.<br>
-                                        • <strong>Highlight Crux:</strong> Draw a rectangle around the crux section<br>
-                                        • <strong>Mark Clips:</strong> Click to place clips. Drag to move them. Right-click to remove.
-                                    </p>
-                                </div>
-                            </td>
-                        </tr>
-                        
-                        <tr>
-                            <th scope="row">
                                 <label for="route_setter">Route Setter *</label>
                             </th>
                             <td>
@@ -229,11 +130,11 @@ if (!defined('ABSPATH')) {
                         
                         <tr>
                             <th scope="row">
-                                <label for="hold_color_id">Hold Color</label>
+                                <label for="hold_color_id">Hold Color *</label>
                             </th>
                             <td>
-                                <select name="hold_color_id" id="hold_color_id">
-                                    <option value="">No specific color</option>
+                                <select name="hold_color_id" id="hold_color_id" required>
+                                    <option value="">Select hold color</option>
                                     <?php foreach ($hold_colors as $color): ?>
                                         <option value="<?php echo esc_attr($color->id); ?>"
                                                 style="background-color: <?php echo esc_attr($color->hex_code); ?>; color: <?php echo $color->hex_code === '#FFFFFF' || $color->hex_code === '#FFFF00' ? '#000000' : '#FFFFFF'; ?>;"
@@ -242,7 +143,140 @@ if (!defined('ABSPATH')) {
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
-                                <p class="description">Optional: Select the primary hold color for this route</p>
+                                <p class="description">Select the primary hold color for this route (used as base for color detection)</p>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <th scope="row">
+                                <label for="route_image">Route Image</label>
+                            </th>
+                            <td>
+                                <input name="route_image" type="file" id="route_image" accept="image/*" />
+                                <input name="route_image_edited" type="hidden" id="route_image_edited" />
+                                <p class="description">Picture of this route</p>
+                                
+                                <!-- Image Editor -->
+                                <div id="image-editor-container" style="display:none; margin-top: 20px; border: 2px solid #ddd; padding: 20px; background: #f9f9f9;">
+                                    <h3>Image Editor</h3>
+                                    
+                                    <!-- Editor Toolbar -->
+                                    <div class="image-editor-toolbar" style="margin-bottom: 15px; padding: 10px; background: #fff; border: 1px solid #ddd;">
+                                        <button type="button" class="button" id="tool-crop">
+                                            <span class="dashicons dashicons-image-crop"></span> Crop
+                                        </button>
+                                        <button type="button" class="button" id="tool-holds">
+                                            <span class="dashicons dashicons-marker"></span> Highlight Holds
+                                        </button>
+                                        <button type="button" class="button" id="tool-crux">
+                                            <span class="dashicons dashicons-image-filter"></span> Highlight Crux
+                                        </button>
+                                        <button type="button" class="button" id="tool-clip">
+                                            <span class="dashicons dashicons-location"></span> Mark Clips
+                                        </button>
+                                        <button type="button" class="button button-secondary" id="reset-editor">
+                                            <span class="dashicons dashicons-image-rotate"></span> Reset All
+                                        </button>
+                                        
+                                        <div style="float: right;">
+                                            <button type="button" class="button" id="zoom-out" title="Zoom Out">
+                                                <span class="dashicons dashicons-minus"></span>
+                                            </button>
+                                            <span id="zoom-level" style="display: inline-block; min-width: 45px; text-align: center;">100%</span>
+                                            <button type="button" class="button" id="zoom-in" title="Zoom In">
+                                                <span class="dashicons dashicons-plus"></span>
+                                            </button>
+                                            <button type="button" class="button" id="zoom-reset" title="Reset Zoom">
+                                                <span class="dashicons dashicons-search"></span>
+                                            </button>
+                                        </div>
+                                        <div style="clear: both;"></div>
+                                    </div>
+                                    
+                                    <!-- Tool Options -->
+                                    <div id="tool-options" style="margin-bottom: 15px; padding: 10px; background: #fff; border: 1px solid #ddd; display: none;">
+                                        <!-- Crop Tool Options -->
+                                        <div id="crop-options" style="display: none;">
+                                            <h4>Crop Options</h4>
+                                            <p style="margin: 10px 0; font-style: italic; color: #666;">
+                                                Drag the blue borders inward to crop the image. Click "Apply Crop" to finalize.
+                                            </p>
+                                            <button type="button" class="button button-primary" id="apply-crop">
+                                                <span class="dashicons dashicons-yes"></span> Apply Crop
+                                            </button>
+                                        </div>
+                                        
+                                        <!-- Holds Tool Options -->
+                                        <div id="holds-options" style="display: none;">
+                                            <h4>Hold Highlighting Options</h4>
+                                            <p style="margin: 10px 0;">
+                                                <button type="button" class="button" id="color-highlight-toggle" disabled>
+                                                    <span id="highlight-toggle-text">Show Hold Color Highlights (sample a color first)</span>
+                                                </button>
+                                            </p>
+                                            <div id="color-info" style="display: none; padding: 10px; background: #f0f0f0; border-radius: 3px;">
+                                                <p style="margin: 5px 0;"><strong>Sampled Colors:</strong> <span id="selected-colors-display"></span></p>
+                                                <p style="margin: 5px 0;">
+                                                    <strong>Base Color:</strong> 
+                                                    <span id="average-color-display" style="display: inline-block; width: 30px; height: 20px; border: 1px solid #000; vertical-align: middle; margin: 0 5px;"></span>
+                                                    <span id="average-color-rgb"></span>
+                                                </p>
+                                            </div>
+                                            <p style="margin-top: 10px; font-style: italic; color: #666;">
+                                                Click on holds to sample their colors. Additional samples help detect color variations.
+                                            </p>
+                                        </div>
+                                        
+                                        <!-- Crux Tool Options -->
+                                        <div id="crux-options" style="display: none;">
+                                            <h4>Crux Highlighting</h4>
+                                            <p style="margin: 10px 0; font-style: italic; color: #666;">
+                                                Click and drag to draw a rectangle around the crux section of the route.
+                                            </p>
+                                        </div>
+                                        
+                                        <!-- Clip Tool Options -->
+                                        <div id="clip-options" style="display: none;">
+                                            <h4>Clip Placement</h4>
+                                            <p style="margin: 10px 0; font-style: italic; color: #666;">
+                                                Click to place clips. Drag to move them. Right-click to remove.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Canvas Container -->
+                                    <div id="canvas-container" style="max-width: 100%; max-height: 600px; overflow: auto; border: 1px solid #ddd; background: #e5e5e5;">
+                                        <canvas id="image-editor-canvas" style="display: block; transform-origin: top left;"></canvas>
+                                    </div>
+                                    
+                                    <!-- Preview Container -->
+                                    <div id="preview-container" style="display: none; margin-top: 15px; padding: 15px; border: 2px solid #4CAF50; background: #f0f8f0;">
+                                        <h4 style="margin: 0 0 10px 0; color: #4CAF50;">✓ Edited Image Preview</h4>
+                                        <p style="margin: 5px 0; font-size: 13px;">This is how your edited image will be saved:</p>
+                                        <div style="max-width: 400px; margin: 10px 0; border: 1px solid #ddd;">
+                                            <img id="preview-image" style="display: block; width: 100%; height: auto;" />
+                                        </div>
+                                        <p style="margin: 5px 0; font-size: 12px; color: #666;"><em>The edited image will be uploaded when you submit the form.</em></p>
+                                    </div>
+                                    
+                                    <!-- Action Buttons -->
+                                    <div style="margin-top: 15px;">
+                                        <button type="button" class="button button-primary" id="apply-edits">
+                                            <span class="dashicons dashicons-yes"></span> Apply & Save Edits
+                                        </button>
+                                        <button type="button" class="button" id="cancel-edits">
+                                            <span class="dashicons dashicons-no"></span> Cancel
+                                        </button>
+                                    </div>
+                                    <p class="description" style="margin-top: 10px;">
+                                        <strong>Instructions:</strong><br>
+                                        • <strong>Crop:</strong> Drag the border edges to adjust crop boundaries<br>
+                                        • <strong>Zoom:</strong> Use mouse wheel + Ctrl/Cmd, or the zoom buttons<br>
+                                        • <strong>Highlight Holds:</strong> Click and drag to create circles. Drag existing circles to move. Right-click to remove.<br>
+                                        • <strong>Highlight Crux:</strong> Draw a rectangle around the crux section<br>
+                                        • <strong>Mark Clips:</strong> Click to place clips. Drag to move them. Right-click to remove.
+                                    </p>
+                                </div>
                             </td>
                         </tr>
                         
@@ -390,6 +424,11 @@ jQuery(document).ready(function($) {
     let zoomMax = 3.0;
     let zoomStep = 0.25;
     
+    // Color highlight feature
+    let colorHighlightEnabled = false;
+    let selectedColors = []; // Array of sampled colors
+    let colorTolerance = 40; // RGB distance threshold
+    
     // Initialize Canvas
     function initCanvas() {
         canvas = document.getElementById('image-editor-canvas');
@@ -424,6 +463,32 @@ jQuery(document).ready(function($) {
         reader.readAsDataURL(file);
     });
     
+    // Initialize hold color from dropdown
+    function initializeHoldColor() {
+        selectedColors = []; // Reset colors
+        const holdColorSelect = $('#hold_color_id');
+        const selectedOption = holdColorSelect.find('option:selected');
+        
+        if (selectedOption.val()) {
+            // Get the hex color from the style attribute
+            const bgColor = selectedOption.css('background-color');
+            if (bgColor) {
+                // Convert rgb() or rgba() to RGB object
+                const rgb = bgColor.match(/\d+/g);
+                if (rgb && rgb.length >= 3) {
+                    const baseColor = {
+                        r: parseInt(rgb[0]),
+                        g: parseInt(rgb[1]),
+                        b: parseInt(rgb[2])
+                    };
+                    selectedColors.push(baseColor);
+                    console.log('Initialized with hold color:', baseColor);
+                    updateColorDisplay();
+                }
+            }
+        }
+    }
+    
     // Reset Editor
     function resetEditor() {
         editData = {
@@ -437,10 +502,15 @@ jQuery(document).ready(function($) {
         draggedBorder = null;
         draggedClipIndex = null;
         draggedHoldIndex = null;
+        selectedColors = [];
+        colorHighlightEnabled = false;
+        $('#color-info').hide();
+        updateHighlightButton();
         selectTool(null);
     }
     
     $('#tool-reset').on('click', resetEditor);
+    $('#reset-editor').on('click', resetEditor);
     
     // Render Canvas
     function renderCanvas() {
@@ -465,6 +535,11 @@ jQuery(document).ready(function($) {
         
         // Draw original image
         ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
+        
+        // Apply color highlighting if enabled
+        if (colorHighlightEnabled && selectedColors.length > 0) {
+            highlightSimilarColors();
+        }
         
         // Draw hold circles outline (no dark overlay)
         editData.holds.forEach(hold => {
@@ -634,6 +709,289 @@ jQuery(document).ready(function($) {
         }
     });
     
+    // Color highlight toggle
+    $('#color-highlight-toggle').on('click', function() {
+        if (selectedColors.length > 0) {
+            colorHighlightEnabled = !colorHighlightEnabled;
+            updateHighlightButton();
+            renderCanvas();
+        }
+    });
+    
+    function updateHighlightButton() {
+        const btn = $('#color-highlight-toggle');
+        const text = $('#highlight-toggle-text');
+        
+        if (selectedColors.length === 0) {
+            btn.prop('disabled', true);
+            btn.removeClass('button-primary');
+            text.text('Show Hold Color Highlights (sample a color first)');
+        } else {
+            btn.prop('disabled', false);
+            if (colorHighlightEnabled) {
+                btn.addClass('button-primary');
+                text.html('<span class="dashicons dashicons-hidden"></span> Hide Hold Color Highlights');
+            } else {
+                btn.removeClass('button-primary');
+                text.html('<span class="dashicons dashicons-visibility"></span> Show Hold Color Highlights');
+            }
+        }
+    }
+    
+    // Calculate average color from all sampled colors
+    function getAverageColor() {
+        if (selectedColors.length === 0) return null;
+        
+        let totalR = 0, totalG = 0, totalB = 0;
+        selectedColors.forEach(color => {
+            totalR += color.r;
+            totalG += color.g;
+            totalB += color.b;
+        });
+        
+        return {
+            r: Math.round(totalR / selectedColors.length),
+            g: Math.round(totalG / selectedColors.length),
+            b: Math.round(totalB / selectedColors.length)
+        };
+    }
+    
+    // Update color display
+    function updateColorDisplay() {
+        if (selectedColors.length === 0) return;
+        
+        const baseColor = selectedColors[0];
+        
+        // Display individual sampled colors
+        let colorsHtml = '';
+        selectedColors.forEach((color, index) => {
+            const label = index === 0 ? 'Base (Hold Color)' : `Sample ${index}`;
+            const border = index === 0 ? '3px solid #000' : '1px solid #000';
+            colorsHtml += `<span style="display: inline-block; width: 20px; height: 20px; border: ${border}; vertical-align: middle; margin: 0 2px; background-color: rgb(${color.r}, ${color.g}, ${color.b});" title="${label}: RGB(${color.r}, ${color.g}, ${color.b})"></span>`;
+        });
+        $('#selected-colors-display').html(colorsHtml);
+        
+        // Display base color
+        $('#average-color-display').css('background-color', 
+            `rgb(${baseColor.r}, ${baseColor.g}, ${baseColor.b})`);
+        
+        // Calculate variance if we have additional samples
+        let varianceText = `RGB(${baseColor.r}, ${baseColor.g}, ${baseColor.b})`;
+        if (selectedColors.length > 1) {
+            const avgData = getAverageHSL();
+            if (avgData) {
+                varianceText += ` (Avg H: ${avgData.h.toFixed(0)}°, S: ${avgData.s.toFixed(0)}%, L: ${avgData.l.toFixed(0)}% from ${selectedColors.length} sample${selectedColors.length > 1 ? 's' : ''})`;
+            }
+        }
+        $('#average-color-rgb').text(varianceText);
+        $('#color-info').show();
+    }
+    
+    // Get pixel color at position from original image
+    function getPixelColor(x, y) {
+        // Create a temporary canvas to draw just the original image
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = canvas.width;
+        tempCanvas.height = canvas.height;
+        const tempCtx = tempCanvas.getContext('2d');
+        
+        // Draw original image without any filters
+        tempCtx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
+        
+        // Get pixel color from the unfiltered image
+        const imageData = tempCtx.getImageData(x, y, 1, 1);
+        return {
+            r: imageData.data[0],
+            g: imageData.data[1],
+            b: imageData.data[2],
+            a: imageData.data[3]
+        };
+    }
+    
+    // Convert RGB to HSL
+    function rgbToHsl(r, g, b) {
+        r /= 255;
+        g /= 255;
+        b /= 255;
+        
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        let h, s, l = (max + min) / 2;
+        
+        if (max === min) {
+            h = s = 0; // achromatic
+        } else {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            
+            switch (max) {
+                case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+                case g: h = ((b - r) / d + 2) / 6; break;
+                case b: h = ((r - g) / d + 4) / 6; break;
+            }
+        }
+        
+        return {
+            h: h * 360, // 0-360
+            s: s * 100, // 0-100
+            l: l * 100  // 0-100
+        };
+    }
+    
+    // Calculate average HSL from all sampled colors
+    function getAverageHSL() {
+        if (selectedColors.length === 0) return null;
+        
+        let totalH = 0, totalS = 0, totalL = 0;
+        let hslColors = [];
+        
+        selectedColors.forEach(color => {
+            const hsl = rgbToHsl(color.r, color.g, color.b);
+            hslColors.push(hsl);
+            totalS += hsl.s;
+            totalL += hsl.l;
+        });
+        
+        // Average hue requires circular mean
+        let sumSin = 0, sumCos = 0;
+        hslColors.forEach(hsl => {
+            const rad = hsl.h * Math.PI / 180;
+            sumSin += Math.sin(rad);
+            sumCos += Math.cos(rad);
+        });
+        const avgHueRad = Math.atan2(sumSin, sumCos);
+        const avgHue = (avgHueRad * 180 / Math.PI + 360) % 360;
+        
+        return {
+            h: avgHue,
+            s: totalS / selectedColors.length,
+            l: totalL / selectedColors.length,
+            hslColors: hslColors
+        };
+    }
+    
+    // Calculate color distance in HSL space with different tolerances for H, S, L
+    function colorDistanceHSL(c1, c2) {
+        const hsl1 = rgbToHsl(c1.r, c1.g, c1.b);
+        const hsl2 = rgbToHsl(c2.r, c2.g, c2.b);
+        
+        // Hue difference (circular, 0-360)
+        let dh = Math.abs(hsl1.h - hsl2.h);
+        if (dh > 180) dh = 360 - dh; // Shortest distance around circle
+        
+        // Saturation difference (0-100)
+        const ds = Math.abs(hsl1.s - hsl2.s);
+        
+        // Lightness difference (0-100)
+        const dl = Math.abs(hsl1.l - hsl2.l);
+        
+        // Weight the differences: H is most important, S moderate, L least important
+        // Normalize to similar scales and apply weights
+        const hueDiff = (dh / 180) * 100;      // Normalize to 0-100 scale, high weight
+        const satDiff = (ds / 100) * 40;        // Moderate weight
+        const lightDiff = (dl / 100) * 20;      // Low weight (lightness can vary a lot)
+        
+        return {
+            total: Math.sqrt(hueDiff * hueDiff + satDiff * satDiff + lightDiff * lightDiff),
+            h: dh,
+            s: ds,
+            l: dl
+        };
+    }
+    
+    // Calculate HSL distance from a pixel to the average with custom tolerances
+    function hslDistanceFromAverage(pixelHsl, avgHsl) {
+        // Hue difference (circular)
+        let dh = Math.abs(pixelHsl.h - avgHsl.h);
+        if (dh > 180) dh = 360 - dh;
+        
+        // Saturation difference
+        const ds = Math.abs(pixelHsl.s - avgHsl.s);
+        
+        // Lightness difference
+        const dl = Math.abs(pixelHsl.l - avgHsl.l);
+        
+        return { h: dh, s: ds, l: dl };
+    }
+    
+    // Calculate color distance (Euclidean distance in RGB space) - kept for compatibility
+    function colorDistance(c1, c2) {
+        const dr = c1.r - c2.r;
+        const dg = c1.g - c2.g;
+        const db = c1.b - c2.b;
+        return Math.sqrt(dr * dr + dg * dg + db * db);
+    }
+    
+    // Highlight pixels with similar colors
+    function highlightSimilarColors() {
+        if (selectedColors.length === 0) return;
+        
+        // Calculate average HSL from all samples
+        const avgData = getAverageHSL();
+        if (!avgData) return;
+        
+        const avgHsl = { h: avgData.h, s: avgData.s, l: avgData.l };
+        
+        // Calculate variance in H and S from the samples to refine tolerance
+        let maxHueDiff = 10;  // Default tight tolerance for hue (degrees)
+        let maxSatDiff = 15;  // Default tolerance for saturation (%)
+        let maxLightDiff = 40; // More lenient for lightness (%)
+        
+        if (selectedColors.length > 1) {
+            // Calculate actual variance in the samples to refine tolerances
+            avgData.hslColors.forEach(hsl => {
+                let dh = Math.abs(hsl.h - avgHsl.h);
+                if (dh > 180) dh = 360 - dh;
+                const ds = Math.abs(hsl.s - avgHsl.s);
+                const dl = Math.abs(hsl.l - avgHsl.l);
+                
+                // Use 1.5x the max observed variance as tolerance
+                // This refines the tolerance based on actual samples
+                maxHueDiff = Math.max(maxHueDiff, dh * 1.5);
+                maxSatDiff = Math.max(maxSatDiff, ds * 1.5);
+                maxLightDiff = Math.max(maxLightDiff, dl * 1.5);
+            });
+            
+            // Cap maximum tolerances to prevent over-broadening
+            maxHueDiff = Math.min(maxHueDiff, 25);  // Cap hue at 25 degrees
+            maxSatDiff = Math.min(maxSatDiff, 30);  // Cap saturation at 30%
+            
+            console.log(`Refined tolerances - H: ${maxHueDiff.toFixed(1)}°, S: ${maxSatDiff.toFixed(1)}%, L: ${maxLightDiff.toFixed(1)}%`);
+        }
+        
+        // Get image data
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        // Modify pixels - make non-matching pixels darker/transparent
+        for (let i = 0; i < data.length; i += 4) {
+            const pixelColor = {
+                r: data[i],
+                g: data[i + 1],
+                b: data[i + 2]
+            };
+            
+            const pixelHsl = rgbToHsl(pixelColor.r, pixelColor.g, pixelColor.b);
+            const diff = hslDistanceFromAverage(pixelHsl, avgHsl);
+            
+            // Check if pixel is within tolerances
+            const isMatch = (diff.h <= maxHueDiff) && 
+                           (diff.s <= maxSatDiff) && 
+                           (diff.l <= maxLightDiff);
+            
+            if (!isMatch) {
+                // Non-matching pixels: make them darker (reduce RGB values)
+                data[i] = data[i] * 0.3;       // R
+                data[i + 1] = data[i + 1] * 0.3; // G
+                data[i + 2] = data[i + 2] * 0.3; // B
+                data[i + 3] = data[i + 3] * 0.7; // Reduce alpha slightly
+            }
+        }
+        
+        // Draw modified image data
+        ctx.putImageData(imageData, 0, 0);
+    }
+    
     function setupCanvasEvents() {
         if (!canvas) {
             console.error('Canvas not found, cannot setup events');
@@ -721,6 +1079,18 @@ jQuery(document).ready(function($) {
                 
                 // Left-click on empty space: Start creating a new hold circle
                 console.log('Starting hold at', pos);
+                
+                // Sample color at click position and add to array
+                const sampledColor = getPixelColor(Math.round(pos.x), Math.round(pos.y));
+                selectedColors.push(sampledColor);
+                console.log('Sampled color:', sampledColor, '- Total samples:', selectedColors.length);
+                
+                // Update color display
+                updateColorDisplay();
+                
+                // Update button state (don't auto-enable highlighting)
+                updateHighlightButton();
+                
                 isDrawing = true;
                 tempHold = {
                     x: pos.x,
@@ -916,6 +1286,10 @@ jQuery(document).ready(function($) {
     // Clear Functions
     $('#clear-holds').on('click', function() {
         editData.holds = [];
+        selectedColors = [];
+        colorHighlightEnabled = false;
+        $('#color-info').hide();
+        updateHighlightButton();
         renderCanvas();
     });
     
@@ -951,14 +1325,14 @@ jQuery(document).ready(function($) {
         const cropWidth = canvas.width - b.left - b.right;
         const cropHeight = canvas.height - b.top - b.bottom;
         
-        // Create new cropped image
+        // Create new cropped image from the ORIGINAL image (not from canvas with borders)
         const croppedCanvas = document.createElement('canvas');
         croppedCanvas.width = cropWidth;
         croppedCanvas.height = cropHeight;
         const croppedCtx = croppedCanvas.getContext('2d');
         
-        // Draw cropped portion
-        croppedCtx.drawImage(canvas, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+        // Draw cropped portion from originalImage (this excludes UI overlays like crop borders)
+        croppedCtx.drawImage(originalImage, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
         
         // Update original image
         const img = new Image();
@@ -1000,33 +1374,99 @@ jQuery(document).ready(function($) {
     $('#apply-edits').on('click', function() {
         if (!originalImage) return;
         
-        // Create final canvas with all edits
+        // Check if there are unapplied crop borders
+        const b = editData.cropBorders;
+        if (b.top !== 0 || b.right !== 0 || b.bottom !== 0 || b.left !== 0) {
+            if (!confirm('You have crop borders set but not applied. Do you want to apply the crop now?\n\nClick OK to crop the image, or Cancel to save without cropping.')) {
+                // User chose not to crop, reset borders
+                editData.cropBorders = { top: 0, right: 0, bottom: 0, left: 0 };
+            } else {
+                // Apply the crop first
+                $('#apply-crop').click();
+                // Wait a moment for crop to complete, then continue
+                setTimeout(function() {
+                    $('#apply-edits').click();
+                }, 100);
+                return;
+            }
+        }
+        
+        // Create final canvas with all edits (clean version without UI overlays)
         const finalCanvas = document.createElement('canvas');
         finalCanvas.width = canvas.width;
         finalCanvas.height = canvas.height;
         const finalCtx = finalCanvas.getContext('2d');
         
-        // Draw the current canvas state
-        finalCtx.drawImage(canvas, 0, 0);
+        // Draw the original image
+        finalCtx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
         
-        // Convert to blob and store
-        finalCanvas.toBlob(function(blob) {
-            // Create a File object
-            const file = new File([blob], 'edited-route-image.png', { type: 'image/png' });
-            
-            // Store edited image data as base64
-            const dataURL = finalCanvas.toDataURL('image/png');
-            $('#route_image_edited').val(dataURL);
-            
-            alert('Image edits applied! The edited image will be uploaded when you create the route.');
-            $('#image-editor-container').hide();
+        // Draw hold circles (yellow)
+        editData.holds.forEach(hold => {
+            finalCtx.strokeStyle = '#ffeb3b';
+            finalCtx.lineWidth = 3;
+            finalCtx.beginPath();
+            finalCtx.arc(hold.x, hold.y, hold.radius, 0, Math.PI * 2);
+            finalCtx.stroke();
         });
+        
+        // Draw crux rectangle (red)
+        if (editData.crux) {
+            finalCtx.strokeStyle = '#ff5722';
+            finalCtx.lineWidth = 4;
+            finalCtx.setLineDash([10, 5]);
+            finalCtx.strokeRect(editData.crux.x, editData.crux.y, editData.crux.width, editData.crux.height);
+            finalCtx.setLineDash([]);
+            finalCtx.fillStyle = 'rgba(255, 87, 34, 0.2)';
+            finalCtx.fillRect(editData.crux.x, editData.crux.y, editData.crux.width, editData.crux.height);
+        }
+        
+        // Draw clips (green dots)
+        editData.clips.forEach(clip => {
+            finalCtx.fillStyle = '#4CAF50';
+            finalCtx.beginPath();
+            finalCtx.arc(clip.x, clip.y, 6, 0, Math.PI * 2);
+            finalCtx.fill();
+            finalCtx.strokeStyle = '#fff';
+            finalCtx.lineWidth = 2;
+            finalCtx.stroke();
+        });
+        
+        // NOTE: Crop borders are intentionally NOT drawn in the final image
+        
+        // Store edited image data as base64
+        const dataURL = finalCanvas.toDataURL('image/png', 0.95);
+        $('#route_image_edited').val(dataURL);
+        
+        console.log('Edited image data stored, length:', dataURL.length);
+        
+        // Show preview
+        $('#preview-image').attr('src', dataURL);
+        $('#preview-container').show();
+        $('#canvas-container').hide();
+        $('.image-editor-toolbar').hide();
+        $('#tool-options').hide();
+        $(this).hide();
+        $('#cancel-edits').text('Edit Again');
     });
     
     $('#cancel-edits').on('click', function() {
-        $('#image-editor-container').hide();
-        $('#route_image').val('');
-        $('#route_image_edited').val('');
+        const hasEdits = $('#route_image_edited').val() !== '';
+        
+        if (hasEdits) {
+            // If there's a preview, go back to editing mode
+            $('#preview-container').hide();
+            $('#canvas-container').show();
+            $('.image-editor-toolbar').show();
+            $('#apply-edits').show();
+            $(this).text('Cancel');
+            renderCanvas();
+        } else {
+            // Cancel completely
+            $('#image-editor-container').hide();
+            $('#route_image').val('');
+            $('#route_image_edited').val('');
+            originalImage = null;
+        }
     });
     
     // Note: Canvas will be initialized when image is loaded

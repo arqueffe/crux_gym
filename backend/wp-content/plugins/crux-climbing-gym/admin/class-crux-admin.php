@@ -360,28 +360,18 @@ class Crux_Admin {
                 return array('success' => false, 'message' => 'Failed to decode edited image.');
             }
             
-            // Create a temporary file
-            $temp_file = wp_tempnam();
-            file_put_contents($temp_file, $decoded_image);
+            // Verify it's a valid image by checking the header
+            $image_info = @getimagesizefromstring($decoded_image);
+            if ($image_info === false) {
+                return array('success' => false, 'message' => 'Decoded data is not a valid image.');
+            }
             
-            // Prepare file array for wp_handle_upload
-            $file_array = array(
-                'name' => 'route-' . time() . '.png',
-                'type' => 'image/png',
-                'tmp_name' => $temp_file,
-                'error' => 0,
-                'size' => filesize($temp_file)
-            );
+            // Use wp_upload_bits which is designed for programmatic uploads
+            $filename = 'route-edited-' . time() . '.png';
+            $upload = wp_upload_bits($filename, null, $decoded_image);
             
-            // Upload the file
-            $upload_overrides = array('test_form' => false);
-            $upload = wp_handle_upload($file_array, $upload_overrides);
-            
-            // Clean up temp file
-            @unlink($temp_file);
-            
-            if ($upload == null || isset($upload['error'])) {
-                return array('success' => false, 'message' => 'Failed to upload edited image: ' . ($upload['error'] ?? 'Unknown error'));
+            if ($upload['error'] !== false) {
+                return array('success' => false, 'message' => 'Failed to upload edited image: ' . $upload['error']);
             }
         } elseif ($file['route_image']['name'] != '') {
             // Handle regular file upload
