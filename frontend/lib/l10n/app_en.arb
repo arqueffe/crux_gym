@@ -10,6 +10,7 @@
   "navProfile": "Profile",
   
   "@_COMMON": {},
+  "unnamed": "Unnamed",
   "cancel": "Cancel",
   "save": "Save",
   "delete": "Delete",
@@ -453,5 +454,70 @@
   
   "@_REPORTING": {},
   "report": "Report",
-  "propose": "Propose"
+  "propose": "Propose",
+  
+  "@_NAME_PROPOSAL": {},
+  "leaveUnnamed": "Leave unnamed",
+  "leaveUnnamedDescription": "Route will be named \"Unnamed\" until users propose names",
+  "proposeAName": "Propose a Name",
+  "unnamedRouteDescription": "This route is unnamed. Help give it a creative name!",
+  "yourProposedName": "Your proposed name",
+  "enterCreativeNameProposal": "Enter a creative name...",
+  "proposeButton": "Propose",
+  "proposalWarning": "⚠️ Warning: Once you propose a name, you cannot vote for other proposals.",
+  "confirmProposalTitle": "Confirm Proposal",
+  "confirmProposalMessage": "Once you propose a name, you cannot change it or vote for other proposals. Are you sure?",
+  "confirmVoteTitle": "Confirm Vote",
+  "confirmVoteMessage": "Vote for \"{proposedName}\"? Once you vote, you cannot change your vote or propose a name. This action is permanent.",
+  "@confirmVoteMessage": {
+    "placeholders": {
+      "proposedName": {
+        "type": "String"
+      }
+    }
+  },
+  "youProposed": "You proposed: \"{proposedName}\"",
+  "@youProposed": {
+    "placeholders": {
+      "proposedName": {
+        "type": "String"
+      }
+    }
+  },
+  "youVotedFor": "You voted for: \"{proposedName}\"",
+  "@youVotedFor": {
+    "placeholders": {
+      "proposedName": {
+        "type": "String"
+      }
+    }
+  },
+  "proposedNames": "Proposed Names ({count})",
+  "@proposedNames": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "byUser": "by {userName}",
+  "@byUser": {
+    "placeholders": {
+      "userName": {
+        "type": "String"
+      }
+    }
+  },
+  "voteButton": "Vote",
+  "nameProposedSuccess": "Name proposed successfully!",
+  "voteRecordedSuccess": "Vote recorded successfully!",
+  "pleaseEnterName": "Please enter a name",
+  "errorLoadingProposals": "Error loading proposals: {error}",
+  "@errorLoadingProposals": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  }
 }

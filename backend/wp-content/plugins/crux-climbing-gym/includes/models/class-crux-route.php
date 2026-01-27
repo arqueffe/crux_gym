@@ -94,6 +94,67 @@ class Crux_Route {
     }
     
     /**
+     * Update route
+     */
+    public static function update($id, $data) {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'crux_routes';
+        
+        $update_data = array();
+        $format = array();
+        
+        if (isset($data['name'])) {
+            $update_data['name'] = $data['name'];
+            $format[] = '%s';
+        }
+        
+        if (isset($data['grade_id'])) {
+            $update_data['grade_id'] = $data['grade_id'];
+            $format[] = '%d';
+        }
+        
+        if (isset($data['route_setter'])) {
+            $update_data['route_setter'] = $data['route_setter'];
+            $format[] = '%s';
+        }
+        
+        if (isset($data['wall_section'])) {
+            $update_data['wall_section'] = $data['wall_section'];
+            $format[] = '%s';
+        }
+        
+        if (isset($data['lane_id'])) {
+            $update_data['lane_id'] = $data['lane_id'];
+            $format[] = '%d';
+        }
+        
+        if (isset($data['hold_color_id'])) {
+            $update_data['hold_color_id'] = $data['hold_color_id'];
+            $format[] = '%d';
+        }
+        
+        if (isset($data['description'])) {
+            $update_data['description'] = $data['description'];
+            $format[] = '%s';
+        }
+        
+        if (empty($update_data)) {
+            return false;
+        }
+        
+        $result = $wpdb->update(
+            $table_name,
+            $update_data,
+            array('id' => $id),
+            $format,
+            array('%d')
+        );
+        
+        return $result !== false;
+    }
+    
+    /**
      * Get route statistics
      */
     public static function get_stats($route_id) {

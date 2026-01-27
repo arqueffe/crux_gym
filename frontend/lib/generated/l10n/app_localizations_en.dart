@@ -18,6 +18,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navProfile => 'Profile';
 
   @override
+  String get unnamed => 'Unnamed';
+
+  @override
   String get cancel => 'Cancel';
 
   @override
@@ -1012,4 +1015,79 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get propose => 'Propose';
+
+  @override
+  String get leaveUnnamed => 'Leave unnamed';
+
+  @override
+  String get leaveUnnamedDescription => 'Route will be named \"Unnamed\" until users propose names';
+
+  @override
+  String get proposeAName => 'Propose a Name';
+
+  @override
+  String get unnamedRouteDescription => 'This route is unnamed. Help give it a creative name!';
+
+  @override
+  String get yourProposedName => 'Your proposed name';
+
+  @override
+  String get enterCreativeNameProposal => 'Enter a creative name...';
+
+  @override
+  String get proposeButton => 'Propose';
+
+  @override
+  String get proposalWarning => '⚠️ Warning: Once you propose a name, you cannot vote for other proposals.';
+
+  @override
+  String get confirmProposalTitle => 'Confirm Proposal';
+
+  @override
+  String get confirmProposalMessage => 'Once you propose a name, you cannot change it or vote for other proposals. Are you sure?';
+
+  @override
+  String get confirmVoteTitle => 'Confirm Vote';
+
+  @override
+  String confirmVoteMessage(String proposedName) {
+    return 'Vote for \"$proposedName\"? Once you vote, you cannot change your vote or propose a name. This action is permanent.';
+  }
+
+  @override
+  String youProposed(String proposedName) {
+    return 'You proposed: \"$proposedName\"';
+  }
+
+  @override
+  String youVotedFor(String proposedName) {
+    return 'You voted for: \"$proposedName\"';
+  }
+
+  @override
+  String proposedNames(int count) {
+    return 'Proposed Names ($count)';
+  }
+
+  @override
+  String byUser(String userName) {
+    return 'by $userName';
+  }
+
+  @override
+  String get voteButton => 'Vote';
+
+  @override
+  String get nameProposedSuccess => 'Name proposed successfully!';
+
+  @override
+  String get voteRecordedSuccess => 'Vote recorded successfully!';
+
+  @override
+  String get pleaseEnterName => 'Please enter a name';
+
+  @override
+  String errorLoadingProposals(String error) {
+    return 'Error loading proposals: $error';
+  }
 }

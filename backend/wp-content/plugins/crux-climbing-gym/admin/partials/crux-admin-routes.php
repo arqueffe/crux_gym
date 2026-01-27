@@ -13,9 +13,12 @@ if (!defined('WPINC')) {
 }
 
 // Get routes data
+global $wpdb;
 $routes = Crux_Route::get_all();
 $grades = Crux_Grade::get_all();
 $hold_colors = Crux_Hold_Colors::get_all();
+$wall_sections = Crux_Wall_Section::get_all();
+$lanes = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}crux_lanes WHERE is_active = 1 ORDER BY id ASC");
 
 // Group routes by lane
 $routes_by_lane = [];
@@ -123,6 +126,116 @@ sort($lane_numbers);
             </div>
         </div>
     <?php endif; ?>
+</div>
+
+<!-- Rename Modal -->
+<div id="crux-rename-modal" class="crux-modal" style="display: none;">
+    <div class="crux-modal-overlay" onclick="cruxCloseRenameModal()"></div>
+    <div class="crux-modal-content crux-modal-small">
+        <div class="crux-modal-header crux-modal-header-blue">
+            <span class="dashicons dashicons-edit"></span>
+            <h2>Rename Route</h2>
+        </div>
+        <div class="crux-modal-body">
+            <p class="crux-modal-label">Enter new name for route:</p>
+            <input type="text" id="crux-rename-input" class="crux-modal-input" placeholder="Route name">
+            <input type="hidden" id="crux-rename-route-id">
+        </div>
+        <div class="crux-modal-actions">
+            <button class="crux-btn crux-btn-cancel" onclick="cruxCloseRenameModal()">
+                Cancel
+            </button>
+            <button class="crux-btn crux-btn-primary" onclick="cruxSubmitRename()">
+                <span class="dashicons dashicons-yes"></span> Rename
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modify Modal -->
+<div id="crux-modify-modal" class="crux-modal" style="display: none;">
+    <div class="crux-modal-overlay" onclick="cruxCloseModifyModal()"></div>
+    <div class="crux-modal-content crux-modal-large">
+        <div class="crux-modal-header crux-modal-header-orange">
+            <span class="dashicons dashicons-admin-settings"></span>
+            <h2>Modify Route</h2>
+        </div>
+        <div class="crux-modal-body crux-modal-form">
+            <input type="hidden" id="crux-modify-route-id">
+            
+            <div class="crux-form-row">
+                <label for="crux-modify-name">Route Name:</label>
+                <input type="text" id="crux-modify-name" class="crux-modal-input">
+            </div>
+            
+            <div class="crux-form-row">
+                <label for="crux-modify-grade">Grade: *</label>
+                <select id="crux-modify-grade" class="crux-modal-select" required>
+                    <option value="">Select Grade</option>
+                    <?php foreach ($grades as $grade): ?>
+                        <option value="<?php echo esc_attr($grade->id); ?>">
+                            <?php echo esc_html($grade->french_name); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            
+            <div class="crux-form-row">
+                <label for="crux-modify-setter">Route Setter: *</label>
+                <input type="text" id="crux-modify-setter" class="crux-modal-input" required>
+            </div>
+            
+            <div class="crux-form-row">
+                <label for="crux-modify-wall">Wall Section: *</label>
+                <select id="crux-modify-wall" class="crux-modal-select" required>
+                    <option value="">Select Wall</option>
+                    <?php foreach ($wall_sections as $section): ?>
+                        <option value="<?php echo esc_attr($section->name); ?>">
+                            <?php echo esc_html($section->name); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            
+            <div class="crux-form-row">
+                <label for="crux-modify-lane">Lane: *</label>
+                <select id="crux-modify-lane" class="crux-modal-select" required>
+                    <option value="">Select Lane</option>
+                    <?php foreach ($lanes as $lane): ?>
+                        <option value="<?php echo esc_attr($lane->id); ?>">
+                            <?php echo esc_html($lane->name ? $lane->name : "Lane {$lane->number}"); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            
+            <div class="crux-form-row">
+                <label for="crux-modify-color">Hold Color:</label>
+                <select id="crux-modify-color" class="crux-modal-select">
+                    <option value="">No specific color</option>
+                    <?php foreach ($hold_colors as $color): ?>
+                        <option value="<?php echo esc_attr($color->id); ?>" 
+                                data-color="<?php echo esc_attr($color->hex_code); ?>">
+                            <?php echo esc_html($color->name); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            
+            <div class="crux-form-row">
+                <label for="crux-modify-description">Description:</label>
+                <textarea id="crux-modify-description" class="crux-modal-textarea" rows="3"></textarea>
+            </div>
+        </div>
+        <div class="crux-modal-actions">
+            <button class="crux-btn crux-btn-cancel" onclick="cruxCloseModifyModal()">
+                Cancel
+            </button>
+            <button class="crux-btn crux-btn-primary" onclick="cruxSubmitModify()">
+                <span class="dashicons dashicons-yes"></span> Save Changes
+            </button>
+        </div>
+    </div>
 </div>
 
 <!-- Delete Confirmation Modal -->
@@ -357,6 +470,17 @@ sort($lane_numbers);
         background: #c0392b;
     }
     
+    .crux-btn-primary {
+        background: #27ae60;
+        color: white;
+        padding: 12px 24px;
+        font-size: 14px;
+    }
+    
+    .crux-btn-primary:hover {
+        background: #229954;
+    }
+    
     .crux-stats-bar {
         background: white;
         padding: 15px 20px;
@@ -404,7 +528,17 @@ sort($lane_numbers);
         box-shadow: 0 10px 40px rgba(0,0,0,0.3);
         max-width: 500px;
         width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
         animation: crux-modal-appear 0.3s ease;
+    }
+    
+    .crux-modal-small {
+        max-width: 400px;
+    }
+    
+    .crux-modal-large {
+        max-width: 600px;
     }
     
     @keyframes crux-modal-appear {
@@ -425,6 +559,20 @@ sort($lane_numbers);
         border-radius: 12px 12px 0 0;
         text-align: center;
         position: relative;
+    }
+    
+    .crux-modal-header-blue {
+        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    }
+    
+    .crux-modal-header-orange {
+        background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+    }
+    
+    .crux-modal-header .dashicons {
+        font-size: 32px;
+        width: 32px;
+        height: 32px;
     }
     
     .crux-warning-icon {
@@ -448,7 +596,46 @@ sort($lane_numbers);
     
     .crux-modal-body {
         padding: 30px;
-        text-align: center;
+    }
+    
+    .crux-modal-form {
+        text-align: left;
+    }
+    
+    .crux-form-row {
+        margin-bottom: 20px;
+    }
+    
+    .crux-form-row label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: #2c3e50;
+    }
+    
+    .crux-modal-input,
+    .crux-modal-select,
+    .crux-modal-textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        font-family: inherit;
+    }
+    
+    .crux-modal-input:focus,
+    .crux-modal-select:focus,
+    .crux-modal-textarea:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    }
+    
+    .crux-modal-label {
+        font-weight: 600;
+        margin-bottom: 10px;
+        color: #2c3e50;
     }
     
     .crux-warning-text {
@@ -530,19 +717,175 @@ sort($lane_numbers);
 </style>
 
 <script>
+const cruxAjaxUrl = '<?php echo admin_url('admin-ajax.php'); ?>';
+const cruxRoutesNonce = '<?php echo wp_create_nonce('crux_routes_nonce'); ?>';
+
+// Rename Route Functions
 function cruxRenameRoute(routeId, currentName) {
-    const newName = prompt('Enter new name for route:', currentName);
-    if (newName && newName !== currentName) {
-        // TODO: Implement rename functionality via AJAX
-        alert('Rename functionality to be implemented. New name: ' + newName);
+    const modal = document.getElementById('crux-rename-modal');
+    const input = document.getElementById('crux-rename-input');
+    const routeIdInput = document.getElementById('crux-rename-route-id');
+    
+    input.value = currentName;
+    routeIdInput.value = routeId;
+    modal.style.display = 'block';
+    
+    setTimeout(() => {
+        input.focus();
+        input.select();
+    }, 100);
+}
+
+function cruxCloseRenameModal() {
+    document.getElementById('crux-rename-modal').style.display = 'none';
+}
+
+function cruxSubmitRename() {
+    const routeId = document.getElementById('crux-rename-route-id').value;
+    const newName = document.getElementById('crux-rename-input').value.trim();
+    
+    if (!newName) {
+        alert('Please enter a route name');
+        return;
     }
+    
+    // Disable button
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="dashicons dashicons-update spin"></span> Saving...';
+    
+    jQuery.ajax({
+        url: cruxAjaxUrl,
+        type: 'POST',
+        data: {
+            action: 'crux_rename_route',
+            nonce: cruxRoutesNonce,
+            route_id: routeId,
+            new_name: newName
+        },
+        success: function(response) {
+            if (response.success) {
+                // Update the route name in the card
+                const card = document.querySelector(`.crux-route-card[data-route-id="${routeId}"]`);
+                if (card) {
+                    card.querySelector('.crux-route-name').textContent = newName;
+                }
+                cruxCloseRenameModal();
+                cruxShowNotice('Route renamed successfully!', 'success');
+            } else {
+                alert('Error: ' + (response.data.message || 'Failed to rename route'));
+                btn.disabled = false;
+                btn.innerHTML = '<span class="dashicons dashicons-yes"></span> Rename';
+            }
+        },
+        error: function() {
+            alert('Network error. Please try again.');
+            btn.disabled = false;
+            btn.innerHTML = '<span class="dashicons dashicons-yes"></span> Rename';
+        }
+    });
 }
 
+// Modify Route Functions
 function cruxModifyRoute(routeId) {
-    // TODO: Redirect to edit page or open modal
-    alert('Modify functionality to be implemented for route ID: ' + routeId);
+    const modal = document.getElementById('crux-modify-modal');
+    document.getElementById('crux-modify-route-id').value = routeId;
+    
+    // Show modal with loading state
+    modal.style.display = 'block';
+    
+    // Fetch route data
+    jQuery.ajax({
+        url: cruxAjaxUrl,
+        type: 'POST',
+        data: {
+            action: 'crux_get_route',
+            nonce: cruxRoutesNonce,
+            route_id: routeId
+        },
+        success: function(response) {
+            if (response.success) {
+                const route = response.data.route;
+                document.getElementById('crux-modify-name').value = route.name || '';
+                document.getElementById('crux-modify-grade').value = route.grade_id || '';
+                document.getElementById('crux-modify-setter').value = route.route_setter || '';
+                document.getElementById('crux-modify-wall').value = route.wall_section || '';
+                document.getElementById('crux-modify-lane').value = route.lane_id || '';
+                document.getElementById('crux-modify-color').value = route.hold_color_id || '';
+                document.getElementById('crux-modify-description').value = route.description || '';
+            } else {
+                alert('Error loading route data');
+                cruxCloseModifyModal();
+            }
+        },
+        error: function() {
+            alert('Network error. Please try again.');
+            cruxCloseModifyModal();
+        }
+    });
 }
 
+function cruxCloseModifyModal() {
+    document.getElementById('crux-modify-modal').style.display = 'none';
+}
+
+function cruxSubmitModify() {
+    const routeId = document.getElementById('crux-modify-route-id').value;
+    const name = document.getElementById('crux-modify-name').value.trim();
+    const gradeId = document.getElementById('crux-modify-grade').value;
+    const setter = document.getElementById('crux-modify-setter').value.trim();
+    const wall = document.getElementById('crux-modify-wall').value;
+    const lane = document.getElementById('crux-modify-lane').value;
+    const color = document.getElementById('crux-modify-color').value;
+    const description = document.getElementById('crux-modify-description').value.trim();
+    
+    if (!name || !gradeId || !setter || !wall || !lane) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    
+    // Disable button
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="dashicons dashicons-update spin"></span> Saving...';
+    
+    jQuery.ajax({
+        url: cruxAjaxUrl,
+        type: 'POST',
+        data: {
+            action: 'crux_update_route',
+            nonce: cruxRoutesNonce,
+            route_id: routeId,
+            name: name,
+            grade_id: gradeId,
+            route_setter: setter,
+            wall_section: wall,
+            lane_id: lane,
+            hold_color_id: color,
+            description: description
+        },
+        success: function(response) {
+            if (response.success) {
+                cruxCloseModifyModal();
+                cruxShowNotice('Route updated successfully! Reloading page...', 'success');
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } else {
+                alert('Error: ' + (response.data.message || 'Failed to update route'));
+                btn.disabled = false;
+                btn.innerHTML = '<span class="dashicons dashicons-yes"></span> Save Changes';
+            }
+        },
+        error: function() {
+            alert('Network error. Please try again.');
+            btn.disabled = false;
+            btn.innerHTML = '<span class="dashicons dashicons-yes"></span> Save Changes';
+        }
+    });
+}
+
+// Delete Route Functions
 function cruxDeleteRoute(routeId, routeName) {
     const modal = document.getElementById('crux-delete-modal');
     const routeNameDisplay = document.getElementById('crux-delete-route-name');
@@ -563,14 +906,44 @@ function cruxDeleteRoute(routeId, routeName) {
 }
 
 function cruxCloseDeleteModal() {
-    const modal = document.getElementById('crux-delete-modal');
-    modal.style.display = 'none';
+    document.getElementById('crux-delete-modal').style.display = 'none';
+}
+
+// Show notification
+function cruxShowNotice(message, type) {
+    const notice = document.createElement('div');
+    notice.className = 'notice notice-' + type + ' is-dismissible';
+    notice.innerHTML = '<p>' + message + '</p>';
+    notice.style.transition = 'opacity 0.3s';
+    
+    const header = document.querySelector('.crux-routes-wrap h1');
+    header.parentNode.insertBefore(notice, header.nextSibling);
+    
+    setTimeout(() => {
+        notice.style.opacity = '0';
+        setTimeout(() => notice.remove(), 300);
+    }, 3000);
 }
 
 // Close modal on escape key
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         cruxCloseDeleteModal();
+        cruxCloseRenameModal();
+        cruxCloseModifyModal();
     }
 });
+
+// CSS for spinning icon
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    .spin {
+        animation: spin 1s linear infinite;
+    }
+`;
+document.head.appendChild(style);
 </script>
