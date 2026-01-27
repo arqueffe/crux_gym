@@ -344,8 +344,47 @@ class Crux_Admin {
     private function create_route($data, $file) {
         global $wpdb;
 
-
-        if ($file['route_image']['name'] != '') {
+        // Check if we have an edited image (base64 data)
+        if (!empty($data['route_image_edited'])) {
+            // Handle edited image from canvas
+            $image_data = $data['route_image_edited'];
+            
+            // Remove data URL prefix (data:image/png;base64,)
+            if (strpos($image_data, 'data:image') === 0) {
+                $image_data = substr($image_data, strpos($image_data, ',') + 1);
+            }
+            
+            $decoded_image = base64_decode($image_data);
+            
+            if ($decoded_image === false) {
+                return array('success' => false, 'message' => 'Failed to decode edited image.');
+            }
+            
+            // Create a temporary file
+            $temp_file = wp_tempnam();
+            file_put_contents($temp_file, $decoded_image);
+            
+            // Prepare file array for wp_handle_upload
+            $file_array = array(
+                'name' => 'route-' . time() . '.png',
+                'type' => 'image/png',
+                'tmp_name' => $temp_file,
+                'error' => 0,
+                'size' => filesize($temp_file)
+            );
+            
+            // Upload the file
+            $upload_overrides = array('test_form' => false);
+            $upload = wp_handle_upload($file_array, $upload_overrides);
+            
+            // Clean up temp file
+            @unlink($temp_file);
+            
+            if ($upload == null || isset($upload['error'])) {
+                return array('success' => false, 'message' => 'Failed to upload edited image: ' . ($upload['error'] ?? 'Unknown error'));
+            }
+        } elseif ($file['route_image']['name'] != '') {
+            // Handle regular file upload
             $isAnImage = getimagesize($file['route_image']['tmp_name']) ? true : false;
             if (!$isAnImage) {
                 return array('success' => false, 'message' => 'Uploaded file is not a valid image.');
