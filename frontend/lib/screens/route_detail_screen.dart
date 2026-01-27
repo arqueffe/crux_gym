@@ -18,6 +18,57 @@ class RouteDetailScreen extends StatefulWidget {
   State<RouteDetailScreen> createState() => _RouteDetailScreenState();
 }
 
+class RouteImageDialog extends StatelessWidget {
+  final String url;
+  const RouteImageDialog(this.url, {super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      child: InteractiveViewer(
+        boundaryMargin: const EdgeInsets.all(20.0),
+        minScale: 0.1,
+        maxScale: 4.0, // Should depend on image res
+        child: Container(
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: NetworkImage(url),
+              fit: BoxFit.contain
+            )
+          ),
+        ),
+      )
+    );
+  }
+}
+
+class RouteImage extends StatelessWidget {
+  final double? width;
+  final String url;
+
+  const RouteImage(this.url, {super.key, this.width});
+
+  @override
+  Widget build(BuildContext context) {
+    // Should be clickable to be seen in big.
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8.0),
+      child: GestureDetector(
+        onTap: () async {
+          await showDialog(
+            context: context,
+            builder: (_) => RouteImageDialog(url)
+          );
+        },
+        child: Image.network(
+          url,
+          width: width,
+          fit: BoxFit.contain,
+        )
+      ),
+    );
+  }
+}
+
 class _RouteDetailScreenState extends State<RouteDetailScreen> {
   @override
   void initState() {
@@ -71,6 +122,8 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
             return Center(child: Text(l10n.routeNotFound));
           }
 
+          final screenWidth = MediaQuery.of(context).size.width;
+          final isWideScreen = screenWidth > 600;
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -83,9 +136,27 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        if (!isWideScreen && route.image != null) ...[
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              RouteImage(route.image!), // Take full width
+                              const SizedBox(height: 8),
+                            ],
+                          )
+                        ],
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            if (isWideScreen && route.image != null) ...[
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  RouteImage(route.image!, width: 250)
+                                ],
+                              ),
+                              const SizedBox(width: 16),
+                            ],
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -207,9 +278,53 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                                       }
                                     },
                                   ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Icon(Icons.person,
+                                          size: 16,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant),
+                                      const SizedBox(width: 4),
+                                      Text(l10n.setBy(route.routeSetter)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Icon(Icons.location_on,
+                                          size: 16,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant),
+                                      const SizedBox(width: 4),
+                                      Text(route.wallSection),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Icon(Icons.format_list_numbered,
+                                          size: 16,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant),
+                                      const SizedBox(width: 4),
+                                      Text(l10n.laneLabel(route.lane)),
+                                    ],
+                                  ),
+                                  if (route.description != null) ...[
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      route.description!,
+                                      style: Theme.of(context).textTheme.bodyMedium,
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),
+                            // Social
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
@@ -254,49 +369,6 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Icon(Icons.person,
-                                size: 16,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant),
-                            const SizedBox(width: 4),
-                            Text(l10n.setBy(route.routeSetter)),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Icon(Icons.location_on,
-                                size: 16,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant),
-                            const SizedBox(width: 4),
-                            Text(route.wallSection),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Icon(Icons.format_list_numbered,
-                                size: 16,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant),
-                            const SizedBox(width: 4),
-                            Text(l10n.laneLabel(route.lane)),
-                          ],
-                        ),
-                        if (route.description != null) ...[
-                          const SizedBox(height: 16),
-                          Text(
-                            route.description!,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                        ],
                       ],
                     ),
                   ),

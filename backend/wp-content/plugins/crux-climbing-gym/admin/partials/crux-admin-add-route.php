@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
     
     <div class="crux-admin-content">
         <div class="crux-form-container">
-            <form method="post" action="" class="crux-add-route-form">
+            <form method="post" action="" class="crux-add-route-form" enctype="multipart/form-data">
                 <?php wp_nonce_field('crux_add_route', 'crux_add_route_nonce'); ?>
                 
                 <table class="form-table" role="presentation">
@@ -63,6 +63,18 @@ if (!defined('ABSPATH')) {
                                 <?php if (current_user_can('manage_options')): ?>
                                     <p class="description"><small>Debug: <?php echo count($grades); ?> grades loaded</small></p>
                                 <?php endif; ?>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <th scope="row">
+                                <label for="route_image">Route Image</label>
+                            </th>
+                            <td>
+                                <input name="route_image" type="file" id="route_image" accept="image/*"
+                                       value="<?php echo isset($_POST['route_image']) ? esc_attr($_POST['route_image']) : ''; ?>"
+                                       />
+                                <p class="description">Picture of this route</p>
                             </td>
                         </tr>
                         

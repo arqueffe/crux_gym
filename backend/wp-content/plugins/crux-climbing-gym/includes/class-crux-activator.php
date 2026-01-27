@@ -155,7 +155,8 @@ class Crux_Activator {
             KEY grade_id (grade_id),
             KEY lane_id (lane_id),
             KEY wall_section (wall_section),
-            KEY hold_color_id (hold_color_id)
+            KEY hold_color_id (hold_color_id),
+            image varchar(100)
         ) $charset_collate;";
         
         $result = dbDelta($sql);

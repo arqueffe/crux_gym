@@ -75,6 +75,7 @@ class Crux_Route {
                 'name' => $data['name'],
                 'grade_id' => $data['grade_id'],
                 'route_setter' => $data['route_setter'],
+                'image' => $data['image'],
                 'wall_section' => $data['wall_section'],
                 'lane_id' => $data['lane_id'],
                 'hold_color_id' => $data['hold_color_id'],

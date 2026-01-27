@@ -4,6 +4,7 @@ class Route {
   final int gradeId;
   final String? gradeName;
   final String? gradeColor;
+  final String? image;
   final String routeSetter;
   final String wallSection;
   final int lane;
@@ -32,6 +33,7 @@ class Route {
     required this.gradeId,
     this.gradeName,
     this.gradeColor,
+    this.image,
     required this.routeSetter,
     required this.wallSection,
     required this.lane,
@@ -62,6 +64,7 @@ class Route {
       gradeId: int.parse(json['grade_id']),
       gradeName: null, // Will be populated by frontend mapping
       gradeColor: null, // Will be populated by frontend mapping
+      image: json['image'],
       routeSetter: json['route_setter'],
       wallSection: json['wall_section'],
       lane: int.parse(json['lane_id']),
@@ -107,6 +110,7 @@ class Route {
       'name': name,
       'grade_id': gradeId,
       'route_setter': routeSetter,
+      'image': image,
       'wall_section': wallSection,
       'lane_id': lane,
     };

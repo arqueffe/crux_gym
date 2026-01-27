@@ -161,7 +161,7 @@ class Crux_Admin {
         // Handle form submission
         if (isset($_POST['submit'])) {
             check_admin_referer('crux_add_route', 'crux_add_route_nonce');
-            $result = $this->create_route($_POST);
+            $result = $this->create_route($_POST, $_FILES);
             
             if ($result['success']) {
                 // Redirect to prevent form resubmission
@@ -341,9 +341,25 @@ class Crux_Admin {
     /**
      * Create a new route
      */
-    private function create_route($data) {
+    private function create_route($data, $file) {
         global $wpdb;
 
+
+        if ($file['route_image']['name'] != '') {
+            $isAnImage = getimagesize($file['route_image']['tmp_name']) ? true : false;
+            if (!$isAnImage) {
+                return array('success' => false, 'message' => 'Uploaded file is not a valid image.');
+            }
+            // Could limit image size & resize using wp_get_image_editor
+            $upload_overrides = array( 'test_form' => false );
+            $upload = wp_handle_upload($file['route_image'], $upload_overrides);
+
+            if ($upload == null || isset($upload['error'])) {
+                return array('success' => false, 'message' => 'Failed to upload route image: '. $upload['error']);
+            }
+        } else {
+            $upload = null;
+        }
         // Check if unnamed route checkbox is set
         $is_unnamed = isset($data['unnamed_route']) && $data['unnamed_route'] == '1';
         
@@ -385,6 +401,7 @@ class Crux_Admin {
                 'name' => sanitize_text_field($route_name),
                 'grade_id' => (int)$data['grade_id'],
                 'route_setter' => sanitize_text_field($data['route_setter']),
+                'image' => $upload['url'],
                 'wall_section' => sanitize_text_field($data['wall_section']),
                 'lane_id' => (int)$data['lane_id'],
                 'hold_color_id' => !empty($data['hold_color_id']) ? (int)$data['hold_color_id'] : null,
