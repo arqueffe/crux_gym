@@ -1,0 +1,14 @@
+/**
+ * Admin styles for Crux Climbing Gym plugin
+ *
+ * @package    Crux_Climbing_Gym
+ * @subpackage Crux_Climbing_Gym/admin/css
+ */
+
+/* General admin styles */
+.crux-admin-page {
+    max-width: 1200px;
+    margin: 20px auto;
+}
+
+/* Additional global admin styles can be added here */

@@ -134,6 +134,11 @@ class Crux_Route {
             $format[] = '%d';
         }
         
+        if (isset($data['image'])) {
+            $update_data['image'] = $data['image'];
+            $format[] = '%s';
+        }
+        
         if (isset($data['description'])) {
             $update_data['description'] = $data['description'];
             $format[] = '%s';

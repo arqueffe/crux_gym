@@ -561,7 +561,7 @@ class Crux_Admin {
         }
         
         $route_id = intval($_POST['route_id']);
-        $new_name = sanitize_text_field($_POST['new_name']);
+        $new_name = sanitize_text_field(wp_unslash($_POST['new_name']));
         
         if (empty($new_name)) {
             wp_send_json_error(array('message' => 'Route name cannot be empty'));
@@ -593,8 +593,22 @@ class Crux_Admin {
         $route = Crux_Route::get_by_id($route_id);
         
         if ($route) {
+            // Convert object to array and ensure proper encoding
+            $route_array = array(
+                'id' => $route->id,
+                'name' => wp_specialchars_decode($route->name, ENT_QUOTES),
+                'grade_id' => $route->grade_id,
+                'route_setter' => wp_specialchars_decode($route->route_setter, ENT_QUOTES),
+                'wall_section' => wp_specialchars_decode($route->wall_section, ENT_QUOTES),
+                'lane_id' => $route->lane_id,
+                'hold_color_id' => $route->hold_color_id,
+                'image' => $route->image,
+                'description' => wp_specialchars_decode($route->description, ENT_QUOTES),
+                'created_at' => $route->created_at
+            );
+            
             wp_send_json_success(array(
-                'route' => $route
+                'route' => $route_array
             ));
         } else {
             wp_send_json_error(array('message' => 'Route not found'));
@@ -615,14 +629,40 @@ class Crux_Admin {
         $route_id = intval($_POST['route_id']);
         
         $data = array(
-            'name' => sanitize_text_field($_POST['name']),
+            'name' => sanitize_text_field(wp_unslash($_POST['name'])),
             'grade_id' => intval($_POST['grade_id']),
-            'route_setter' => sanitize_text_field($_POST['route_setter']),
-            'wall_section' => sanitize_text_field($_POST['wall_section']),
+            'route_setter' => sanitize_text_field(wp_unslash($_POST['route_setter'])),
+            'wall_section' => sanitize_text_field(wp_unslash($_POST['wall_section'])),
             'lane_id' => intval($_POST['lane_id']),
             'hold_color_id' => !empty($_POST['hold_color_id']) ? intval($_POST['hold_color_id']) : null,
-            'description' => sanitize_textarea_field($_POST['description'])
+            'description' => sanitize_textarea_field(wp_unslash($_POST['description']))
         );
+        
+        // Handle image upload or removal
+        $remove_image = isset($_POST['remove_image']) && $_POST['remove_image'] === '1';
+        $current_image = isset($_POST['current_image']) ? sanitize_text_field($_POST['current_image']) : '';
+        
+        if ($remove_image) {
+            // Remove image
+            $data['image'] = null;
+        } elseif (!empty($_FILES['route_image']['name'])) {
+            // New image uploaded
+            require_once(ABSPATH . 'wp-admin/includes/file.php');
+            
+            $uploadedfile = $_FILES['route_image'];
+            $upload_overrides = array('test_form' => false);
+            $movefile = wp_handle_upload($uploadedfile, $upload_overrides);
+            
+            if ($movefile && !isset($movefile['error'])) {
+                $data['image'] = $movefile['url'];
+            } else {
+                wp_send_json_error(array('message' => 'Failed to upload image: ' . $movefile['error']));
+                return;
+            }
+        } elseif (!empty($current_image)) {
+            // Keep current image (don't update image field)
+            // No need to include it in $data
+        }
         
         if (Crux_Route::update($route_id, $data)) {
             $route = Crux_Route::get_by_id($route_id);

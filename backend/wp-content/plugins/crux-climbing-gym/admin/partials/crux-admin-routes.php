@@ -173,8 +173,8 @@ sort($lane_numbers);
                 <select id="crux-modify-grade" class="crux-modal-select" required>
                     <option value="">Select Grade</option>
                     <?php foreach ($grades as $grade): ?>
-                        <option value="<?php echo esc_attr($grade->id); ?>">
-                            <?php echo esc_html($grade->french_name); ?>
+                        <option value="<?php echo esc_attr($grade['id']); ?>">
+                            <?php echo esc_html($grade['french_name']); ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -220,6 +220,25 @@ sort($lane_numbers);
                         </option>
                     <?php endforeach; ?>
                 </select>
+            </div>
+            
+            <div class="crux-form-row">
+                <label for="crux-modify-image">Route Image:</label>
+                <div id="crux-current-image-container" style="margin-bottom: 10px; display: none;">
+                    <p style="margin: 0 0 5px 0; font-size: 12px; color: #666;">Current Image:</p>
+                    <img id="crux-current-image" src="" alt="Current route image" style="max-width: 100%; max-height: 150px; border-radius: 4px; border: 1px solid #ddd;">
+                    <button type="button" class="crux-btn crux-btn-delete" style="margin-top: 5px; font-size: 11px; padding: 4px 8px;" onclick="cruxRemoveCurrentImage()">
+                        <span class="dashicons dashicons-trash" style="font-size: 14px;"></span> Remove Image
+                    </button>
+                </div>
+                <input type="file" id="crux-modify-image" class="crux-modal-input" accept="image/*">
+                <input type="hidden" id="crux-modify-image-current" value="">
+                <input type="hidden" id="crux-modify-image-remove" value="0">
+                <p class="description" style="margin-top: 5px; font-size: 12px; color: #666;">Upload a new image to replace the current one, or leave empty to keep the existing image</p>
+                <div id="crux-modify-image-preview" style="margin-top: 10px; display: none;">
+                    <p style="margin: 0 0 5px 0; font-size: 12px; color: #666;">New Image Preview:</p>
+                    <img src="" alt="New route preview" style="max-width: 100%; max-height: 200px; border-radius: 4px; border: 1px solid #ddd;">
+                </div>
             </div>
             
             <div class="crux-form-row">
@@ -813,6 +832,21 @@ function cruxModifyRoute(routeId) {
                 document.getElementById('crux-modify-lane').value = route.lane_id || '';
                 document.getElementById('crux-modify-color').value = route.hold_color_id || '';
                 document.getElementById('crux-modify-description').value = route.description || '';
+                
+                // Reset file input and hidden fields
+                document.getElementById('crux-modify-image').value = '';
+                document.getElementById('crux-modify-image-current').value = route.image || '';
+                document.getElementById('crux-modify-image-remove').value = '0';
+                document.getElementById('crux-modify-image-preview').style.display = 'none';
+                
+                // Show current image if exists
+                if (route.image) {
+                    const currentContainer = document.getElementById('crux-current-image-container');
+                    document.getElementById('crux-current-image').src = route.image;
+                    currentContainer.style.display = 'block';
+                } else {
+                    document.getElementById('crux-current-image-container').style.display = 'none';
+                }
             } else {
                 alert('Error loading route data');
                 cruxCloseModifyModal();
@@ -838,6 +872,9 @@ function cruxSubmitModify() {
     const lane = document.getElementById('crux-modify-lane').value;
     const color = document.getElementById('crux-modify-color').value;
     const description = document.getElementById('crux-modify-description').value.trim();
+    const imageFile = document.getElementById('crux-modify-image').files[0];
+    const currentImage = document.getElementById('crux-modify-image-current').value;
+    const removeImage = document.getElementById('crux-modify-image-remove').value;
     
     if (!name || !gradeId || !setter || !wall || !lane) {
         alert('Please fill in all required fields');
@@ -849,21 +886,32 @@ function cruxSubmitModify() {
     btn.disabled = true;
     btn.innerHTML = '<span class="dashicons dashicons-update spin"></span> Saving...';
     
+    // Create FormData for file upload
+    const formData = new FormData();
+    formData.append('action', 'crux_update_route');
+    formData.append('nonce', cruxRoutesNonce);
+    formData.append('route_id', routeId);
+    formData.append('name', name);
+    formData.append('grade_id', gradeId);
+    formData.append('route_setter', setter);
+    formData.append('wall_section', wall);
+    formData.append('lane_id', lane);
+    formData.append('hold_color_id', color);
+    formData.append('description', description);
+    formData.append('current_image', currentImage);
+    formData.append('remove_image', removeImage);
+    
+    // Add image file if selected
+    if (imageFile) {
+        formData.append('route_image', imageFile);
+    }
+    
     jQuery.ajax({
         url: cruxAjaxUrl,
         type: 'POST',
-        data: {
-            action: 'crux_update_route',
-            nonce: cruxRoutesNonce,
-            route_id: routeId,
-            name: name,
-            grade_id: gradeId,
-            route_setter: setter,
-            wall_section: wall,
-            lane_id: lane,
-            hold_color_id: color,
-            description: description
-        },
+        data: formData,
+        processData: false,
+        contentType: false,
         success: function(response) {
             if (response.success) {
                 cruxCloseModifyModal();
@@ -909,6 +957,15 @@ function cruxCloseDeleteModal() {
     document.getElementById('crux-delete-modal').style.display = 'none';
 }
 
+// Remove current image function
+function cruxRemoveCurrentImage() {
+    if (confirm('Are you sure you want to remove the current image?')) {
+        document.getElementById('crux-current-image-container').style.display = 'none';
+        document.getElementById('crux-modify-image-remove').value = '1';
+        document.getElementById('crux-modify-image-current').value = '';
+    }
+}
+
 // Show notification
 function cruxShowNotice(message, type) {
     const notice = document.createElement('div');
@@ -924,6 +981,24 @@ function cruxShowNotice(message, type) {
         setTimeout(() => notice.remove(), 300);
     }, 3000);
 }
+
+// Image file preview on file change
+document.getElementById('crux-modify-image').addEventListener('change', function() {
+    const file = this.files[0];
+    const preview = document.getElementById('crux-modify-image-preview');
+    const img = preview.querySelector('img');
+    
+    if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            img.src = e.target.result;
+            preview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    } else {
+        preview.style.display = 'none';
+    }
+});
 
 // Close modal on escape key
 document.addEventListener('keydown', function(e) {
