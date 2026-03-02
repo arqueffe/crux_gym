@@ -65,17 +65,17 @@ sort($lane_numbers);
                                         ?>;"></span>
                                     <?php endif; ?>
                                 </div>
-                                <?php if (isset($route->image)): ?>
-                                    <div class="crux-route-image">
-                                        <img title="<?php echo esc_html($route->image); ?>" src="<?php echo esc_html($route->image); ?>">
-                                    </div>
-                                <?php endif; ?>
                                 
                                 <?php if ($route->description): ?>
                                     <p class="crux-route-description"><?php echo esc_html(wp_trim_words($route->description, 15)); ?></p>
                                 <?php endif; ?>
                                 
                                 <div class="crux-route-meta">
+                                    <?php if (isset($route->image)): ?>
+                                        <div class="crux-route-image">
+                                            <img title="<?php echo esc_html($route->image); ?>" src="<?php echo esc_html($route->image); ?>">
+                                        </div>
+                                    <?php endif; ?>
                                     <div class="crux-meta-item">
                                         <?php if (isset($route->grade_id) && $route->grade_id): ?>
                                             <?php 
@@ -380,9 +380,9 @@ sort($lane_numbers);
     }
     .crux-route-image img {
         display: inline-block;
-        height:100px;
-        max-width:100px;
-        max-height:100px
+        width:260px;
+        max-width:260px;
+        min-width:260px;
     }
     
     .crux-color-indicator {
