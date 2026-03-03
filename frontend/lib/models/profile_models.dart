@@ -50,6 +50,8 @@ class UserTick {
   bool get isTopRopeFlash => topRopeSend && topRopeAttempts == 1;
 
   bool get isLeadFlash => leadSend && leadAttempts == 1 && topRopeAttempts == 0;
+
+  int get attempts => topRopeAttempts + leadAttempts + (topRopeSend ? 1 : 0) + (leadSend ? 1 : 0);
 }
 
 class UserLike {

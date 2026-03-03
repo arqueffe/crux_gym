@@ -872,6 +872,7 @@ class Crux_API
                 array(
                     'user_id' => $current_user->ID,
                     'route_id' => $route_id,
+                    'notes' => NULL,
                     'top_rope_attempts' => 0,
                     'lead_attempts' => 0,
                     'top_rope_send' => 0,
@@ -937,12 +938,6 @@ class Crux_API
                 // For general attempts, add to both types equally or keep legacy behavior
                 $update_data['top_rope_attempts'] = $existing->top_rope_attempts;
                 $update_data['lead_attempts'] = $existing->lead_attempts;
-            }
-            
-            // If attempts become > 1, remove any flash status
-            if ($new_total_attempts > 1) {
-                $update_data['top_rope_flash'] = 0;
-                $update_data['lead_flash'] = 0;
             }
             
             $result = $wpdb->update(
@@ -1015,16 +1010,6 @@ class Crux_API
                 break;
             case 'lead':
                 $send_data['lead_send'] = 1;
-                break;
-            case 'flash':
-                $send_data['top_rope_send'] = 1;
-                $send_data['top_rope_attempts'] = 1;
-                $send_data['lead_attempts'] = 0;
-                break;
-            case 'lead_flash':
-                $send_data['lead_send'] = 1;
-                $send_data['top_rope_attempts'] = 0;
-                $send_data['lead_attempts'] = 1;
                 break;
         }
         
@@ -2217,40 +2202,6 @@ class Crux_API
         return array(
             'success' => true,
             'message' => 'User role updated successfully'
-        );
-    }
-
-    /**
-     * Fix incorrect flash data where attempts > 1 but flash is still marked as true
-     * This is a cleanup function for existing data
-     */
-    public function fix_flash_data($request) {
-        global $wpdb;
-        
-        $current_user = $this->_get_current_user();
-        
-        // Only allow admin users to run this cleanup
-        if (!current_user_can('manage_options')) {
-            return new WP_Error('permission_denied', 'Permission denied', array('status' => 403));
-        }
-        
-        $ticks_table = $wpdb->prefix . 'crux_ticks';
-        
-        // Fix top rope flashes where attempts > 1
-        $top_rope_fixed = $wpdb->query(
-            "UPDATE $ticks_table SET top_rope_flash = 0 WHERE attempts > 1 AND top_rope_flash = 1"
-        );
-        
-        // Fix lead flashes where attempts > 1
-        $lead_fixed = $wpdb->query(
-            "UPDATE $ticks_table SET lead_flash = 0 WHERE attempts > 1 AND lead_flash = 1"
-        );
-        
-        return array(
-            'success' => true,
-            'message' => 'Flash data cleanup completed',
-            'top_rope_flashes_fixed' => $top_rope_fixed,
-            'lead_flashes_fixed' => $lead_fixed
         );
     }
 
