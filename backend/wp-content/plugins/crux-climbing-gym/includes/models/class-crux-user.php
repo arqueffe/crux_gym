@@ -96,9 +96,6 @@ class Crux_User {
                 SUM(CASE WHEN top_rope_send = 1 OR lead_send = 1 THEN 1 ELSE 0 END) as total_sends,
                 SUM(CASE WHEN top_rope_send = 1 THEN 1 ELSE 0 END) as top_rope_sends,
                 SUM(CASE WHEN lead_send = 1 THEN 1 ELSE 0 END) as lead_sends,
-                SUM(CASE WHEN top_rope_flash = 1 OR lead_flash = 1 THEN 1 ELSE 0 END) as total_flashes,
-                SUM(CASE WHEN top_rope_flash = 1 THEN 1 ELSE 0 END) as top_rope_flashes,
-                SUM(CASE WHEN lead_flash = 1 THEN 1 ELSE 0 END) as lead_flashes,
                 SUM(attempts) as total_attempts
             FROM $ticks_table 
             WHERE user_id = %d

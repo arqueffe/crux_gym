@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../generated/l10n/app_localizations.dart';
+import '../models/profile_models.dart';
 import '../models/route_models.dart' as models;
 import '../providers/route_provider.dart';
 import '../providers/auth_provider.dart';
@@ -18,7 +19,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
   bool _isLiked = false;
   bool _isTicked = false;
   bool _isProject = false;
-  Map<String, dynamic>? _tickData;
+  UserTick? _tickData;
 
   @override
   void initState() {
@@ -44,32 +45,25 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     }
   }
 
-  // {id: 2, user_id: 1, route_id: 4, attempts: 1, top_rope_send: 1, lead_send: 0, top_rope_flash: 0, lead_flash: 0, flash: 0, notes: , created_at: 2025-09-10 13:50:52, updated_at: 2025-09-10 13:50:52}
+  // {id: 2, user_id: 1, route_id: 4, top_rope_send: 1, lead_send: 0, top_rope_attempts: 0, lead_attempts: 0, notes: , created_at: 2025-09-10 13:50:52, updated_at: 2025-09-10 13:50:52}
 
   void _checkIfTicked() async {
     if (!mounted) return;
     final routeProvider = context.read<RouteProvider>();
     final tickStatus = await routeProvider.getUserTickStatus(widget.route.id);
+    final userTicks = tickStatus != null ? UserTick.fromJson(tickStatus) : null;
     if (mounted) {
       setState(() {
-        _tickData = tickStatus; // Store the tick data
-        _isTicked = tickStatus != null &&
-            ((tickStatus['top_rope_send'] == true ||
-                    tickStatus['top_rope_send'] == 1 ||
-                    tickStatus['top_rope_send'] == '1') ||
-                (tickStatus['lead_send'] == true ||
-                    tickStatus['lead_send'] == 1 ||
-                    tickStatus['lead_send'] == '1'));
+        _tickData = userTicks; // Store the tick data
+        _isTicked = tickStatus != null && (_tickData!.topRopeSend || _tickData!.leadSend);
         // Debug logging
         print('Debug - Route ${widget.route.id}:');
         print('  tickStatus: $tickStatus');
         print('  _isTicked: $_isTicked');
         print('  _tickData: $_tickData');
         if (tickStatus != null) {
-          print(
-              '  top_rope_send: ${tickStatus['top_rope_send']} (${tickStatus['top_rope_send'].runtimeType})');
-          print(
-              '  lead_send: ${tickStatus['lead_send']} (${tickStatus['lead_send'].runtimeType})');
+          print('  top_rope_send: ${_tickData!.topRopeSend} (${_tickData!.topRopeSend.runtimeType})');
+          print('  lead_send: ${_tickData!.leadSend} (${_tickData!.leadSend.runtimeType})');
         }
       });
     }
@@ -89,17 +83,11 @@ class _RouteInteractionsState extends State<RouteInteractions> {
 
   // Helper methods to check send status
   bool _isTopRopeSent() {
-    return _tickData != null &&
-        (_tickData!['top_rope_send'] == true ||
-            _tickData!['top_rope_send'] == 1 ||
-            _tickData!['top_rope_send'] == '1');
+    return _tickData != null && _tickData!.topRopeSend == true;
   }
 
   bool _isLeadSent() {
-    return _tickData != null &&
-        (_tickData!['lead_send'] == true ||
-            _tickData!['lead_send'] == 1 ||
-            _tickData!['lead_send'] == '1');
+    return _tickData != null && _tickData!.leadSend == true;
   }
 
   @override
@@ -461,9 +449,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                             ),
                             const SizedBox(height: 4),
                             // Show separate attempt counts if we have the data
-                            if (_tickData != null &&
-                                (_tickData!['top_rope_attempts'] != null ||
-                                    _tickData!['lead_attempts'] != null))
+                            if (_tickData != null)
                               Column(
                                 children: [
                                   Row(
@@ -473,7 +459,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                                           size: 14, color: Colors.blue),
                                       const SizedBox(width: 2),
                                       Text(
-                                        '${_tickData!['top_rope_attempts'] ?? 0}',
+                                        '${_tickData!.topRopeAttempts}',
                                         style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
@@ -484,7 +470,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                                           size: 14, color: Colors.green),
                                       const SizedBox(width: 2),
                                       Text(
-                                        '${_tickData!['lead_attempts'] ?? 0}',
+                                        '${_tickData!.leadAttempts}',
                                         style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
@@ -494,7 +480,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'Total: ${_tickData?['attempts'] ?? 0}',
+                                    'Total: ${_tickData!.attempts}',
                                     style: TextStyle(
                                       fontSize: 10,
                                       color: Theme.of(context)
@@ -507,7 +493,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                             else
                               // Fallback to total attempts display
                               Text(
-                                '${_tickData?['attempts'] ?? 0}',
+                                '${_tickData?.attempts ?? 0}',
                                 style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -553,9 +539,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                                         .onSurfaceVariant,
                               ),
                             ),
-                            if (_tickData!['top_rope_flash'] == true ||
-                                _tickData!['top_rope_flash'] == 1 ||
-                                _tickData!['top_rope_flash'] == '1')
+                            if (_tickData!.isTopRopeFlash)
                               Text(
                                 l10n.flashLabel,
                                 style: const TextStyle(
@@ -595,9 +579,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                                         .onSurfaceVariant,
                               ),
                             ),
-                            if (_tickData!['lead_flash'] == true ||
-                                _tickData!['lead_flash'] == 1 ||
-                                _tickData!['lead_flash'] == '1')
+                            if (_tickData!.isLeadFlash)
                               Text(
                                 l10n.flashLabel,
                                 style: const TextStyle(
@@ -610,8 +592,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                         ),
                       ],
                     ),
-                    if (_tickData!['notes'] != null &&
-                        _tickData!['notes'].toString().isNotEmpty) ...[
+                    if (_tickData!.notes.isNotEmpty) ...[
                       const SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.all(8),
@@ -635,7 +616,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                _tickData!['notes'].toString(),
+                                _tickData!.notes,
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontStyle: FontStyle.italic,
@@ -845,16 +826,11 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     final routeProvider = context.read<RouteProvider>();
     try {
       final tickStatus = await routeProvider.getUserTickStatus(widget.route.id);
+      final userTicks = tickStatus != null ? UserTick.fromJson(tickStatus) : null;
       if (mounted) {
         setState(() {
-          _tickData = tickStatus;
-          _isTicked = tickStatus != null &&
-              ((tickStatus['top_rope_send'] == true ||
-                      tickStatus['top_rope_send'] == 1 ||
-                      tickStatus['top_rope_send'] == '1') ||
-                  (tickStatus['lead_send'] == true ||
-                      tickStatus['lead_send'] == 1 ||
-                      tickStatus['lead_send'] == '1'));
+          _tickData = userTicks;
+          _isTicked = tickStatus != null && (userTicks!.topRopeSend || userTicks!.leadSend);
         });
       }
     } catch (e) {
@@ -898,10 +874,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
       success = await routeProvider.removeProjectOptimized(widget.route.id);
     } else {
       // Check if user has already lead sent this route
-      if (_tickData != null &&
-          ((_tickData!['lead_send'] == true) ||
-              (_tickData!['lead_send'] == 1) ||
-              (_tickData!['lead_send'] == '1'))) {
+      if (_tickData != null && _tickData!.leadSend) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -943,8 +916,8 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     final notesController = TextEditingController();
 
     // Pre-populate with existing notes if any
-    if (_tickData != null && _tickData!['notes'] != null) {
-      notesController.text = _tickData!['notes'].toString();
+    if (_tickData != null) {
+      notesController.text = _tickData!.notes;
     }
 
     showDialog(
@@ -990,23 +963,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
         await routeProvider.updateRouteNotes(widget.route.id, notes);
 
     if (success) {
-      // Update local state immediately
-      if (_tickData != null) {
-        _tickData!['notes'] = notes;
-      } else {
-        _tickData = {
-          'notes': notes,
-          'attempts': 0,
-          'top_rope_attempts': 0,
-          'lead_attempts': 0,
-          'top_rope_send': false,
-          'lead_send': false,
-          'top_rope_flash': false,
-          'lead_flash': false,
-        };
-      }
-      setState(() {});
-
+      await _refreshTickData();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(notes.isEmpty ? 'Note removed' : 'Note saved'),
