@@ -145,7 +145,7 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
                               border: const OutlineInputBorder(),
                               helperText: l10n.selectDifficultyGrade,
                             ),
-                            value: _selectedGradeId,
+                            initialValue: _selectedGradeId,
                             items: _gradeDefinitions
                                 .map((gradeData) => DropdownMenuItem<int>(
                                       value: int.tryParse(
@@ -191,7 +191,7 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
                               border: const OutlineInputBorder(),
                               helperText: l10n.locationOfRouteInGym,
                             ),
-                            value: _selectedWallSection,
+                            initialValue: _selectedWallSection,
                             items: _wallSections
                                 .map((section) => DropdownMenuItem(
                                       value: section,
@@ -216,7 +216,7 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
                               border: const OutlineInputBorder(),
                               helperText: l10n.selectLaneNumber,
                             ),
-                            value: _selectedLane,
+                            initialValue: _selectedLane,
                             items: routeProvider.lanes
                                 .map((lane) => DropdownMenuItem(
                                       value: lane.id,
@@ -241,7 +241,7 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
                               border: const OutlineInputBorder(),
                               helperText: l10n.colorOfRouteHolds,
                             ),
-                            value: _selectedColorId,
+                            initialValue: _selectedColorId,
                             items: [
                               DropdownMenuItem<int>(
                                 value: null,

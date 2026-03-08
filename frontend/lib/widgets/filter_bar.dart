@@ -29,7 +29,7 @@ class FilterBar extends StatelessWidget {
                             EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         border: OutlineInputBorder(),
                       ),
-                      value: routeProvider.selectedWallSection,
+                      initialValue: routeProvider.selectedWallSection,
                       items: [
                         const DropdownMenuItem<String>(
                           value: null,
@@ -56,7 +56,7 @@ class FilterBar extends StatelessWidget {
                             EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         border: OutlineInputBorder(),
                       ),
-                      value: routeProvider.selectedGrade,
+                      initialValue: routeProvider.selectedGrade,
                       items: [
                         const DropdownMenuItem<String>(
                           value: null,
@@ -83,7 +83,7 @@ class FilterBar extends StatelessWidget {
                             EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         border: OutlineInputBorder(),
                       ),
-                      value: routeProvider.selectedLane,
+                      initialValue: routeProvider.selectedLane,
                       items: [
                         const DropdownMenuItem<int>(
                           value: null,

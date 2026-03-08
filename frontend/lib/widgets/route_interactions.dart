@@ -1223,7 +1223,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                           ? l10n.changeProposedGrade
                           : l10n.selectGradeToPropose,
                     ),
-                    value: selectedGrade,
+                    initialValue: selectedGrade,
                     items: grades
                         .map(
                           (grade) => DropdownMenuItem(
@@ -1352,7 +1352,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                     labelText: l10n.issueTypeOptional,
                     border: const OutlineInputBorder(),
                   ),
-                  value: selectedWarningType,
+                  initialValue: selectedWarningType,
                   items: warningTypes
                       .map(
                         (type) => DropdownMenuItem(

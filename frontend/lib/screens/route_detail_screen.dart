@@ -170,9 +170,9 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                           width: 1,
                         ),
                       ),
-                      child: Row(
+                      child: const Row(
                         mainAxisSize: MainAxisSize.min,
-                        children: const [
+                        children: [
                           Icon(
                             Icons.zoom_in,
                             color: Colors.white,
@@ -856,7 +856,7 @@ class _HeroImageSection extends StatelessWidget {
                   color: Colors.black.withOpacity(0.6),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
@@ -864,7 +864,7 @@ class _HeroImageSection extends StatelessWidget {
                       color: Colors.white,
                       size: 16,
                     ),
-                    const SizedBox(width: 4),
+                    SizedBox(width: 4),
                     Text(
                       'Tap to zoom',
                       style: TextStyle(

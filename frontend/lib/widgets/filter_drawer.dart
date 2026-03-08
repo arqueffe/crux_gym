@@ -124,7 +124,7 @@ class FilterDrawer extends StatelessWidget {
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         border: const OutlineInputBorder(),
       ),
-      value: routeProvider.selectedSort,
+      initialValue: routeProvider.selectedSort,
       items: SortOption.values.map((option) {
         return DropdownMenuItem<SortOption>(
           value: option,
@@ -147,7 +147,7 @@ class FilterDrawer extends StatelessWidget {
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         border: const OutlineInputBorder(),
       ),
-      value: routeProvider.selectedWallSection,
+      initialValue: routeProvider.selectedWallSection,
       items: [
         DropdownMenuItem<String>(
           value: null,
@@ -173,7 +173,7 @@ class FilterDrawer extends StatelessWidget {
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         border: const OutlineInputBorder(),
       ),
-      value: routeProvider.selectedGrade,
+      initialValue: routeProvider.selectedGrade,
       items: [
         DropdownMenuItem<String>(
           value: null,
@@ -204,7 +204,7 @@ class FilterDrawer extends StatelessWidget {
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         border: const OutlineInputBorder(),
       ),
-      value: routeProvider.selectedLane,
+      initialValue: routeProvider.selectedLane,
       items: [
         DropdownMenuItem<int>(
           value: null,
@@ -231,7 +231,7 @@ class FilterDrawer extends StatelessWidget {
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         border: const OutlineInputBorder(),
       ),
-      value: routeProvider.selectedRouteSetter,
+      initialValue: routeProvider.selectedRouteSetter,
       items: [
         DropdownMenuItem<String>(
           value: null,
