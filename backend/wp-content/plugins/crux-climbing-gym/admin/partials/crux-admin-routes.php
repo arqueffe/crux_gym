@@ -807,56 +807,7 @@ function cruxSubmitRename() {
 
 // Modify Route Functions
 function cruxModifyRoute(routeId) {
-    const modal = document.getElementById('crux-modify-modal');
-    document.getElementById('crux-modify-route-id').value = routeId;
-    
-    // Show modal with loading state
-    modal.style.display = 'block';
-    
-    // Fetch route data
-    jQuery.ajax({
-        url: cruxAjaxUrl,
-        type: 'POST',
-        data: {
-            action: 'crux_get_route',
-            nonce: cruxRoutesNonce,
-            route_id: routeId
-        },
-        success: function(response) {
-            if (response.success) {
-                const route = response.data.route;
-                document.getElementById('crux-modify-name').value = route.name || '';
-                document.getElementById('crux-modify-grade').value = route.grade_id || '';
-                document.getElementById('crux-modify-setter').value = route.route_setter || '';
-                document.getElementById('crux-modify-wall').value = route.wall_section || '';
-                document.getElementById('crux-modify-lane').value = route.lane_id || '';
-                document.getElementById('crux-modify-color').value = route.hold_color_id || '';
-                document.getElementById('crux-modify-description').value = route.description || '';
-                
-                // Reset file input and hidden fields
-                document.getElementById('crux-modify-image').value = '';
-                document.getElementById('crux-modify-image-current').value = route.image || '';
-                document.getElementById('crux-modify-image-remove').value = '0';
-                document.getElementById('crux-modify-image-preview').style.display = 'none';
-                
-                // Show current image if exists
-                if (route.image) {
-                    const currentContainer = document.getElementById('crux-current-image-container');
-                    document.getElementById('crux-current-image').src = route.image;
-                    currentContainer.style.display = 'block';
-                } else {
-                    document.getElementById('crux-current-image-container').style.display = 'none';
-                }
-            } else {
-                alert('Error loading route data');
-                cruxCloseModifyModal();
-            }
-        },
-        error: function() {
-            alert('Network error. Please try again.');
-            cruxCloseModifyModal();
-        }
-    });
+    window.location.href = '<?php echo admin_url('admin.php?page=crux-add-route&route_id='); ?>' + encodeURIComponent(routeId);
 }
 
 function cruxCloseModifyModal() {

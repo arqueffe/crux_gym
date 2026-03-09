@@ -11,6 +11,85 @@
 if (!defined('ABSPATH')) {
     exit;
 }
+
+$is_edit_mode = isset($is_edit_mode) ? (bool) $is_edit_mode : !empty($editing_route);
+$posted_data = wp_unslash($_POST);
+
+$current_route_name = '';
+if (isset($posted_data['route_name'])) {
+    $current_route_name = $posted_data['route_name'];
+} elseif ($is_edit_mode && $editing_route) {
+    $current_route_name = $editing_route->name;
+}
+
+$is_unnamed_checked = isset($posted_data['unnamed_route'])
+    || ($is_edit_mode && $editing_route && $editing_route->name === 'Unnamed');
+
+$grade_id = '';
+if (isset($posted_data['grade_id'])) {
+    $grade_id = $posted_data['grade_id'];
+} elseif ($is_edit_mode && $editing_route) {
+    $grade_id = $editing_route->grade_id;
+}
+
+$route_setter = '';
+if (isset($posted_data['route_setter'])) {
+    $route_setter = $posted_data['route_setter'];
+} elseif ($is_edit_mode && $editing_route) {
+    $route_setter = $editing_route->route_setter;
+}
+
+$wall_section = '';
+if (isset($posted_data['wall_section'])) {
+    $wall_section = $posted_data['wall_section'];
+} elseif ($is_edit_mode && $editing_route) {
+    $wall_section = $editing_route->wall_section;
+}
+
+$lane_id = '';
+if (isset($posted_data['lane_id'])) {
+    $lane_id = $posted_data['lane_id'];
+} elseif ($is_edit_mode && $editing_route) {
+    $lane_id = $editing_route->lane_id;
+}
+
+$hold_color_id = '';
+if (isset($posted_data['hold_color_id'])) {
+    $hold_color_id = $posted_data['hold_color_id'];
+} elseif ($is_edit_mode && $editing_route) {
+    $hold_color_id = $editing_route->hold_color_id;
+}
+
+$description = '';
+if (isset($posted_data['description'])) {
+    $description = $posted_data['description'];
+} elseif ($is_edit_mode && $editing_route) {
+    $description = $editing_route->description;
+}
+
+$current_image_url = '';
+if ($is_edit_mode && $editing_route && !empty($editing_route->image)) {
+    $current_image_url = $editing_route->image;
+}
+
+$form_values = array(
+    'route_name' => $is_unnamed_checked ? '' : $current_route_name,
+    'grade_id' => $grade_id,
+    'route_setter' => $route_setter,
+    'wall_section' => $wall_section,
+    'lane_id' => $lane_id,
+    'hold_color_id' => $hold_color_id,
+    'description' => $description,
+);
+
+$route_setter_select_value = '';
+if ($form_values['route_setter'] !== '') {
+    if (in_array($form_values['route_setter'], $route_setters, true)) {
+        $route_setter_select_value = $form_values['route_setter'];
+    } else {
+        $route_setter_select_value = '__custom__';
+    }
+}
 ?>
 
 <div class="wrap">
@@ -20,6 +99,9 @@ if (!defined('ABSPATH')) {
         <div class="crux-form-container">
             <form method="post" action="" class="crux-add-route-form" enctype="multipart/form-data">
                 <?php wp_nonce_field('crux_add_route', 'crux_add_route_nonce'); ?>
+                <?php if ($is_edit_mode && $editing_route): ?>
+                    <input type="hidden" name="route_id" value="<?php echo esc_attr($editing_route->id); ?>" />
+                <?php endif; ?>
                 
                 <table class="form-table" role="presentation">
                     <tbody>
@@ -29,11 +111,11 @@ if (!defined('ABSPATH')) {
                             </th>
                             <td>
                                 <input name="route_name" type="text" id="route_name" 
-                                       value="<?php echo isset($_POST['route_name']) ? esc_attr($_POST['route_name']) : ''; ?>" 
+                                        value="<?php echo esc_attr($form_values['route_name']); ?>" 
                                        class="regular-text" />
                                 <label style="display: block; margin-top: 8px;">
                                     <input type="checkbox" name="unnamed_route" id="unnamed_route" value="1"
-                                           <?php checked(isset($_POST['unnamed_route']), true); ?> />
+                                         <?php checked($is_unnamed_checked, true); ?> />
                                     Leave unnamed (route will be named "Unnamed" until users propose names)
                                 </label>
                                 <p class="description">Enter a creative name for the climbing route, or check the box above to leave it unnamed</p>
@@ -53,7 +135,7 @@ if (!defined('ABSPATH')) {
                                         <?php foreach ($grades as $grade): ?>
                                             <option value="<?php echo esc_attr($grade->id); ?>" 
                                                     style="color: <?php echo esc_attr($grade->color); ?>"
-                                                    <?php selected(isset($_POST['grade_id']) ? $_POST['grade_id'] : '', $grade->id); ?>>
+                                                    <?php selected($form_values['grade_id'], $grade->id); ?>>
                                                 <?php echo esc_html($grade->french_name); ?>
                                             </option>
                                         <?php endforeach; ?>
@@ -74,14 +156,15 @@ if (!defined('ABSPATH')) {
                                 <select name="route_setter_select" id="route_setter_select">
                                     <option value="">Select Existing Setter</option>
                                     <?php foreach ($route_setters as $setter): ?>
-                                        <option value="<?php echo esc_attr($setter); ?>">
+                                        <option value="<?php echo esc_attr($setter); ?>"
+                                                <?php selected($route_setter_select_value, $setter); ?>>
                                             <?php echo esc_html($setter); ?>
                                         </option>
                                     <?php endforeach; ?>
-                                    <option value="__custom__">+ Add New Setter</option>
+                                    <option value="__custom__" <?php selected($route_setter_select_value, '__custom__'); ?>>+ Add New Setter</option>
                                 </select>
                                 <input name="route_setter" type="text" id="route_setter_custom" 
-                                       value="<?php echo isset($_POST['route_setter']) ? esc_attr($_POST['route_setter']) : ''; ?>" 
+                                       value="<?php echo esc_attr($form_values['route_setter']); ?>" 
                                        class="regular-text" style="display:none; margin-top: 8px;" 
                                        placeholder="Enter new setter name" />
                                 <p class="description">Select an existing setter or add a new one</p>
@@ -100,7 +183,7 @@ if (!defined('ABSPATH')) {
                                     <?php else: ?>
                                         <?php foreach ($wall_sections as $section): ?>
                                             <option value="<?php echo esc_attr($section->name); ?>"
-                                                    <?php selected(isset($_POST['wall_section']) ? $_POST['wall_section'] : '', $section->name); ?>>
+                                                    <?php selected($form_values['wall_section'], $section->name); ?>>
                                                 <?php echo esc_html($section->name); ?>
                                             </option>
                                         <?php endforeach; ?>
@@ -119,7 +202,7 @@ if (!defined('ABSPATH')) {
                                     <option value="">Select Lane</option>
                                     <?php foreach ($lanes as $lane): ?>
                                         <option value="<?php echo esc_attr($lane->id); ?>"
-                                                <?php selected(isset($_POST['lane_id']) ? $_POST['lane_id'] : '', $lane->id); ?>>
+                                                <?php selected($form_values['lane_id'], $lane->id); ?>>
                                             <?php echo esc_html($lane->name ? $lane->name : "Lane {$lane->number}"); ?>
                                         </option>
                                     <?php endforeach; ?>
@@ -138,7 +221,7 @@ if (!defined('ABSPATH')) {
                                     <?php foreach ($hold_colors as $color): ?>
                                         <option value="<?php echo esc_attr($color->id); ?>"
                                                 style="background-color: <?php echo esc_attr($color->hex_code); ?>; color: <?php echo $color->hex_code === '#FFFFFF' || $color->hex_code === '#FFFF00' ? '#000000' : '#FFFFFF'; ?>;"
-                                                <?php selected(isset($_POST['hold_color_id']) ? $_POST['hold_color_id'] : '', $color->id); ?>>
+                                                <?php selected($form_values['hold_color_id'], $color->id); ?>>
                                             <?php echo esc_html($color->name); ?>
                                         </option>
                                     <?php endforeach; ?>
@@ -152,6 +235,19 @@ if (!defined('ABSPATH')) {
                                 <label for="route_image">Route Image</label>
                             </th>
                             <td>
+                                <?php if (!empty($current_image_url)): ?>
+                                    <div style="margin-bottom: 12px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #fafafa; max-width: 420px;">
+                                        <p style="margin: 0 0 8px 0;"><strong>Current image</strong></p>
+                                        <img src="<?php echo esc_url($current_image_url); ?>" alt="Current route" style="display: block; max-width: 100%; max-height: 240px; border: 1px solid #ddd; border-radius: 4px;" />
+                                        <p style="margin: 10px 0 0 0;">
+                                            <button type="button" class="button" id="edit-current-image-btn" data-image-url="<?php echo esc_url($current_image_url); ?>">
+                                                <span class="dashicons dashicons-edit" style="font-size: 16px; margin-top: 3px;"></span>
+                                                Modify current picture
+                                            </button>
+                                        </p>
+                                        <p class="description" style="margin: 8px 0 0 0;">This image will be kept unless you upload a new one below.</p>
+                                    </div>
+                                <?php endif; ?>
                                 <input name="route_image" type="file" id="route_image" accept="image/*" />
                                 <input name="route_image_edited" type="hidden" id="route_image_edited" />
                                 <p class="description">Picture of this route</p>
@@ -285,7 +381,7 @@ if (!defined('ABSPATH')) {
                                 <label for="description">Description</label>
                             </th>
                             <td>
-                                <textarea name="description" id="description" rows="4" cols="50" class="large-text"><?php echo isset($_POST['description']) ? esc_textarea($_POST['description']) : ''; ?></textarea>
+                                <textarea name="description" id="description" rows="4" cols="50" class="large-text"><?php echo esc_textarea($form_values['description']); ?></textarea>
                                 <p class="description">Optional: Add notes about the route (moves, beta, style, etc.)</p>
                             </td>
                         </tr>
@@ -293,7 +389,7 @@ if (!defined('ABSPATH')) {
                 </table>
                 
                 <p class="submit">
-                    <input type="submit" name="submit" id="submit" class="button button-primary" value="Create Route" />
+                    <input type="submit" name="submit" id="submit" class="button button-primary" value="<?php echo $is_edit_mode ? 'Update Route' : 'Create Route'; ?>" />
                     <a href="<?php echo admin_url('admin.php?page=crux-routes'); ?>" class="button">Cancel</a>
                 </p>
             </form>
@@ -438,6 +534,39 @@ jQuery(document).ready(function($) {
             console.log('Canvas initialized:', canvas.width, 'x', canvas.height);
         }
     }
+
+    function loadImageIntoEditor(imageSrc) {
+        if (!imageSrc) return;
+
+        const img = new Image();
+        img.onload = function() {
+            originalImage = img;
+            console.log('Image loaded:', img.width, 'x', img.height);
+
+            // Reset edited payload because we are starting a fresh edit session
+            $('#route_image_edited').val('');
+
+            // Ensure editor UI is visible and in editing mode
+            $('#image-editor-container').show();
+            $('#preview-container').hide();
+            $('#canvas-container').show();
+            $('.image-editor-toolbar').show();
+            $('#tool-options').hide();
+            $('#apply-edits').show();
+            $('#cancel-edits').text('Cancel');
+
+            initCanvas();
+            setupCanvasEvents();
+            resetEditor();
+            renderCanvas();
+        };
+
+        img.onerror = function() {
+            alert('Failed to load the image for editing.');
+        };
+
+        img.src = imageSrc;
+    }
     
     // Handle Image Upload
     $('#route_image').on('change', function(e) {
@@ -446,21 +575,15 @@ jQuery(document).ready(function($) {
         
         const reader = new FileReader();
         reader.onload = function(event) {
-            const img = new Image();
-            img.onload = function() {
-                originalImage = img;
-                console.log('Image loaded:', img.width, 'x', img.height);
-                $('#image-editor-container').show();
-                
-                // Initialize canvas after showing container
-                initCanvas();
-                setupCanvasEvents();
-                resetEditor();
-                renderCanvas();
-            };
-            img.src = event.target.result;
+            loadImageIntoEditor(event.target.result);
         };
         reader.readAsDataURL(file);
+    });
+
+    $('#edit-current-image-btn').on('click', function() {
+        const imageUrl = $(this).data('image-url');
+        if (!imageUrl) return;
+        loadImageIntoEditor(imageUrl);
     });
     
     // Initialize hold color from dropdown
@@ -1479,7 +1602,6 @@ jQuery(document).ready(function($) {
         if (value === '__custom__') {
             // Show custom input and require it
             $customInput.show().prop('required', true);
-            $customInput.val('');
             $(this).prop('required', false);
         } else {
             // Hide custom input and use selected value

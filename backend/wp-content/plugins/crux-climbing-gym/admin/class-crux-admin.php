@@ -50,7 +50,7 @@ class Crux_Admin {
         add_menu_page(
             'Crux Climbing Gym',
             'Climbing Gym',
-            'manage_options',
+            'edit_posts',
             'crux-climbing-gym',
             array($this, 'display_routes_page'),
             'dashicons-location-alt',
@@ -75,6 +75,16 @@ class Crux_Admin {
             'edit_posts',
             'crux-add-route',
             array($this, 'display_add_route_page')
+        );
+
+        // Import Routes submenu
+        add_submenu_page(
+            'crux-climbing-gym',
+            'Import Routes',
+            'Import Routes',
+            'manage_options',
+            'crux-import-routes',
+            array($this, 'displayImportRoutesPage')
         );
 
         // Users submenu
@@ -158,17 +168,45 @@ class Crux_Admin {
     public function display_add_route_page() {
         global $wpdb;
 
+        $edit_route_id = 0;
+        if (isset($_GET['route_id'])) {
+            $edit_route_id = intval($_GET['route_id']);
+        }
+        if (isset($_POST['route_id'])) {
+            $edit_route_id = intval($_POST['route_id']);
+        }
+
+        $editing_route = null;
+        if ($edit_route_id > 0) {
+            $editing_route = Crux_Route::get_by_id($edit_route_id);
+            if (!$editing_route) {
+                echo '<div class="notice notice-error is-dismissible"><p>Route not found for editing.</p></div>';
+                $edit_route_id = 0;
+            }
+        }
+
         // Handle form submission
         if (isset($_POST['submit'])) {
             check_admin_referer('crux_add_route', 'crux_add_route_nonce');
-            $result = $this->create_route($_POST, $_FILES);
+            $is_edit_submit = $edit_route_id > 0 && $editing_route;
+            $result = $is_edit_submit
+                ? $this->update_route($edit_route_id, $_POST, $_FILES)
+                : $this->create_route($_POST, $_FILES);
             
             if ($result['success']) {
                 // Redirect to prevent form resubmission
-                $redirect_url = add_query_arg(array(
+                $redirect_args = array(
                     'page' => 'crux-add-route',
-                    'route_created' => '1'
-                ), admin_url('admin.php'));
+                );
+
+                if ($is_edit_submit) {
+                    $redirect_args['route_updated'] = '1';
+                    $redirect_args['route_id'] = $edit_route_id;
+                } else {
+                    $redirect_args['route_created'] = '1';
+                }
+
+                $redirect_url = add_query_arg($redirect_args, admin_url('admin.php'));
                 // Cannot use wp_redirect here as header are already sent.
                 // wp_redirect($redirect_url);
                 // Dirty hack instead for redirection
@@ -177,10 +215,16 @@ class Crux_Admin {
             } else {
                 // Store error in transient for display after redirect
                 set_transient('crux_admin_error', $result['message'], 30);
-                $redirect_url = add_query_arg(array(
+                $redirect_args = array(
                     'page' => 'crux-add-route',
                     'error' => '1'
-                ), admin_url('admin.php'));
+                );
+
+                if ($is_edit_submit) {
+                    $redirect_args['route_id'] = $edit_route_id;
+                }
+
+                $redirect_url = add_query_arg($redirect_args, admin_url('admin.php'));
                 //wp_redirect($redirect_url);
                 echo("<script>location.href = '".$redirect_url."'</script>");
                 exit;
@@ -190,6 +234,10 @@ class Crux_Admin {
         // Show success message after redirect
         if (isset($_GET['route_created']) && $_GET['route_created'] == '1') {
             echo '<div class="notice notice-success is-dismissible"><p>Route created successfully!</p></div>';
+        }
+
+        if (isset($_GET['route_updated']) && $_GET['route_updated'] == '1') {
+            echo '<div class="notice notice-success is-dismissible"><p>Route updated successfully!</p></div>';
         }
 
         // Show error message after redirect
@@ -234,7 +282,267 @@ class Crux_Admin {
              ORDER BY route_setter ASC"
         );
 
+        if ($editing_route && !in_array($editing_route->route_setter, $route_setters, true)) {
+            $route_setters[] = $editing_route->route_setter;
+            sort($route_setters);
+        }
+
         include_once CRUX_CLIMBING_GYM_PLUGIN_DIR . 'admin/partials/crux-admin-add-route.php';
+    }
+
+    /**
+     * Display import routes page
+     */
+    public function displayImportRoutesPage() {
+        global $wpdb;
+
+        $grades = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}crux_grades ORDER BY value ASC");
+        $hold_colors = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}crux_hold_colors ORDER BY name ASC");
+        $lanes = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}crux_lanes WHERE is_active = 1 ORDER BY id ASC");
+        $wall_sections = Crux_Wall_Section::get_all(true);
+
+        $parsed_routes = array();
+        $import_errors = array();
+        $import_notices = array();
+        $imported_count = 0;
+        $available_images = array();
+
+        if (isset($_POST['available_images']) && is_array($_POST['available_images'])) {
+            $available_images = array_values(array_unique(array_filter(array_map('esc_url_raw', wp_unslash($_POST['available_images'])))));
+        }
+
+        if (isset($_POST['crux_import_parse'])) {
+            check_admin_referer('crux_import_routes_parse', 'crux_import_routes_nonce');
+
+            if (empty($_FILES['routes_json_file']['tmp_name']) || !is_uploaded_file($_FILES['routes_json_file']['tmp_name'])) {
+                $import_errors[] = 'Please select a valid JSON file to import.';
+            } else {
+                $parse_result = $this->parseImportRoutesJson($_FILES['routes_json_file']['tmp_name']);
+                if ($parse_result['success']) {
+                    $parsed_routes = $parse_result['routes'];
+                    $available_images = array_values(array_unique(array_merge(
+                        $available_images,
+                        $this->collectImportImagesFromRoutes($parsed_routes)
+                    )));
+                } else {
+                    $import_errors[] = $parse_result['message'];
+                }
+            }
+        }
+
+        if (isset($_POST['crux_import_upload_images']) || isset($_POST['crux_import_submit'])) {
+            check_admin_referer('crux_import_routes_submit', 'crux_import_routes_submit_nonce');
+
+            $raw_rows = isset($_POST['route_rows']) && is_array($_POST['route_rows']) ? wp_unslash($_POST['route_rows']) : array();
+
+            if (empty($raw_rows)) {
+                $import_errors[] = 'No routes were provided for import.';
+            } else {
+                $parsed_routes = array();
+
+                foreach ($raw_rows as $index => $row) {
+                    $is_enabled = isset($row['enabled']) && intval($row['enabled']) === 1;
+                    $normalized = $this->normalizeImportRoute($row, $index + 1);
+                    $normalized['enabled'] = $is_enabled ? 1 : 0;
+                    $parsed_routes[] = $normalized;
+                }
+
+                $available_images = array_values(array_unique(array_merge(
+                    $available_images,
+                    $this->collectImportImagesFromRoutes($parsed_routes)
+                )));
+
+                if (isset($_POST['crux_import_upload_images'])) {
+                    $upload_result = $this->handleImportImageUploads(isset($_FILES['route_images']) ? $_FILES['route_images'] : array());
+
+                    $available_images = array_values(array_unique(array_merge(
+                        $available_images,
+                        $upload_result['images']
+                    )));
+
+                    if (!empty($upload_result['errors'])) {
+                        $import_errors = array_merge($import_errors, $upload_result['errors']);
+                    } elseif (!empty($upload_result['images'])) {
+                        $import_notices[] = count($upload_result['images']) . ' image(s) uploaded successfully.';
+                    }
+                }
+
+                if (isset($_POST['crux_import_submit'])) {
+                    $selected_routes = array();
+                    foreach ($parsed_routes as $route) {
+                        if (intval($route['enabled']) === 1) {
+                            $selected_routes[] = $route;
+                        }
+                    }
+
+                    if (empty($selected_routes)) {
+                        $import_errors[] = 'No enabled routes to import.';
+                    } else {
+                        $validation_errors = array();
+
+                        foreach ($selected_routes as $route_data) {
+                            $row_label = !empty($route_data['_row_label']) ? $route_data['_row_label'] : 'Unknown row';
+
+                            if (empty($route_data['name']) || empty($route_data['grade_id']) || empty($route_data['route_setter']) || empty($route_data['wall_section']) || empty($route_data['lane_id'])) {
+                                $validation_errors[] = $row_label . ': missing required fields (name, grade, setter, wall section, lane).';
+                                continue;
+                            }
+                            $grade_exists = $wpdb->get_var($wpdb->prepare(
+                                "SELECT id FROM {$wpdb->prefix}crux_grades WHERE id = %d",
+                                $route_data['grade_id']
+                            ));
+
+                            $lane_exists = $wpdb->get_var($wpdb->prepare(
+                                "SELECT id FROM {$wpdb->prefix}crux_lanes WHERE id = %d",
+                                $route_data['lane_id']
+                            ));
+
+                            if (!$grade_exists) {
+                                $validation_errors[] = $row_label . ': invalid grade ID (' . intval($route_data['grade_id']) . ').';
+                                continue;
+                            }
+
+                            if (!$lane_exists) {
+                                $validation_errors[] = $row_label . ': invalid lane ID (' . intval($route_data['lane_id']) . ').';
+                                continue;
+                            }
+                        }
+
+                        if (!empty($validation_errors)) {
+                            $import_errors = array_merge($import_errors, $validation_errors);
+                        } else {
+                            $wpdb->query('START TRANSACTION');
+
+                            $inserted_route_ids = array();
+                            $failed_row_label = '';
+                            $failed_db_error = '';
+
+                            foreach ($selected_routes as $route_data) {
+                                $row_label = !empty($route_data['_row_label']) ? $route_data['_row_label'] : 'Unknown row';
+
+                                $insert_result = $wpdb->insert(
+                                    $wpdb->prefix . 'crux_routes',
+                                    array(
+                                        'name' => sanitize_text_field($route_data['name']),
+                                        'grade_id' => intval($route_data['grade_id']),
+                                        'route_setter' => sanitize_text_field($route_data['route_setter']),
+                                        'image' => esc_url_raw($route_data['image']),
+                                        'wall_section' => sanitize_text_field($route_data['wall_section']),
+                                        'lane_id' => intval($route_data['lane_id']),
+                                        'hold_color_id' => !empty($route_data['hold_color_id']) ? intval($route_data['hold_color_id']) : null,
+                                        'description' => !empty($route_data['description']) ? sanitize_textarea_field($route_data['description']) : null,
+                                        'active' => intval($route_data['active']) === 1 ? 1 : 0,
+                                        'created_at' => !empty($route_data['created_at']) ? sanitize_text_field($route_data['created_at']) : current_time('mysql')
+                                    )
+                                );
+
+                                if ($insert_result === false) {
+                                    $failed_row_label = $row_label;
+                                    $failed_db_error = $wpdb->last_error;
+                                    break;
+                                }
+
+                                $inserted_route_ids[] = intval($wpdb->insert_id);
+                            }
+
+                            if (!empty($failed_row_label)) {
+                                $wpdb->query('ROLLBACK');
+
+                                if (!empty($inserted_route_ids)) {
+                                    foreach ($inserted_route_ids as $inserted_id) {
+                                        $wpdb->delete($wpdb->prefix . 'crux_routes', array('id' => $inserted_id), array('%d'));
+                                    }
+                                }
+
+                                $imported_count = 0;
+                                $import_errors[] = $failed_row_label . ': database error - ' . $failed_db_error . '. Import aborted: no routes were imported.';
+                            } else {
+                                $wpdb->query('COMMIT');
+                                $imported_count = count($selected_routes);
+                                $parsed_routes = array();
+                                $available_images = array();
+                            }
+
+                        }
+                    }
+                }
+            }
+        }
+
+        include_once CRUX_CLIMBING_GYM_PLUGIN_DIR . 'admin/partials/crux-admin-import-routes.php';
+    }
+
+    /**
+     * Collect non-empty image URLs from parsed routes.
+     */
+    private function collectImportImagesFromRoutes($routes) {
+        $images = array();
+
+        foreach ($routes as $route) {
+            if (!is_array($route) || empty($route['image'])) {
+                continue;
+            }
+
+            $images[] = esc_url_raw((string) $route['image']);
+        }
+
+        return array_values(array_unique(array_filter($images)));
+    }
+
+    /**
+     * Handle image uploads for route import review.
+     */
+    private function handleImportImageUploads($files_input) {
+        $result = array(
+            'images' => array(),
+            'errors' => array()
+        );
+
+        if (empty($files_input) || empty($files_input['name'])) {
+            return $result;
+        }
+
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+
+        $names = is_array($files_input['name']) ? $files_input['name'] : array($files_input['name']);
+        $types = is_array($files_input['type']) ? $files_input['type'] : array($files_input['type']);
+        $tmp_names = is_array($files_input['tmp_name']) ? $files_input['tmp_name'] : array($files_input['tmp_name']);
+        $errors = is_array($files_input['error']) ? $files_input['error'] : array($files_input['error']);
+        $sizes = is_array($files_input['size']) ? $files_input['size'] : array($files_input['size']);
+
+        foreach ($names as $index => $name) {
+            if (empty($name)) {
+                continue;
+            }
+
+            if (!isset($errors[$index]) || intval($errors[$index]) !== UPLOAD_ERR_OK) {
+                $result['errors'][] = 'Failed to upload image "' . sanitize_text_field($name) . '".';
+                continue;
+            }
+
+            $single_file = array(
+                'name' => $name,
+                'type' => isset($types[$index]) ? $types[$index] : '',
+                'tmp_name' => isset($tmp_names[$index]) ? $tmp_names[$index] : '',
+                'error' => $errors[$index],
+                'size' => isset($sizes[$index]) ? $sizes[$index] : 0
+            );
+
+            $upload = wp_handle_upload($single_file, array('test_form' => false));
+
+            if (!empty($upload['error'])) {
+                $result['errors'][] = 'Failed to upload image "' . sanitize_text_field($name) . '": ' . $upload['error'];
+                continue;
+            }
+
+            if (!empty($upload['url'])) {
+                $result['images'][] = esc_url_raw($upload['url']);
+            }
+        }
+
+        $result['images'] = array_values(array_unique(array_filter($result['images'])));
+
+        return $result;
     }
 
     /**
@@ -448,6 +756,114 @@ class Crux_Admin {
     }
 
     /**
+     * Update an existing route
+     */
+    private function update_route($route_id, $data, $file) {
+        global $wpdb;
+
+        $existing_route = Crux_Route::get_by_id($route_id);
+        if (!$existing_route) {
+            return array('success' => false, 'message' => 'Route not found');
+        }
+
+        $image_url = $existing_route->image;
+
+        if (!empty($data['route_image_edited'])) {
+            $image_data = $data['route_image_edited'];
+
+            if (strpos($image_data, 'data:image') === 0) {
+                $image_data = substr($image_data, strpos($image_data, ',') + 1);
+            }
+
+            $decoded_image = base64_decode($image_data);
+            if ($decoded_image === false) {
+                return array('success' => false, 'message' => 'Failed to decode edited image.');
+            }
+
+            $image_info = @getimagesizefromstring($decoded_image);
+            if ($image_info === false) {
+                return array('success' => false, 'message' => 'Decoded data is not a valid image.');
+            }
+
+            $filename = 'route-edited-' . time() . '.png';
+            $upload = wp_upload_bits($filename, null, $decoded_image);
+
+            if ($upload['error'] !== false) {
+                return array('success' => false, 'message' => 'Failed to upload edited image: ' . $upload['error']);
+            }
+
+            $image_url = $upload['url'];
+        } elseif (isset($file['route_image']['name']) && $file['route_image']['name'] !== '') {
+            $is_an_image = getimagesize($file['route_image']['tmp_name']) ? true : false;
+            if (!$is_an_image) {
+                return array('success' => false, 'message' => 'Uploaded file is not a valid image.');
+            }
+
+            $upload_overrides = array('test_form' => false);
+            $upload = wp_handle_upload($file['route_image'], $upload_overrides);
+
+            if ($upload == null || isset($upload['error'])) {
+                return array('success' => false, 'message' => 'Failed to upload route image: ' . $upload['error']);
+            }
+
+            $image_url = $upload['url'];
+        }
+
+        $is_unnamed = isset($data['unnamed_route']) && $data['unnamed_route'] == '1';
+        $route_name = $is_unnamed ? 'Unnamed' : $data['route_name'];
+
+        if (!$is_unnamed && empty($data['route_name'])) {
+            return array('success' => false, 'message' => 'Route name is required unless "Leave unnamed" is checked');
+        }
+
+        if (empty($data['grade_id']) || empty($data['route_setter']) ||
+            empty($data['wall_section']) || empty($data['lane_id'])) {
+            return array('success' => false, 'message' => 'All required fields must be filled');
+        }
+
+        $grade_exists = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}crux_grades WHERE id = %d",
+            $data['grade_id']
+        ));
+
+        if (!$grade_exists) {
+            return array('success' => false, 'message' => 'Invalid grade selected');
+        }
+
+        $lane_exists = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}crux_lanes WHERE id = %d",
+            $data['lane_id']
+        ));
+
+        if (!$lane_exists) {
+            return array('success' => false, 'message' => 'Invalid lane selected');
+        }
+
+        $update_data = array(
+            'name' => sanitize_text_field($route_name),
+            'grade_id' => (int) $data['grade_id'],
+            'route_setter' => sanitize_text_field($data['route_setter']),
+            'image' => $image_url,
+            'wall_section' => sanitize_text_field($data['wall_section']),
+            'lane_id' => (int) $data['lane_id'],
+            'hold_color_id' => !empty($data['hold_color_id']) ? (int) $data['hold_color_id'] : null,
+            'description' => !empty($data['description']) ? sanitize_textarea_field($data['description']) : null,
+        );
+
+        $result = $wpdb->update(
+            $wpdb->prefix . 'crux_routes',
+            $update_data,
+            array('id' => $route_id)
+        );
+
+        if ($result === false) {
+            return array('success' => false, 'message' => 'Database error: ' . $wpdb->last_error);
+        }
+
+        return array('success' => true, 'route_id' => $route_id);
+    }
+
+    /**
      * Delete a route and all its associated data
      */
     private function delete_route($route_id) {
@@ -463,6 +879,89 @@ class Crux_Admin {
 
         // Delete the route
         $wpdb->delete($wpdb->prefix . 'crux_routes', array('id' => $route_id));
+    }
+
+    /**
+     * Parse routes import JSON file and normalize routes data.
+     */
+    private function parseImportRoutesJson($file_path) {
+        $content = file_get_contents($file_path);
+        if ($content === false) {
+            return array(
+                'success' => false,
+                'message' => 'Unable to read the uploaded file.'
+            );
+        }
+
+        $decoded = json_decode($content, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return array(
+                'success' => false,
+                'message' => 'Invalid JSON file: ' . json_last_error_msg()
+            );
+        }
+
+        $routes_data = array();
+
+        if (is_array($decoded) && isset($decoded[0]['type']) && $decoded[0]['type'] === 'header') {
+            foreach ($decoded as $entry) {
+                if (isset($entry['type'], $entry['name'], $entry['data']) && $entry['type'] === 'table' && $entry['name'] === 'wp_crux_routes' && is_array($entry['data'])) {
+                    $routes_data = $entry['data'];
+                    break;
+                }
+            }
+        } elseif (is_array($decoded) && isset($decoded['routes']) && is_array($decoded['routes'])) {
+            $routes_data = $decoded['routes'];
+        } elseif (is_array($decoded)) {
+            $routes_data = $decoded;
+        }
+
+        if (empty($routes_data)) {
+            return array(
+                'success' => false,
+                'message' => 'No routes found in JSON. Expected an array of routes, a "routes" key, or a phpMyAdmin table export for wp_crux_routes.'
+            );
+        }
+
+        $normalized_routes = array();
+        foreach ($routes_data as $index => $route) {
+            if (!is_array($route)) {
+                continue;
+            }
+            $normalized_routes[] = $this->normalizeImportRoute($route, $index + 1);
+        }
+
+        if (empty($normalized_routes)) {
+            return array(
+                'success' => false,
+                'message' => 'No valid route objects found in JSON.'
+            );
+        }
+
+        return array(
+            'success' => true,
+            'routes' => $normalized_routes
+        );
+    }
+
+    /**
+     * Normalize a single route row for review/import.
+     */
+    private function normalizeImportRoute($route, $fallback_index) {
+        return array(
+            'enabled' => !isset($route['enabled']) ? 1 : intval($route['enabled']),
+            'name' => isset($route['name']) && $route['name'] !== '' ? (string) $route['name'] : 'Unnamed',
+            'grade_id' => isset($route['grade_id']) ? intval($route['grade_id']) : 0,
+            'route_setter' => isset($route['route_setter']) ? (string) $route['route_setter'] : '',
+            'image' => isset($route['image']) ? (string) $route['image'] : '',
+            'wall_section' => isset($route['wall_section']) ? (string) $route['wall_section'] : '',
+            'lane_id' => isset($route['lane_id']) ? intval($route['lane_id']) : 0,
+            'hold_color_id' => isset($route['hold_color_id']) && $route['hold_color_id'] !== '' ? intval($route['hold_color_id']) : '',
+            'description' => isset($route['description']) ? (string) $route['description'] : '',
+            'active' => isset($route['active']) ? intval($route['active']) : 1,
+            'created_at' => isset($route['created_at']) && !empty($route['created_at']) ? (string) $route['created_at'] : current_time('mysql'),
+            '_row_label' => isset($route['id']) ? 'ID ' . intval($route['id']) : 'Row ' . intval($fallback_index)
+        );
     }
 
     /**

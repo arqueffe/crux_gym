@@ -715,59 +715,7 @@ class Crux_Activator {
             error_log("Crux Plugin: Inserted $inserted roles");
         }
 
-        // Import routes from JSON file only if routes table is empty
-        $routes_table = $wpdb->prefix . 'crux_routes';
-        $route_count = $wpdb->get_var("SELECT COUNT(*) FROM $routes_table");
-        
-        if ($route_count == 0) {
-            $json_file = plugin_dir_path(dirname(__FILE__)) . 'crux_routes.json';
-            $inserted = 0;
-            
-            if (file_exists($json_file)) {
-                $json_content = file_get_contents($json_file);
-                $json_data = json_decode($json_content, true);
-                
-                // Find the table data in the JSON structure (PHPMyAdmin export format)
-                $routes = array();
-                foreach ($json_data as $item) {
-                    if (isset($item['type']) && $item['type'] === 'table' && 
-                        isset($item['name']) && strpos($item['name'], 'crux_routes') !== false) {
-                        $routes = $item['data'];
-                        break;
-                    }
-                }
-                
-                foreach ($routes as $route) {
-                    $result = $wpdb->insert(
-                        $routes_table,
-                        array(
-                            'name' => $route['name'],
-                            'grade_id' => intval($route['grade_id']),
-                            'route_setter' => $route['route_setter'],
-                            'wall_section' => $route['wall_section'],
-                            'lane_id' => intval($route['lane_id']),
-                            'hold_color_id' => intval($route['hold_color_id']),
-                            'description' => $route['description'],
-                            'active' => intval($route['active']),
-                            'created_at' => $route['created_at']
-                        ),
-                        array('%s', '%d', '%s', '%s', '%d', '%d', '%s', '%d', '%s')
-                    );
-                    
-                    if ($result) {
-                        $inserted++;
-                    } else {
-                        error_log("Crux Plugin: Failed to insert route {$route['name']}: " . $wpdb->last_error);
-                    }
-                }
-                
-                error_log("Crux Plugin: Imported $inserted routes from JSON file");
-            } else {
-                error_log("Crux Plugin: Routes JSON file not found at $json_file");
-            }
-        } else {
-            error_log("Crux Plugin: Routes table already has data ($route_count records), skipping import");
-        }
+        error_log('Crux Plugin: Automatic route import on activation is disabled');
         
         error_log('Crux Plugin: Sample data population completed');
     }
