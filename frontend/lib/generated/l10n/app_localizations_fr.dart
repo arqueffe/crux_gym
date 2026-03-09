@@ -84,7 +84,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get logoutConfirmTitle => 'Déconnexion';
 
   @override
-  String get logoutConfirmMessage => 'Êtes-vous sûr de vouloir vous déconnecter ?';
+  String get logoutConfirmMessage =>
+      'Êtes-vous sûr de vouloir vous déconnecter ?';
 
   @override
   String get username => 'Nom d\'utilisateur (pour la connexion)';
@@ -111,19 +112,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get pleaseEnterPassword => 'Veuillez saisir votre mot de passe';
 
   @override
-  String get usernameMinLength => 'Le nom d\'utilisateur doit contenir au moins 3 caractères';
+  String get usernameMinLength =>
+      'Le nom d\'utilisateur doit contenir au moins 3 caractères';
 
   @override
   String get nicknameLength => 'Le pseudonyme doit contenir 3 à 20 caractères';
 
   @override
-  String get nicknameFormat => 'Seuls les lettres, chiffres et underscores sont autorisés';
+  String get nicknameFormat =>
+      'Seuls les lettres, chiffres et underscores sont autorisés';
 
   @override
   String get emailInvalid => 'Veuillez saisir une adresse email valide';
 
   @override
-  String get passwordMinLength => 'Le mot de passe doit contenir au moins 6 caractères';
+  String get passwordMinLength =>
+      'Le mot de passe doit contenir au moins 6 caractères';
 
   @override
   String get signInButton => 'Se connecter';
@@ -150,7 +154,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get usernameOrEmail => 'Nom d\'utilisateur ou Email';
 
   @override
-  String get pleaseEnterUsernameOrEmail => 'Veuillez saisir votre nom d\'utilisateur ou email';
+  String get pleaseEnterUsernameOrEmail =>
+      'Veuillez saisir votre nom d\'utilisateur ou email';
 
   @override
   String get loginButton => 'Connexion';
@@ -192,7 +197,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get loginFailed => 'Échec de la connexion';
 
   @override
-  String get registrationSuccessful => 'Inscription réussie ! Vous êtes maintenant connecté.';
+  String get registrationSuccessful =>
+      'Inscription réussie ! Vous êtes maintenant connecté.';
 
   @override
   String get registrationFailed => 'Échec de l\'inscription';
@@ -254,13 +260,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get noTicksFound => 'Aucun enchaînement en tête trouvé';
 
   @override
-  String get noTicksDescription => 'Réalisez quelques voies en tête pour les voir ici';
+  String get noTicksDescription =>
+      'Réalisez quelques voies en tête pour les voir ici';
 
   @override
   String get noInProgressFound => 'Aucune voie en cours';
 
   @override
-  String get noInProgressDescription => 'Commencez à tenter quelques voies pour les voir ici';
+  String get noInProgressDescription =>
+      'Commencez à tenter quelques voies pour les voir ici';
 
   @override
   String get noLikesFound => 'Aucune voie aimée trouvée';
@@ -272,7 +280,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get noProjectsFound => 'Aucun projet trouvé';
 
   @override
-  String get noProjectsDescription => 'Marquez des voies comme projets pour suivre vos objectifs';
+  String get noProjectsDescription =>
+      'Marquez des voies comme projets pour suivre vos objectifs';
 
   @override
   String get gradeBreakdown => 'Répartition par cotation';
@@ -373,7 +382,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get routeDescription => 'Description';
 
   @override
-  String get routeDescriptionHelper => 'Détails supplémentaires sur la voie (optionnel)';
+  String get routeDescriptionHelper =>
+      'Détails supplémentaires sur la voie (optionnel)';
 
   @override
   String setBy(String setter) {
@@ -420,7 +430,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get colorOfRouteHolds => 'Couleur des prises de la voie (optionnel)';
 
   @override
-  String get optionalDescriptionRoute => 'Description optionnelle du style ou des caractéristiques de la voie';
+  String get optionalDescriptionRoute =>
+      'Description optionnelle du style ou des caractéristiques de la voie';
 
   @override
   String get markSend => 'Marquer comme réalisée';
@@ -450,7 +461,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get notes => 'Notes :';
 
   @override
-  String get notesHelper => 'Ajoutez des notes sur votre réalisation (optionnel)';
+  String get notesHelper =>
+      'Ajoutez des notes sur votre réalisation (optionnel)';
 
   @override
   String get addTimestamp => 'Ajouter un timestamp';
@@ -526,7 +538,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get alreadySent => 'Déjà Enchaînée';
 
   @override
-  String get cannotAddAttempts => 'Impossible d\'ajouter des tentatives aux voies déjà enchaînées en tête.';
+  String get cannotAddAttempts =>
+      'Impossible d\'ajouter des tentatives aux voies déjà enchaînées en tête.';
 
   @override
   String get attemptsLabel => 'Tentatives';
@@ -652,7 +665,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get addNotesAttempts => 'Ajouter des notes sur vos tentatives';
 
   @override
-  String get addEntryBelowNotes => 'Ajouter une entrée sous les notes existantes';
+  String get addEntryBelowNotes =>
+      'Ajouter une entrée sous les notes existantes';
 
   @override
   String get addNotesSend => 'Ajouter des notes sur cet enchaînement';
@@ -672,7 +686,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get selectGradeToPropose => 'Sélectionner une cotation à proposer';
 
   @override
-  String get changeProposedGrade => 'Vous pouvez modifier votre cotation proposée';
+  String get changeProposedGrade =>
+      'Vous pouvez modifier votre cotation proposée';
 
   @override
   String get attemptAdded => 'Tentative ajoutée !';
@@ -684,25 +699,29 @@ class AppLocalizationsFr extends AppLocalizations {
   String get topRopeSendRemoved => 'Enchaînement moulinette supprimé !';
 
   @override
-  String get failedToRemoveTopRopeSend => 'Échec de la suppression de l\'enchaînement moulinette';
+  String get failedToRemoveTopRopeSend =>
+      'Échec de la suppression de l\'enchaînement moulinette';
 
   @override
   String get topRopeSendMarked => 'Enchaînement moulinette marqué !';
 
   @override
-  String get failedToMarkTopRopeSend => 'Échec du marquage de l\'enchaînement moulinette';
+  String get failedToMarkTopRopeSend =>
+      'Échec du marquage de l\'enchaînement moulinette';
 
   @override
   String get leadSendRemoved => 'Enchaînement en tête supprimé !';
 
   @override
-  String get failedToRemoveLeadSend => 'Échec de la suppression de l\'enchaînement en tête';
+  String get failedToRemoveLeadSend =>
+      'Échec de la suppression de l\'enchaînement en tête';
 
   @override
   String get leadSendMarked => 'Enchaînement en tête marqué !';
 
   @override
-  String get failedToMarkLeadSend => 'Échec du marquage de l\'enchaînement en tête';
+  String get failedToMarkLeadSend =>
+      'Échec du marquage de l\'enchaînement en tête';
 
   @override
   String get routeUnliked => 'Voie plus aimée !';
@@ -711,7 +730,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get routeLiked => 'Voie aimée !';
 
   @override
-  String get cannotMarkSentRoutesAsProjects => 'Impossible de marquer les voies enchaînées comme projets';
+  String get cannotMarkSentRoutesAsProjects =>
+      'Impossible de marquer les voies enchaînées comme projets';
 
   @override
   String get projectRemoved => 'Projet supprimé !';
@@ -744,19 +764,23 @@ class AppLocalizationsFr extends AppLocalizations {
   String get youAlreadyProposed => 'Vous avez déjà proposé';
 
   @override
-  String get changeYourGradeAndUpdateReasoningBelow => 'Changez votre cotation et mettez à jour le raisonnement ci-dessous';
+  String get changeYourGradeAndUpdateReasoningBelow =>
+      'Changez votre cotation et mettez à jour le raisonnement ci-dessous';
 
   @override
-  String get youHadAPreviousProposalThatIsNoLongerValid => 'Vous aviez une proposition précédente qui n\'est plus valide';
+  String get youHadAPreviousProposalThatIsNoLongerValid =>
+      'Vous aviez une proposition précédente qui n\'est plus valide';
 
   @override
-  String get pleaseSelectANewGrade => 'Veuillez sélectionner une nouvelle cotation';
+  String get pleaseSelectANewGrade =>
+      'Veuillez sélectionner une nouvelle cotation';
 
   @override
   String get reasoningOptional => 'Raisonnement (Optionnel)';
 
   @override
-  String get errorLoadingGradeProposalDialog => 'Erreur lors du chargement du dialogue de proposition de cotation';
+  String get errorLoadingGradeProposalDialog =>
+      'Erreur lors du chargement du dialogue de proposition de cotation';
 
   @override
   String get overhangWall => 'Surplomb';
@@ -808,7 +832,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get noRoutesFound => 'Aucune voie trouvée';
 
   @override
-  String get adjustFiltersOrAddRoute => 'Essayez d\'ajuster vos filtres ou d\'ajouter une nouvelle voie';
+  String get adjustFiltersOrAddRoute =>
+      'Essayez d\'ajuster vos filtres ou d\'ajouter une nouvelle voie';
 
   @override
   String get unknown => 'Inconnu';
@@ -1020,13 +1045,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get leaveUnnamed => 'Laisser sans nom';
 
   @override
-  String get leaveUnnamedDescription => 'La voie sera nommée \"Unnamed\" jusqu\'à ce que les utilisateurs proposent des noms';
+  String get leaveUnnamedDescription =>
+      'La voie sera nommée \"Unnamed\" jusqu\'à ce que les utilisateurs proposent des noms';
 
   @override
   String get proposeAName => 'Proposer un Nom';
 
   @override
-  String get unnamedRouteDescription => 'Cette voie n\'a pas de nom. Aidez à lui donner un nom créatif !';
+  String get unnamedRouteDescription =>
+      'Cette voie n\'a pas de nom. Aidez à lui donner un nom créatif !';
 
   @override
   String get yourProposedName => 'Votre proposition de nom';
@@ -1038,13 +1065,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get proposeButton => 'Proposer';
 
   @override
-  String get proposalWarning => '⚠️ Attention : Une fois que vous proposez un nom, vous ne pouvez pas voter pour d\'autres propositions.';
+  String get proposalWarning =>
+      '⚠️ Attention : Une fois que vous proposez un nom, vous ne pouvez pas voter pour d\'autres propositions.';
 
   @override
   String get confirmProposalTitle => 'Confirmer la Proposition';
 
   @override
-  String get confirmProposalMessage => 'Une fois que vous proposez un nom, vous ne pouvez ni le modifier ni voter pour d\'autres propositions. Êtes-vous sûr ?';
+  String get confirmProposalMessage =>
+      'Une fois que vous proposez un nom, vous ne pouvez ni le modifier ni voter pour d\'autres propositions. Êtes-vous sûr ?';
 
   @override
   String get confirmVoteTitle => 'Confirmer le Vote';

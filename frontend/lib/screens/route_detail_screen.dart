@@ -40,6 +40,7 @@ class RouteImageDialog extends StatelessWidget {
           child: Image.network(
             url,
             fit: BoxFit.contain,
+            webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
           ),
         ),
       ),
@@ -67,6 +68,7 @@ class RouteImage extends StatelessWidget {
             url,
             width: width,
             fit: BoxFit.contain,
+            webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
           )),
     );
   }
@@ -143,6 +145,7 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                     child: Image.network(
                       route.image!,
                       fit: BoxFit.cover,
+                      webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
                     ),
                   ),
                 ),
@@ -825,6 +828,7 @@ class _HeroImageSection extends StatelessWidget {
               imageUrl,
               fit: BoxFit.cover,
               width: double.infinity,
+              webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
             ),
             // Gradient overlay for better text visibility if needed
             Positioned(

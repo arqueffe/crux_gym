@@ -150,7 +150,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get usernameOrEmail => 'Username or Email';
 
   @override
-  String get pleaseEnterUsernameOrEmail => 'Please enter your username or email';
+  String get pleaseEnterUsernameOrEmail =>
+      'Please enter your username or email';
 
   @override
   String get loginButton => 'Login';
@@ -192,7 +193,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginFailed => 'Login failed';
 
   @override
-  String get registrationSuccessful => 'Registration successful! You are now logged in.';
+  String get registrationSuccessful =>
+      'Registration successful! You are now logged in.';
 
   @override
   String get registrationFailed => 'Registration failed';
@@ -254,13 +256,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noTicksFound => 'No lead sends found';
 
   @override
-  String get noTicksDescription => 'Complete some routes in lead to see them here';
+  String get noTicksDescription =>
+      'Complete some routes in lead to see them here';
 
   @override
   String get noInProgressFound => 'No routes in progress';
 
   @override
-  String get noInProgressDescription => 'Start attempting some routes to see them here';
+  String get noInProgressDescription =>
+      'Start attempting some routes to see them here';
 
   @override
   String get noLikesFound => 'No liked routes found';
@@ -272,7 +276,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noProjectsFound => 'No projects found';
 
   @override
-  String get noProjectsDescription => 'Mark routes as projects to track your goals';
+  String get noProjectsDescription =>
+      'Mark routes as projects to track your goals';
 
   @override
   String get gradeBreakdown => 'Grade Breakdown';
@@ -373,7 +378,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get routeDescription => 'Description';
 
   @override
-  String get routeDescriptionHelper => 'Additional details about the route (optional)';
+  String get routeDescriptionHelper =>
+      'Additional details about the route (optional)';
 
   @override
   String setBy(String setter) {
@@ -420,7 +426,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get colorOfRouteHolds => 'Color of the route holds (optional)';
 
   @override
-  String get optionalDescriptionRoute => 'Optional description of the route style or features';
+  String get optionalDescriptionRoute =>
+      'Optional description of the route style or features';
 
   @override
   String get markSend => 'Mark Send';
@@ -526,7 +533,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alreadySent => 'Already Sent';
 
   @override
-  String get cannotAddAttempts => 'Cannot add attempts to routes you have already lead sent.';
+  String get cannotAddAttempts =>
+      'Cannot add attempts to routes you have already lead sent.';
 
   @override
   String get attemptsLabel => 'Attempts';
@@ -711,7 +719,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get routeLiked => 'Route liked!';
 
   @override
-  String get cannotMarkSentRoutesAsProjects => 'Cannot mark sent routes as projects';
+  String get cannotMarkSentRoutesAsProjects =>
+      'Cannot mark sent routes as projects';
 
   @override
   String get projectRemoved => 'Project removed!';
@@ -744,10 +753,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get youAlreadyProposed => 'You already proposed';
 
   @override
-  String get changeYourGradeAndUpdateReasoningBelow => 'Change your grade and update reasoning below';
+  String get changeYourGradeAndUpdateReasoningBelow =>
+      'Change your grade and update reasoning below';
 
   @override
-  String get youHadAPreviousProposalThatIsNoLongerValid => 'You had a previous proposal that is no longer valid';
+  String get youHadAPreviousProposalThatIsNoLongerValid =>
+      'You had a previous proposal that is no longer valid';
 
   @override
   String get pleaseSelectANewGrade => 'Please select a new grade';
@@ -756,7 +767,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reasoningOptional => 'Reasoning (Optional)';
 
   @override
-  String get errorLoadingGradeProposalDialog => 'Error loading grade proposal dialog';
+  String get errorLoadingGradeProposalDialog =>
+      'Error loading grade proposal dialog';
 
   @override
   String get overhangWall => 'Overhang';
@@ -808,7 +820,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noRoutesFound => 'No routes found';
 
   @override
-  String get adjustFiltersOrAddRoute => 'Try adjusting your filters or add a new route';
+  String get adjustFiltersOrAddRoute =>
+      'Try adjusting your filters or add a new route';
 
   @override
   String get unknown => 'Unknown';
@@ -1020,13 +1033,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get leaveUnnamed => 'Leave unnamed';
 
   @override
-  String get leaveUnnamedDescription => 'Route will be named \"Unnamed\" until users propose names';
+  String get leaveUnnamedDescription =>
+      'Route will be named \"Unnamed\" until users propose names';
 
   @override
   String get proposeAName => 'Propose a Name';
 
   @override
-  String get unnamedRouteDescription => 'This route is unnamed. Help give it a creative name!';
+  String get unnamedRouteDescription =>
+      'This route is unnamed. Help give it a creative name!';
 
   @override
   String get yourProposedName => 'Your proposed name';
@@ -1038,13 +1053,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get proposeButton => 'Propose';
 
   @override
-  String get proposalWarning => '⚠️ Warning: Once you propose a name, you cannot vote for other proposals.';
+  String get proposalWarning =>
+      '⚠️ Warning: Once you propose a name, you cannot vote for other proposals.';
 
   @override
   String get confirmProposalTitle => 'Confirm Proposal';
 
   @override
-  String get confirmProposalMessage => 'Once you propose a name, you cannot change it or vote for other proposals. Are you sure?';
+  String get confirmProposalMessage =>
+      'Once you propose a name, you cannot change it or vote for other proposals. Are you sure?';
 
   @override
   String get confirmVoteTitle => 'Confirm Vote';

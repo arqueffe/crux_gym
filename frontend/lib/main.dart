@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
@@ -12,15 +14,52 @@ import 'providers/role_provider.dart';
 import 'screens/main_navigation_screen.dart';
 import 'screens/login_screen.dart';
 
+bool _shouldForwardLog(String message) {
+  if (kDebugMode) {
+    return true;
+  }
+
+  final normalized = message.toLowerCase();
+  return normalized.contains('error') ||
+      normalized.contains('failed') ||
+      normalized.contains('exception') ||
+      normalized.contains('stack trace') ||
+      normalized.contains('❌') ||
+      normalized.contains('💥');
+}
+
+void _configureLoggingGuards() {
+  final originalDebugPrint = debugPrint;
+  debugPrint = (String? message, {int? wrapWidth}) {
+    if (message != null && _shouldForwardLog(message)) {
+      originalDebugPrint(message, wrapWidth: wrapWidth);
+    }
+  };
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  _configureLoggingGuards();
 
   // Initialize InAppWebView for flutter_3d_controller
   if (InAppWebViewPlatform.instance is InAppWebViewPlatform) {
     // Platform is already initialized
   }
 
-  runApp(const ClimbingGymApp());
+  runZonedGuarded(
+    () => runApp(const ClimbingGymApp()),
+    (error, stackTrace) {
+      debugPrint('Uncaught app error: $error');
+      debugPrint('Stack trace: $stackTrace');
+    },
+    zoneSpecification: ZoneSpecification(
+      print: (self, parent, zone, line) {
+        if (_shouldForwardLog(line)) {
+          parent.print(zone, line);
+        }
+      },
+    ),
+  );
 }
 
 class ClimbingGymApp extends StatelessWidget {
