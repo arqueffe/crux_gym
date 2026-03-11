@@ -141,85 +141,132 @@ class FilterDrawer extends StatelessWidget {
 
   Widget _buildWallSectionFilter(
       RouteProvider routeProvider, AppLocalizations l10n) {
-    return DropdownButtonFormField<String>(
-      decoration: InputDecoration(
-        labelText: l10n.wallSection,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        border: const OutlineInputBorder(),
-      ),
-      initialValue: routeProvider.selectedWallSection,
-      items: [
-        DropdownMenuItem<String>(
-          value: null,
-          child: Text(l10n.allSections),
-        ),
-        ...routeProvider.wallSections.map(
-          (section) => DropdownMenuItem<String>(
-            value: section,
-            child: Text(section),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.wallSection,
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.grey[700],
+            fontWeight: FontWeight.w500,
           ),
         ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            FilterChip(
+              label: Text(l10n.allSections),
+              selected: routeProvider.selectedWallSections.isEmpty,
+              onSelected: (_) => routeProvider.setWallSectionsFilter(<String>{}),
+            ),
+            ...routeProvider.wallSections.map(
+              (section) => FilterChip(
+                label: Text(section),
+                selected: routeProvider.selectedWallSections.contains(section),
+                onSelected: (_) => routeProvider.toggleWallSectionFilter(section),
+              ),
+            ),
+          ],
+        ),
       ],
-      onChanged: (value) {
-        routeProvider.setWallSectionFilter(value);
-      },
     );
   }
 
   Widget _buildGradeFilter(RouteProvider routeProvider, AppLocalizations l10n) {
-    return DropdownButtonFormField<String>(
-      decoration: InputDecoration(
-        labelText: l10n.grade,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        border: const OutlineInputBorder(),
-      ),
-      initialValue: routeProvider.selectedGrade,
-      items: [
-        DropdownMenuItem<String>(
-          value: null,
-          child: Text(l10n.allGrades),
+    if (routeProvider.grades.isEmpty) {
+      return Text(
+        '${l10n.grade}: ${l10n.allGrades}',
+        style: TextStyle(
+          fontSize: 16,
+          color: Colors.grey[700],
+          fontWeight: FontWeight.w500,
         ),
-        ...routeProvider.grades.map(
-          (grade) => DropdownMenuItem<String>(
-            value: grade,
-            child: Text(grade),
+      );
+    }
+
+    final maxIndex = routeProvider.grades.length - 1;
+    final minSelectedIndex = routeProvider.selectedMinGradeIndex ?? 0;
+    final maxSelectedIndex = routeProvider.selectedMaxGradeIndex ?? maxIndex;
+    final selectedMinGrade = routeProvider.grades[minSelectedIndex];
+    final selectedMaxGrade = routeProvider.grades[maxSelectedIndex];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '${l10n.grade}: $selectedMinGrade - $selectedMaxGrade',
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.grey[700],
+            fontWeight: FontWeight.w500,
           ),
         ),
+        const SizedBox(height: 8),
+        RangeSlider(
+          min: 0,
+          max: maxIndex.toDouble(),
+          divisions: maxIndex > 0 ? maxIndex : null,
+          values: RangeValues(
+            minSelectedIndex.toDouble(),
+            maxSelectedIndex.toDouble(),
+          ),
+          labels: RangeLabels(selectedMinGrade, selectedMaxGrade),
+          onChanged: (values) {
+            routeProvider.setGradeRangeFilter(
+              values.start.round(),
+              values.end.round(),
+            );
+          },
+        ),
+        if (routeProvider.hasGradeRangeFilter)
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () => routeProvider.setGradeRangeFilter(null, null),
+              child: Text(l10n.allGrades),
+            ),
+          ),
       ],
-      onChanged: (value) {
-        routeProvider.setGradeFilter(value);
-      },
     );
   }
 
   Widget _buildLaneFilter(RouteProvider routeProvider, AppLocalizations l10n) {
-    print(
-        '🔍 Filter drawer lanes: ${routeProvider.lanes.length} lanes available');
-    print(
-        '🔍 Lanes: ${routeProvider.lanes.map((l) => 'ID:${l.id} Name:${l.name}').toList()}');
+    final availableLanes = routeProvider.lanesWithRoutes;
 
-    return DropdownButtonFormField<int>(
-      decoration: InputDecoration(
-        labelText: l10n.lane,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        border: const OutlineInputBorder(),
-      ),
-      initialValue: routeProvider.selectedLane,
-      items: [
-        DropdownMenuItem<int>(
-          value: null,
-          child: Text(l10n.allLanes),
-        ),
-        ...routeProvider.lanes.map(
-          (lane) => DropdownMenuItem<int>(
-            value: lane.id,
-            child: Text(lane.name),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.lane,
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.grey[700],
+            fontWeight: FontWeight.w500,
           ),
         ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            FilterChip(
+              label: Text(l10n.allLanes),
+              selected: routeProvider.selectedLaneIds.isEmpty,
+              onSelected: (_) => routeProvider.setLaneIdsFilter(<int>{}),
+            ),
+            ...availableLanes.map(
+              (lane) => FilterChip(
+                label: Text(lane.name),
+                selected: routeProvider.selectedLaneIds.contains(lane.id),
+                onSelected: (_) => routeProvider.toggleLaneFilter(lane.id),
+              ),
+            ),
+          ],
+        ),
       ],
-      onChanged: (value) {
-        routeProvider.setLaneFilter(value);
-      },
     );
   }
 

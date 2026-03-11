@@ -81,6 +81,11 @@ class _InteractiveClimbingWallState extends State<InteractiveClimbingWall> {
 
     return Consumer<RouteProvider>(
       builder: (context, routeProvider, child) {
+        final hasActiveFilters = routeProvider.hasActiveFilters;
+        final matchingLaneIds = hasActiveFilters
+            ? routeProvider.routes.map((route) => route.lane).toSet()
+            : <int>{};
+
         return Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -123,11 +128,15 @@ class _InteractiveClimbingWallState extends State<InteractiveClimbingWall> {
                           // Interactive lane overlays
                           ..._wallData!.shapes.map((shape) {
                             final isSelected =
-                                routeProvider.selectedLane == shape.laneId;
+                              routeProvider.selectedLaneIds.contains(shape.laneId);
+                            final isDimmed =
+                                hasActiveFilters &&
+                                    !matchingLaneIds.contains(shape.laneId);
                             return _buildLaneOverlay(
                               shape,
                               scale, // Use the calculated scale
                               isSelected,
+                              isDimmed,
                               () =>
                                   _onLaneSelected(routeProvider, shape.laneId),
                             );
@@ -149,6 +158,7 @@ class _InteractiveClimbingWallState extends State<InteractiveClimbingWall> {
     LaneShape shape,
     double scale,
     bool isSelected,
+    bool isDimmed,
     VoidCallback onTap,
   ) {
     // Convert polygon points to scaled coordinates
@@ -167,6 +177,7 @@ class _InteractiveClimbingWallState extends State<InteractiveClimbingWall> {
           painter: LanePainter(
             points: scaledPoints,
             isSelected: isSelected,
+            isDimmed: isDimmed,
             laneId: shape.laneId,
             offset: Offset(shape.x1 * scale, shape.y1 * scale),
           ),
@@ -177,41 +188,43 @@ class _InteractiveClimbingWallState extends State<InteractiveClimbingWall> {
   }
 
   void _onLaneSelected(RouteProvider routeProvider, int laneId) {
-    print('🔍 Interactive wall: Lane $laneId selected');
-    print('🔍 Current selectedLane: ${routeProvider.selectedLane}');
-    print('🔍 Available lanes: ${routeProvider.lanes.length} lanes');
-
-    if (routeProvider.selectedLane == laneId) {
-      print('🔍 Deselecting lane $laneId');
-      routeProvider.setLaneFilter(null);
-    } else {
-      print('🔍 Selecting lane $laneId');
-      routeProvider.setLaneFilter(laneId);
-    }
+    routeProvider.toggleLaneFilter(laneId);
   }
 }
 
 class LanePainter extends CustomPainter {
   final List<Offset> points;
   final bool isSelected;
+  final bool isDimmed;
   final int laneId;
   final Offset offset;
 
   LanePainter({
     required this.points,
     required this.isSelected,
+    required this.isDimmed,
     required this.laneId,
     required this.offset,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
+    final dimmedOpacity = isSelected ? 0.0 : 0.42;
+
     final paint = Paint()
-      ..color = isSelected ? Colors.blue.withOpacity(0.4) : Colors.transparent
+      ..color = isSelected
+          ? Colors.blue.withOpacity(0.4)
+          : isDimmed
+              ? Colors.black.withOpacity(dimmedOpacity)
+              : Colors.transparent
       ..style = PaintingStyle.fill;
 
     final borderPaint = Paint()
-      ..color = isSelected ? Colors.blue : Colors.white.withOpacity(0.3)
+      ..color = isSelected
+          ? Colors.blue
+          : isDimmed
+              ? Colors.grey.shade500.withOpacity(0.8)
+              : Colors.white.withOpacity(0.3)
       ..style = PaintingStyle.stroke
       ..strokeWidth = isSelected ? 2 : 1;
 
@@ -284,6 +297,8 @@ class LanePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(LanePainter oldDelegate) {
-    return oldDelegate.isSelected != isSelected || oldDelegate.points != points;
+    return oldDelegate.isSelected != isSelected ||
+        oldDelegate.isDimmed != isDimmed ||
+        oldDelegate.points != points;
   }
 }

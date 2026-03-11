@@ -21,22 +21,25 @@ class GradeChip extends StatelessWidget {
     this.icon,
   });
 
-  /// Determines if the text should be dark based on the background color luminance
-  static bool _shouldUseDarkText(Color backgroundColor) {
-    // Calculate luminance using the relative luminance formula
-    final double luminance = backgroundColor.computeLuminance();
-    // Use dark text on light backgrounds (luminance > 0.5)
-    return luminance > 0.5;
+  static double _contrastRatio(Color fg, Color bg) {
+    final fgLum = fg.computeLuminance();
+    final bgLum = bg.computeLuminance();
+    final lighter = fgLum > bgLum ? fgLum : bgLum;
+    final darker = fgLum > bgLum ? bgLum : fgLum;
+    return (lighter + 0.05) / (darker + 0.05);
   }
 
-  /// Gets the appropriate text color based on the background color
+  /// Picks the most legible text color (black or white) for the chip background.
   static Color getTextColor(Color backgroundColor) {
-    return _shouldUseDarkText(backgroundColor) ? Colors.black : Colors.white;
+    const dark = Colors.black;
+    const light = Colors.white;
+    final darkContrast = _contrastRatio(dark, backgroundColor);
+    final lightContrast = _contrastRatio(light, backgroundColor);
+    return darkContrast >= lightContrast ? dark : light;
   }
 
-  /// Gets the appropriate text color based on the background color
   static Color _getTextColor(Color backgroundColor) {
-    return _shouldUseDarkText(backgroundColor) ? Colors.black : Colors.white;
+    return getTextColor(backgroundColor);
   }
 
   @override
@@ -56,6 +59,11 @@ class GradeChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: borderRadius ?? BorderRadius.circular(16),
+        border: Border.all(
+          color: textColor == Colors.white
+              ? Colors.white.withValues(alpha: 0.35)
+              : Colors.black.withValues(alpha: 0.18),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -118,7 +126,9 @@ class AverageGradeChip extends StatelessWidget {
         color: backgroundColor,
         borderRadius: borderRadius ?? BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.white,
+          color: textColor == Colors.white
+              ? Colors.white.withValues(alpha: 0.45)
+              : Colors.black.withValues(alpha: 0.2),
           width: 2,
         ),
       ),

@@ -19,9 +19,10 @@ class RouteProvider extends ChangeNotifier {
   Route? _selectedRoute;
   bool _isLoading = false;
   String? _error;
-  String? _selectedWallSection;
-  String? _selectedGrade;
-  int? _selectedLane;
+  final Set<String> _selectedWallSections = {};
+  final Set<int> _selectedLaneIds = {};
+  int? _selectedMinGradeIndex;
+  int? _selectedMaxGradeIndex;
   String? _selectedRouteSetter;
   List<String> _wallSections = [];
   List<String> _grades = [];
@@ -41,13 +42,53 @@ class RouteProvider extends ChangeNotifier {
   Route? get selectedRoute => _selectedRoute;
   bool get isLoading => _isLoading;
   String? get error => _error;
-  String? get selectedWallSection => _selectedWallSection;
-  String? get selectedGrade => _selectedGrade;
-  int? get selectedLane => _selectedLane;
+  Set<String> get selectedWallSections => Set.unmodifiable(_selectedWallSections);
+  Set<int> get selectedLaneIds => Set.unmodifiable(_selectedLaneIds);
+  int? get selectedMinGradeIndex => _selectedMinGradeIndex;
+  int? get selectedMaxGradeIndex => _selectedMaxGradeIndex;
+
+  // Backward-compatible getters used by older UI widgets.
+  String? get selectedWallSection =>
+      _selectedWallSections.isEmpty ? null : _selectedWallSections.first;
+  String? get selectedGrade {
+    if (_selectedMinGradeIndex == null || _selectedMaxGradeIndex == null) {
+      return null;
+    }
+    if (_selectedMinGradeIndex == _selectedMaxGradeIndex &&
+        _selectedMinGradeIndex! >= 0 &&
+        _selectedMinGradeIndex! < _grades.length) {
+      return _grades[_selectedMinGradeIndex!];
+    }
+    return null;
+  }
+  int? get selectedLane => _selectedLaneIds.isEmpty ? null : _selectedLaneIds.first;
+
+  bool get hasGradeRangeFilter {
+    if (_grades.isEmpty ||
+        _selectedMinGradeIndex == null ||
+        _selectedMaxGradeIndex == null) {
+      return false;
+    }
+    return !(_selectedMinGradeIndex == 0 &&
+        _selectedMaxGradeIndex == _grades.length - 1);
+  }
+
+  String? get selectedMinGrade =>
+      _selectedMinGradeIndex != null && _selectedMinGradeIndex! < _grades.length
+          ? _grades[_selectedMinGradeIndex!]
+          : null;
+  String? get selectedMaxGrade =>
+      _selectedMaxGradeIndex != null && _selectedMaxGradeIndex! < _grades.length
+          ? _grades[_selectedMaxGradeIndex!]
+          : null;
   String? get selectedRouteSetter => _selectedRouteSetter;
   List<String> get wallSections => _wallSections;
   List<String> get grades => _grades;
   List<Lane> get lanes => _lanes;
+  List<Lane> get lanesWithRoutes {
+    final laneIdsInRoutes = _routes.map((route) => route.lane).toSet();
+    return _lanes.where((lane) => laneIdsInRoutes.contains(lane.id)).toList();
+  }
   List<int> get laneIds => _lanes.map((lane) => lane.id).toList();
   List<String> get routeSetters => _routeSetters;
   List<Map<String, dynamic>> get gradeDefinitions => _gradeDefinitions;
@@ -61,9 +102,9 @@ class RouteProvider extends ChangeNotifier {
   CachedApiService get apiService => _apiService;
 
   bool get hasActiveFilters =>
-      _selectedWallSection != null ||
-      _selectedGrade != null ||
-      _selectedLane != null ||
+      _selectedWallSections.isNotEmpty ||
+      hasGradeRangeFilter ||
+      _selectedLaneIds.isNotEmpty ||
       _selectedRouteSetter != null ||
       _tickedFilter != FilterState.all ||
       _likedFilter != FilterState.all ||
@@ -151,50 +192,38 @@ class RouteProvider extends ChangeNotifier {
     List<Route> filteredRoutes = List.from(_routes);
 
     // Filter by wall section
-    if (_selectedWallSection != null) {
+    if (_selectedWallSections.isNotEmpty) {
       filteredRoutes = filteredRoutes
-          .where((route) => route.wallSection == _selectedWallSection)
+          .where((route) => _selectedWallSections.contains(route.wallSection))
           .toList();
     }
 
-    // Filter by grade
-    if (_selectedGrade != null) {
-      filteredRoutes = filteredRoutes
-          // TODO: CHECK IF THIS IS WORKING!
-          .where((route) => route.gradeName == _selectedGrade)
-          .toList();
-    }
+    // Filter by grade range (inclusive)
+    if (hasGradeRangeFilter) {
+      final minIndex = _selectedMinGradeIndex!;
+      final maxIndex = _selectedMaxGradeIndex!;
+      final gradeIndexMap = <String, int>{
+        for (int i = 0; i < _grades.length; i++) _grades[i]: i,
+      };
 
-    // Filter by lane
-    if (_selectedLane != null) {
-      print(
-          '🔍 Filtering by lane ID: $_selectedLane (type: ${_selectedLane.runtimeType})');
-      print(
-          '🔍 Route lanes before filtering: ${filteredRoutes.map((r) => '${r.name}: ${r.lane} (${r.lane.runtimeType})').take(10).toList()}');
-      print(
-          '🔍 Available lanes: ${_lanes.map((l) => 'ID:${l.id} Name:${l.name}').toList()}');
-
-      // Show detailed comparison for debugging
-      print('🔍 Detailed route lane comparison:');
-      for (final route in filteredRoutes.take(5)) {
-        final routeLane = route.lane;
-        final selectedLane = _selectedLane!;
-        final matches = routeLane == selectedLane;
-        print(
-            '  Route "${route.name}": lane=$routeLane (${routeLane.runtimeType}) == $selectedLane (${selectedLane.runtimeType}) ? $matches');
-      }
-
-      // Filter directly by lane ID (ensure both are integers)
       filteredRoutes = filteredRoutes.where((route) {
-        final routeLane = route.lane;
-        final selectedLane = _selectedLane!;
-        return routeLane == selectedLane;
+        final gradeName = route.gradeName;
+        if (gradeName == null) {
+          return false;
+        }
+        final gradeIndex = gradeIndexMap[gradeName];
+        if (gradeIndex == null) {
+          return false;
+        }
+        return gradeIndex >= minIndex && gradeIndex <= maxIndex;
       }).toList();
-      print('🔍 Routes after lane filtering: ${filteredRoutes.length}');
-      if (filteredRoutes.isNotEmpty) {
-        print(
-            '🔍 Filtered routes: ${filteredRoutes.map((r) => r.name).take(5).toList()}');
-      }
+    }
+
+    // Filter by lane IDs
+    if (_selectedLaneIds.isNotEmpty) {
+      filteredRoutes = filteredRoutes.where((route) {
+        return _selectedLaneIds.contains(route.lane);
+      }).toList();
     }
 
     // Filter by route setter
@@ -637,6 +666,7 @@ class RouteProvider extends ChangeNotifier {
     try {
       print('🔧 Calling _apiService.getGrades()...');
       _grades = await _apiService.getGrades();
+        _sanitizeGradeRangeFilter();
       print(
           '✅ _apiService.getGrades() returned ${_grades.length} grades: $_grades');
     } catch (e) {
@@ -767,20 +797,99 @@ class RouteProvider extends ChangeNotifier {
 
   // Filter methods
   void setWallSectionFilter(String? wallSection) {
-    _selectedWallSection = wallSection;
+    _selectedWallSections
+      ..clear()
+      ..addAll(wallSection == null ? const <String>[] : <String>[wallSection]);
+    _applyFiltersAndSort();
+  }
+
+  void setWallSectionsFilter(Set<String> wallSections) {
+    _selectedWallSections
+      ..clear()
+      ..addAll(wallSections);
+    _applyFiltersAndSort();
+  }
+
+  void toggleWallSectionFilter(String wallSection) {
+    if (_selectedWallSections.contains(wallSection)) {
+      _selectedWallSections.remove(wallSection);
+    } else {
+      _selectedWallSections.add(wallSection);
+    }
     _applyFiltersAndSort();
   }
 
   void setGradeFilter(String? grade) {
-    _selectedGrade = grade;
+    if (grade == null) {
+      _selectedMinGradeIndex = null;
+      _selectedMaxGradeIndex = null;
+      _applyFiltersAndSort();
+      return;
+    }
+
+    final gradeIndex = _grades.indexOf(grade);
+    if (gradeIndex == -1) {
+      return;
+    }
+
+    _selectedMinGradeIndex = gradeIndex;
+    _selectedMaxGradeIndex = gradeIndex;
+    _applyFiltersAndSort();
+  }
+
+  void setGradeRangeFilter(int? minIndex, int? maxIndex) {
+    if (minIndex == null || maxIndex == null || _grades.isEmpty) {
+      _selectedMinGradeIndex = null;
+      _selectedMaxGradeIndex = null;
+      _applyFiltersAndSort();
+      return;
+    }
+
+    int normalizedMin = minIndex;
+    int normalizedMax = maxIndex;
+
+    if (normalizedMin > normalizedMax) {
+      final temp = normalizedMin;
+      normalizedMin = normalizedMax;
+      normalizedMax = temp;
+    }
+
+    normalizedMin = normalizedMin.clamp(0, _grades.length - 1);
+    normalizedMax = normalizedMax.clamp(0, _grades.length - 1);
+
+    _selectedMinGradeIndex = normalizedMin;
+    _selectedMaxGradeIndex = normalizedMax;
+
+    // Treat full-range selection as "no grade filter".
+    if (_selectedMinGradeIndex == 0 &&
+        _selectedMaxGradeIndex == _grades.length - 1) {
+      _selectedMinGradeIndex = null;
+      _selectedMaxGradeIndex = null;
+    }
+
     _applyFiltersAndSort();
   }
 
   void setLaneFilter(int? lane) {
-    print('Setting lane filter to: $lane');
-    print(
-        '🔍 Available lanes: ${_lanes.map((l) => 'ID:${l.id} Name:${l.name}').toList()}');
-    _selectedLane = lane;
+    _selectedLaneIds
+      ..clear()
+      ..addAll(lane == null ? const <int>[] : <int>[lane]);
+    _applyFiltersAndSort();
+  }
+
+  void setLaneIdsFilter(Set<int> laneIds) {
+    _selectedLaneIds
+      ..clear()
+      ..addAll(laneIds);
+    _applyFiltersAndSort();
+  }
+
+  void toggleLaneFilter(int laneId) {
+    if (_selectedLaneIds.contains(laneId)) {
+      _selectedLaneIds.remove(laneId);
+    } else {
+      _selectedLaneIds.add(laneId);
+    }
     _applyFiltersAndSort();
   }
 
@@ -815,16 +924,18 @@ class RouteProvider extends ChangeNotifier {
   }
 
   void clearFilters() {
-    _selectedWallSection = null;
-    _selectedGrade = null;
-    _selectedLane = null;
+    _selectedWallSections.clear();
+    _selectedLaneIds.clear();
+    _selectedMinGradeIndex = null;
+    _selectedMaxGradeIndex = null;
     loadRoutes();
   }
 
   void clearAllFilters() {
-    _selectedWallSection = null;
-    _selectedGrade = null;
-    _selectedLane = null;
+    _selectedWallSections.clear();
+    _selectedLaneIds.clear();
+    _selectedMinGradeIndex = null;
+    _selectedMaxGradeIndex = null;
     _selectedRouteSetter = null;
     _tickedFilter = FilterState.all;
     _likedFilter = FilterState.all;
@@ -832,6 +943,33 @@ class RouteProvider extends ChangeNotifier {
     _projectFilter = FilterState.all;
     _selectedSort = SortOption.newest;
     loadRoutes();
+  }
+
+  void _sanitizeGradeRangeFilter() {
+    if (_grades.isEmpty) {
+      _selectedMinGradeIndex = null;
+      _selectedMaxGradeIndex = null;
+      return;
+    }
+
+    if (_selectedMinGradeIndex == null || _selectedMaxGradeIndex == null) {
+      return;
+    }
+
+    _selectedMinGradeIndex = _selectedMinGradeIndex!.clamp(0, _grades.length - 1);
+    _selectedMaxGradeIndex = _selectedMaxGradeIndex!.clamp(0, _grades.length - 1);
+
+    if (_selectedMinGradeIndex! > _selectedMaxGradeIndex!) {
+      final temp = _selectedMinGradeIndex!;
+      _selectedMinGradeIndex = _selectedMaxGradeIndex;
+      _selectedMaxGradeIndex = temp;
+    }
+
+    if (_selectedMinGradeIndex == 0 &&
+        _selectedMaxGradeIndex == _grades.length - 1) {
+      _selectedMinGradeIndex = null;
+      _selectedMaxGradeIndex = null;
+    }
   }
 
   // Apply all filters and sorting

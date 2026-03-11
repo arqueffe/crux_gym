@@ -20,191 +20,282 @@ class RouteCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    print(
-        'Rendering RouteCard for route ID: ${route.id}, Name: ${route.name}, Grade: ${route.gradeId}, Lane: ${route.lane}, Color: ${route.colorHex}, Likes: ${route.likesCount}, Comments: ${route.commentsCount}, Ticks: ${route.ticksCount}, Proposals: ${route.gradeProposalsCount}, Warnings: ${route.warningsCount}');
+    final holdColor = ColorUtils.parseHexColor(route.colorHex ?? '#9E9E9E');
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
+      elevation: 2,
+      shadowColor: holdColor.withValues(alpha: 0.2),
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: holdColor.withValues(alpha: 0.35),
+          width: 1,
+        ),
+      ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          route.name == 'Unnamed' ? l10n.unnamed : route.name,
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            GradeChip(
-                              grade: route.gradeName!,
-                              gradeColorHex: route.gradeColor,
-                            ),
-                            // Show average proposed grade if there are proposals
-                            if (route.gradeProposalsCount > 0) ...[
-                              const SizedBox(width: 8),
-                              Consumer<RouteProvider>(
-                                builder: (context, routeProvider, child) {
-                                  final averageGrade =
-                                      GradeUtils.calculateAverageProposedGrade(
-                                    route.gradeProposals,
-                                    routeProvider.gradeDefinitions,
-                                  );
-
-                                  if (averageGrade == null) {
-                                    return const SizedBox.shrink();
-                                  }
-
-                                  final averageGradeColor =
-                                      routeProvider.getGradeColor(averageGrade);
-
-                                  return AverageGradeChip(
-                                    grade: averageGrade,
-                                    gradeColorHex: averageGradeColor,
-                                  );
-                                },
-                              ),
-                            ],
-                            if (route.colorHex != null) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                width: 20,
-                                height: 20,
-                                decoration: BoxDecoration(
-                                  color:
-                                      ColorUtils.parseHexColor(route.colorHex),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color:
-                                        Theme.of(context).colorScheme.outline,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.favorite,
-                              color: Colors.red, size: 16),
-                          const SizedBox(width: 4),
-                          Text('${route.likesCount}'),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          const Icon(Icons.comment,
-                              color: Colors.blue, size: 16),
-                          const SizedBox(width: 4),
-                          Text('${route.commentsCount}'),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          const Icon(Icons.check_circle,
-                              color: Colors.green, size: 16),
-                          const SizedBox(width: 4),
-                          Text('${route.ticksCount}'),
-                        ],
-                      ),
-                      if (route.gradeProposalsCount > 0) ...[
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const Icon(Icons.grade,
-                                color: Colors.orange, size: 16),
-                            const SizedBox(width: 4),
-                            Text('${route.gradeProposalsCount}'),
-                          ],
-                        ),
-                      ],
-                      if (route.warningsCount > 0) ...[
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const Icon(Icons.warning,
-                                color: Colors.orange, size: 16),
-                            const SizedBox(width: 4),
-                            Text('${route.warningsCount}'),
-                          ],
-                        ),
-                      ],
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          children: [
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              child: Container(
+                width: 8,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      holdColor.withValues(alpha: 0.95),
+                      holdColor.withValues(alpha: 0.55),
                     ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Icon(Icons.person,
-                      size: 16,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant),
-                  const SizedBox(width: 4),
-                  Text(
-                    l10n.setBy(route.routeSetter),
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(Icons.location_on,
-                      size: 16,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant),
-                  const SizedBox(width: 4),
-                  Text(
-                    route.wallSection,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Icon(Icons.format_list_numbered,
-                      size: 16,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant),
-                  const SizedBox(width: 4),
-                  Text(
-                    l10n.laneNumber(route.lane),
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-              if (route.description != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  route.description!,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
-            ],
-          ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              route.name == 'Unnamed'
+                                  ? l10n.unnamed
+                                  : route.name,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                GradeChip(
+                                  grade: route.gradeName!,
+                                  gradeColorHex: route.gradeColor,
+                                ),
+                                if (route.gradeProposalsCount > 0)
+                                  Consumer<RouteProvider>(
+                                    builder: (context, routeProvider, child) {
+                                      final averageGrade = GradeUtils
+                                          .calculateAverageProposedGrade(
+                                        route.gradeProposals,
+                                        routeProvider.gradeDefinitions,
+                                      );
+
+                                      if (averageGrade == null) {
+                                        return const SizedBox.shrink();
+                                      }
+
+                                      final averageGradeColor =
+                                          routeProvider.getGradeColor(
+                                        averageGrade,
+                                      );
+
+                                      return AverageGradeChip(
+                                        grade: averageGrade,
+                                        gradeColorHex: averageGradeColor,
+                                      );
+                                    },
+                                  ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .surfaceContainerHighest,
+                                    borderRadius: BorderRadius.circular(999),
+                                    border: Border.all(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .outlineVariant,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'Prises:',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelMedium
+                                            ?.copyWith(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Container(
+                                        width: 12,
+                                        height: 12,
+                                        decoration: BoxDecoration(
+                                          color: holdColor,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: Colors.white,
+                                            width: 1,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.favorite,
+                                color: Colors.red,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
+                              Text('${route.likesCount}'),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.comment,
+                                color: Colors.blue,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
+                              Text('${route.commentsCount}'),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.check_circle,
+                                color: Colors.green,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
+                              Text('${route.ticksCount}'),
+                            ],
+                          ),
+                          if (route.gradeProposalsCount > 0) ...[
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.grade,
+                                  color: Colors.orange,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 4),
+                                Text('${route.gradeProposalsCount}'),
+                              ],
+                            ),
+                          ],
+                          if (route.warningsCount > 0) ...[
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.warning,
+                                  color: Colors.orange,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 4),
+                                Text('${route.warningsCount}'),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.person,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        l10n.setBy(route.routeSetter),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.location_on,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        route.wallSection,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Icon(
+                        Icons.format_list_numbered,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        l10n.laneNumber(route.lane),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (route.description != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      route.description!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -55,15 +55,18 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     if (mounted) {
       setState(() {
         _tickData = userTicks; // Store the tick data
-        _isTicked = tickStatus != null && (_tickData!.topRopeSend || _tickData!.leadSend);
+        _isTicked = tickStatus != null &&
+            (_tickData!.topRopeSend || _tickData!.leadSend);
         // Debug logging
         print('Debug - Route ${widget.route.id}:');
         print('  tickStatus: $tickStatus');
         print('  _isTicked: $_isTicked');
         print('  _tickData: $_tickData');
         if (tickStatus != null) {
-          print('  top_rope_send: ${_tickData!.topRopeSend} (${_tickData!.topRopeSend.runtimeType})');
-          print('  lead_send: ${_tickData!.leadSend} (${_tickData!.leadSend.runtimeType})');
+          print(
+              '  top_rope_send: ${_tickData!.topRopeSend} (${_tickData!.topRopeSend.runtimeType})');
+          print(
+              '  lead_send: ${_tickData!.leadSend} (${_tickData!.leadSend.runtimeType})');
         }
       });
     }
@@ -826,11 +829,13 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     final routeProvider = context.read<RouteProvider>();
     try {
       final tickStatus = await routeProvider.getUserTickStatus(widget.route.id);
-      final userTicks = tickStatus != null ? UserTick.fromJson(tickStatus) : null;
+      final userTicks =
+          tickStatus != null ? UserTick.fromJson(tickStatus) : null;
       if (mounted) {
         setState(() {
           _tickData = userTicks;
-          _isTicked = tickStatus != null && (userTicks!.topRopeSend || userTicks!.leadSend);
+          _isTicked = tickStatus != null &&
+              (userTicks!.topRopeSend || userTicks.leadSend);
         });
       }
     } catch (e) {
