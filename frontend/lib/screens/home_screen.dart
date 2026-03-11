@@ -34,7 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: CustomAppBar(
-        title: 'Climbing Gym Routes',
+        title: l10n.appTitle,
         automaticallyImplyLeading:
             false, // Remove back button since we're using bottom nav
         actions: [
@@ -44,7 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Scaffold.of(context).openEndDrawer();
               },
               icon: const Icon(Icons.filter_list),
-              tooltip: 'Filters',
+              tooltip: l10n.filters,
             );
           }),
           Consumer<AuthProvider>(
@@ -63,7 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 },
                 icon: const Icon(Icons.add),
-                tooltip: 'Add Route',
+                tooltip: l10n.addRoute,
               );
             },
           ),
@@ -84,14 +84,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   const Icon(Icons.error_outline, size: 64, color: Colors.red),
                   const SizedBox(height: 16),
                   Text(
-                    'Error: ${routeProvider.error}',
+                    '${l10n.error}: ${routeProvider.error}',
                     textAlign: TextAlign.center,
                     style: const TextStyle(fontSize: 16),
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () => routeProvider.loadInitialData(),
-                    child: const Text('Retry'),
+                    child: Text(l10n.retry),
                   ),
                 ],
               ),
@@ -103,75 +103,105 @@ class _HomeScreenState extends State<HomeScreen> {
               // Interactive Climbing Wall
               const InteractiveClimbingWall(),
 
-              // Consistent spacer or active filters indicator
-              Container(
-                width: double.infinity,
-                height: 48, // Fixed height to prevent layout jumps
-                padding: const EdgeInsets.all(12),
-                decoration: routeProvider.hasActiveFilters
-                    ? BoxDecoration(
+              // Keep the spacer stable when there are no filters, but allow
+              // the active filter bar to grow on narrow screens.
+              routeProvider.hasActiveFilters
+                  ? Container(
+                      width: double.infinity,
+                      constraints: const BoxConstraints(minHeight: 48),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.primaryContainer,
                         border: Border(
                           bottom: BorderSide(
                             color: Theme.of(context).colorScheme.outline,
                           ),
                         ),
-                      )
-                    : null,
-                child: routeProvider.hasActiveFilters
-                    ? Row(
-                        children: [
-                          Icon(
-                            Icons.filter_alt,
-                            size: 16,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onPrimaryContainer,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Filters active - ${routeProvider.routes.length} routes shown',
-                              style: TextStyle(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onPrimaryContainer,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () => routeProvider.clearAllFilters(),
-                            child: Text(
-                              l10n.clearAll,
-                              style: TextStyle(
+                      ),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isCompact = constraints.maxWidth < 560;
+                          final summary =
+                              '${l10n.filters}: ${routeProvider.routes.length}';
+
+                          return Row(
+                            children: [
+                              Icon(
+                                Icons.filter_alt,
+                                size: 16,
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onPrimaryContainer,
                               ),
-                            ),
-                          ),
-                        ],
-                      )
-                    : null, // Empty space when no filters but same height
-              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  summary,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onPrimaryContainer,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                              isCompact
+                                  ? IconButton(
+                                      onPressed: () =>
+                                          routeProvider.clearAllFilters(),
+                                      tooltip: l10n.clearAll,
+                                      icon: Icon(
+                                        Icons.clear,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onPrimaryContainer,
+                                      ),
+                                      visualDensity: VisualDensity.compact,
+                                    )
+                                  : TextButton(
+                                      onPressed: () =>
+                                          routeProvider.clearAllFilters(),
+                                      child: Text(
+                                        l10n.clearAll,
+                                        style: TextStyle(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onPrimaryContainer,
+                                        ),
+                                      ),
+                                    ),
+                            ],
+                          );
+                        },
+                      ),
+                    )
+                  : const SizedBox(height: 48),
               Expanded(
                 child: routeProvider.routes.isEmpty
-                    ? const Center(
+                    ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.terrain, size: 64, color: Colors.grey),
-                            SizedBox(height: 16),
-                            Text(
-                              'No routes found',
-                              style:
-                                  TextStyle(fontSize: 18, color: Colors.grey),
+                            const Icon(
+                              Icons.terrain,
+                              size: 64,
+                              color: Colors.grey,
                             ),
-                            SizedBox(height: 8),
+                            const SizedBox(height: 16),
                             Text(
-                              'Try adjusting your filters or add a new route',
-                              style: TextStyle(color: Colors.grey),
+                              l10n.noRoutesFound,
+                              style: const TextStyle(
+                                  fontSize: 18, color: Colors.grey),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              l10n.adjustFiltersOrAddRoute,
+                              style: const TextStyle(color: Colors.grey),
                             ),
                           ],
                         ),

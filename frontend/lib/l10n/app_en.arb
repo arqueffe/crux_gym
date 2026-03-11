@@ -3,7 +3,7 @@
   "@@last_modified": "2025-09-05T10:00:00.000Z",
   
   "@_APP_TITLE": {},
-  "appTitle": "Climbing Gym Routes",
+  "appTitle": "Climbing Routes",
   
   "@_NAVIGATION": {},
   "navRoutes": "Routes",
@@ -53,7 +53,7 @@
   "switchToRegister": "Don't have an account? Sign up",
   "switchToLogin": "Already have an account? Sign in",
   "initializing": "Initializing...",
-  "welcomeBack": "Welcome Back",
+  "welcomeBack": "Welcome!",
   "signInToContinue": "Sign in to continue",
   "usernameOrEmail": "Username or Email",
   "pleaseEnterUsernameOrEmail": "Please enter your username or email",
@@ -350,7 +350,7 @@
   "@_ROUTE_INTERACTIONS_EXTENDED": {},
   "progress": "Progress",
   "track": "Track",
-  "note": "Note",
+  "note": "Personal Note",
   "comment": "Comment",
   "proposeGrade": "Propose Grade",
   "manageTick": "Manage Tick",

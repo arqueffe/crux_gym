@@ -2,7 +2,7 @@
   "@@locale": "fr",
   "@@last_modified": "2025-09-05T10:00:00.000Z",
   
-  "appTitle": "Routes d'Escalade",
+  "appTitle": "Voies d'Escalade",
   
   "navRoutes": "Voies",
   "navProfile": "Profil",
@@ -49,7 +49,7 @@
   "switchToRegister": "Pas de compte ? Inscrivez-vous",
   "switchToLogin": "Déjà un compte ? Connectez-vous",
   "initializing": "Initialisation...",
-  "welcomeBack": "Bon retour",
+  "welcomeBack": "Bienvenue !",
   "signInToContinue": "Connectez-vous pour continuer",
   "usernameOrEmail": "Nom d'utilisateur ou Email",
   "pleaseEnterUsernameOrEmail": "Veuillez saisir votre nom d'utilisateur ou email",
@@ -272,7 +272,7 @@
   "@_ROUTE_INTERACTIONS_EXTENDED": {},
   "progress": "Progression",
   "track": "Suivre",
-  "note": "Note",
+  "note": "Note Personnelle",
   "comment": "Commentaire",
   "proposeGrade": "Proposer une cotation",
   "manageTick": "Gérer la coche",

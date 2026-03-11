@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
-  /// **'Climbing Gym Routes'**
+  /// **'Climbing Routes'**
   String get appTitle;
 
   /// No description provided for @navRoutes.
@@ -365,7 +365,7 @@ abstract class AppLocalizations {
   /// No description provided for @welcomeBack.
   ///
   /// In en, this message translates to:
-  /// **'Welcome Back'**
+  /// **'Welcome!'**
   String get welcomeBack;
 
   /// No description provided for @signInToContinue.
@@ -1679,7 +1679,7 @@ abstract class AppLocalizations {
   /// No description provided for @note.
   ///
   /// In en, this message translates to:
-  /// **'Note'**
+  /// **'Personal Note'**
   String get note;
 
   /// No description provided for @comment.
