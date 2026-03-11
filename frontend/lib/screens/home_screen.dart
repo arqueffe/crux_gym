@@ -6,6 +6,7 @@ import '../widgets/route_card.dart';
 import '../widgets/filter_drawer.dart';
 import '../widgets/interactive_climbing_wall.dart';
 import '../widgets/custom_app_bar.dart';
+import '../generated/l10n/app_localizations.dart';
 import 'route_detail_screen.dart';
 import 'add_route_screen.dart';
 
@@ -29,6 +30,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       appBar: CustomAppBar(
         title: 'Climbing Gym Routes',
@@ -140,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           TextButton(
                             onPressed: () => routeProvider.clearAllFilters(),
                             child: Text(
-                              'Clear All',
+                              l10n.clearAll,
                               style: TextStyle(
                                 color: Theme.of(context)
                                     .colorScheme

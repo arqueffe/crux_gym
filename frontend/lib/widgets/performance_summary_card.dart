@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../generated/l10n/app_localizations.dart';
 import '../models/profile_models.dart';
 import '../models/route_models.dart';
+import '../utils/grade_sorting.dart';
 
 class PerformanceSummaryCard extends StatelessWidget {
   final ProfileStats? stats;
@@ -33,9 +34,6 @@ class PerformanceSummaryCard extends StatelessWidget {
         ),
       );
     }
-
-    print(
-        "Filtered ticks: ${filteredTicks.map((t) => "${t.routeName} ${t.topRopeAttempts} ${t.leadAttempts} ${t.topRopeSend} ${t.leadSend} ${t.isTopRopeFlash} ${t.isLeadFlash}").toList()}");
 
     final filteredTopRopeFlashes =
         filteredTicks.where((tick) => tick.isTopRopeFlash).length;
@@ -125,7 +123,11 @@ class PerformanceSummaryCard extends StatelessWidget {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               crossAxisCount: 3,
-              childAspectRatio: screenWidth < 600 ? 1 : ((screenWidth > 1000) ? 4.0 : 2.2), // Handle card more responsively
+              childAspectRatio: screenWidth < 600
+                  ? 1
+                  : ((screenWidth > 1000)
+                      ? 4.0
+                      : 2.2), // Handle card more responsively
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
               children: [
@@ -316,40 +318,13 @@ class PerformanceSummaryCard extends StatelessWidget {
     );
   }
 
-  int _gradeOrder(String grade) {
-    // Return 0 if grade definitions are not loaded yet
-    if (gradeDefinitions.isEmpty) return 0;
-
-    // Find the grade in the definitions and return its value (not difficulty_order)
-    for (final gradeDefinition in gradeDefinitions) {
-      if (gradeDefinition['french_name'] == grade) {
-        final value = gradeDefinition['value'];
-        if (value is String) {
-          return double.tryParse(value)?.toInt() ?? 0;
-        } else if (value is num) {
-          return value.toInt();
-        }
-      }
-    }
-    // Return 0 for unknown grades (will be sorted first)
-    return 0;
+  double _gradeOrder(String grade) {
+    return gradeOrderValue(grade, gradeDefinitions: gradeDefinitions);
   }
 
-  int _getGradeOrder(
+  double _getGradeOrder(
       String grade, List<Map<String, dynamic>> gradeDefinitions) {
-    // Find the grade in the definitions and return its value (not difficulty_order)
-    for (final gradeDefinition in gradeDefinitions) {
-      if (gradeDefinition['french_name'] == grade) {
-        final value = gradeDefinition['value'];
-        if (value is String) {
-          return double.tryParse(value)?.toInt() ?? 0;
-        } else if (value is num) {
-          return value.toInt();
-        }
-      }
-    }
-    // Return 0 for unknown grades (will be sorted first)
-    return 0;
+    return gradeOrderValue(grade, gradeDefinitions: gradeDefinitions);
   }
 
   Widget _buildSendTypeCard(

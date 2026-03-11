@@ -33,8 +33,10 @@ class GradeStatisticsChart extends StatelessWidget {
     return Column(
       children: [
         // Legend
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 16,
+          runSpacing: 8,
           children: [
             _buildLegendItem(context, l10n.completed, Colors.blue),
             _buildLegendItem(context, l10n.flashed, Colors.orange),
@@ -44,18 +46,46 @@ class GradeStatisticsChart extends StatelessWidget {
         const SizedBox(height: 16),
 
         // Chart
-        SizedBox(
-          height: 320, // Increased from 300 to 320
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: gradeStats
-                  .map((stat) => _buildGradeBar(
-                      context, stat, stat.leadSends, l10n, routeProvider))
-                  .toList(),
-            ),
-          ),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isCompact = constraints.maxWidth < 420;
+            final chartHeight = isCompact ? 260.0 : 320.0;
+            final itemWidth = isCompact ? 56.0 : 64.0;
+            final barWidth = isCompact ? 30.0 : 40.0;
+            final maxLeadSends = gradeStats.fold<int>(
+              0,
+              (maxValue, stat) =>
+                  stat.leadSends > maxValue ? stat.leadSends : maxValue,
+            );
+
+            return SizedBox(
+              height: chartHeight,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: gradeStats
+                        .map(
+                          (stat) => _buildGradeBar(
+                            context,
+                            stat,
+                            maxLeadSends,
+                            l10n,
+                            routeProvider,
+                            totalHeight: chartHeight,
+                            itemWidth: itemWidth,
+                            barWidth: barWidth,
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ),
+              ),
+            );
+          },
         ),
 
         const SizedBox(height: 16),
@@ -88,37 +118,34 @@ class GradeStatisticsChart extends StatelessWidget {
   }
 
   Widget _buildGradeBar(BuildContext context, GradeStatistics stat,
-      int maxTicks, AppLocalizations l10n, RouteProvider routeProvider) {
-    // Calculate available height for the bar (total - other elements)
-    const totalHeight = 280.0;
+      int maxTicks, AppLocalizations l10n, RouteProvider routeProvider,
+      {required double totalHeight,
+      required double itemWidth,
+      required double barWidth}) {
     const indicatorHeight = 16.0;
-    const spacingHeight = 4.0; // 3 SizedBox widgets
-    const textHeight =
-        26.0; // Even more conservative estimate for 2 text widgets
-    const availableBarHeight = totalHeight -
+    const verticalSpacing = 18.0;
+    const countLabelHeight = 14.0;
+    const gradeChipHeight = 28.0;
+    final availableBarHeight = totalHeight -
         indicatorHeight -
-        spacingHeight -
-        textHeight -
-        12; // Extra padding to prevent overflow
-
-    final barHeight =
-        maxTicks > 0 ? (stat.leadSends / maxTicks) * availableBarHeight : 0.0;
-    final flashHeight = barHeight * stat.flashRate;
+        verticalSpacing -
+        countLabelHeight -
+        gradeChipHeight;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: SizedBox(
+        width: itemWidth,
         height: totalHeight,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
-          mainAxisSize: MainAxisSize.min,
           children: [
             // Flash rate indicator
             Container(
-              width: 40,
+              width: barWidth,
               height: indicatorHeight,
               decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.2),
+                color: Colors.green.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Center(
@@ -133,46 +160,55 @@ class GradeStatisticsChart extends StatelessWidget {
             ),
             const SizedBox(height: 2),
 
-            // Bar chart container with fixed height
-            Container(
-              width: 40,
-              height: availableBarHeight,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: GestureDetector(
-                onTap: () => _showGradeDetails(context, stat, l10n),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    // Total bar (blue)
-                    Container(
-                      width: double.infinity,
-                      height: barHeight - 2,
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.7),
-                        borderRadius: BorderRadius.circular(3),
-                      ),
+            SizedBox(
+              height: availableBarHeight > 0 ? availableBarHeight : 0,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final currentBarAreaHeight = constraints.maxHeight;
+                  final barHeight = maxTicks > 0
+                      ? (stat.leadSends / maxTicks) * currentBarAreaHeight
+                      : 0.0;
+                  final clampedBarHeight =
+                      barHeight.clamp(0.0, currentBarAreaHeight);
+                  final flashHeight = (clampedBarHeight * stat.flashRate)
+                      .clamp(0.0, clampedBarHeight);
+
+                  return Container(
+                    width: barWidth,
+                    height: currentBarAreaHeight,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: GestureDetector(
+                      onTap: () => _showGradeDetails(context, stat, l10n),
                       child: Stack(
+                        alignment: Alignment.bottomCenter,
                         children: [
-                          // Flash overlay (orange)
+                          Container(
+                            width: double.infinity,
+                            height: clampedBarHeight,
+                            decoration: BoxDecoration(
+                              color: Colors.blue.withValues(alpha: 0.7),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ),
                           Container(
                             width: double.infinity,
                             height: flashHeight,
                             decoration: BoxDecoration(
-                              color: Colors.orange.withOpacity(0.8),
+                              color: Colors.orange.withValues(alpha: 0.8),
                               borderRadius: BorderRadius.circular(3),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ),
+                  );
+                },
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
 
             // Tick count
             Text(
@@ -292,29 +328,4 @@ class GradeStatisticsChart extends StatelessWidget {
     );
   }
 
-  Color _getGradeColor(String grade, RouteProvider routeProvider) {
-    // Try to get color from route provider
-    final gradeColorHex = routeProvider.getGradeColor(grade);
-
-    if (gradeColorHex != null && gradeColorHex.isNotEmpty) {
-      try {
-        // Parse hex color (with or without #)
-        String hexColor = gradeColorHex.replaceAll('#', '');
-        if (hexColor.length == 6) {
-          return Color(int.parse('FF$hexColor', radix: 16));
-        }
-      } catch (e) {
-        // Fall through to default colors if parsing fails
-      }
-    }
-
-    // Fallback to simple color coding based on grade difficulty
-    if (grade.contains('V0') || grade.contains('V1')) return Colors.green;
-    if (grade.contains('V2') || grade.contains('V3')) {
-      return Colors.yellow.shade700;
-    }
-    if (grade.contains('V4') || grade.contains('V5')) return Colors.orange;
-    if (grade.contains('V6') || grade.contains('V7')) return Colors.red;
-    return Colors.purple;
-  }
 }

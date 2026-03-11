@@ -176,7 +176,9 @@ class FilterDrawer extends StatelessWidget {
   }
 
   Widget _buildGradeFilter(RouteProvider routeProvider, AppLocalizations l10n) {
-    if (routeProvider.grades.isEmpty) {
+    final availableGrades = routeProvider.availableGrades;
+
+    if (availableGrades.isEmpty) {
       return Text(
         '${l10n.grade}: ${l10n.allGrades}',
         style: TextStyle(
@@ -187,11 +189,11 @@ class FilterDrawer extends StatelessWidget {
       );
     }
 
-    final maxIndex = routeProvider.grades.length - 1;
+    final maxIndex = availableGrades.length - 1;
     final minSelectedIndex = routeProvider.selectedMinGradeIndex ?? 0;
     final maxSelectedIndex = routeProvider.selectedMaxGradeIndex ?? maxIndex;
-    final selectedMinGrade = routeProvider.grades[minSelectedIndex];
-    final selectedMaxGrade = routeProvider.grades[maxSelectedIndex];
+    final selectedMinGrade = availableGrades[minSelectedIndex];
+    final selectedMaxGrade = availableGrades[maxSelectedIndex];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -259,7 +261,7 @@ class FilterDrawer extends StatelessWidget {
             ),
             ...availableLanes.map(
               (lane) => FilterChip(
-                label: Text(lane.name),
+                label: Text(l10n.laneLabel(lane.id)),
                 selected: routeProvider.selectedLaneIds.contains(lane.id),
                 onSelected: (_) => routeProvider.toggleLaneFilter(lane.id),
               ),

@@ -36,6 +36,9 @@ class RouteProvider extends ChangeNotifier {
   FilterState _likedFilter = FilterState.all;
   FilterState _warnedFilter = FilterState.all;
   FilterState _projectFilter = FilterState.all;
+  final Set<int> _userTickedRouteIds = <int>{};
+  final Set<int> _userLikedRouteIds = <int>{};
+  final Set<int> _userProjectRouteIds = <int>{};
 
   // Getters
   List<Route> get routes => _currentRoutes;
@@ -56,34 +59,49 @@ class RouteProvider extends ChangeNotifier {
     }
     if (_selectedMinGradeIndex == _selectedMaxGradeIndex &&
         _selectedMinGradeIndex! >= 0 &&
-        _selectedMinGradeIndex! < _grades.length) {
-      return _grades[_selectedMinGradeIndex!];
+        _selectedMinGradeIndex! < availableGrades.length) {
+      return availableGrades[_selectedMinGradeIndex!];
     }
     return null;
   }
   int? get selectedLane => _selectedLaneIds.isEmpty ? null : _selectedLaneIds.first;
 
   bool get hasGradeRangeFilter {
-    if (_grades.isEmpty ||
+    final gradeScale = availableGrades;
+    if (gradeScale.isEmpty ||
         _selectedMinGradeIndex == null ||
         _selectedMaxGradeIndex == null) {
       return false;
     }
     return !(_selectedMinGradeIndex == 0 &&
-        _selectedMaxGradeIndex == _grades.length - 1);
+        _selectedMaxGradeIndex == gradeScale.length - 1);
   }
 
   String? get selectedMinGrade =>
-      _selectedMinGradeIndex != null && _selectedMinGradeIndex! < _grades.length
-          ? _grades[_selectedMinGradeIndex!]
+      _selectedMinGradeIndex != null &&
+              _selectedMinGradeIndex! < availableGrades.length
+          ? availableGrades[_selectedMinGradeIndex!]
           : null;
   String? get selectedMaxGrade =>
-      _selectedMaxGradeIndex != null && _selectedMaxGradeIndex! < _grades.length
-          ? _grades[_selectedMaxGradeIndex!]
+      _selectedMaxGradeIndex != null &&
+              _selectedMaxGradeIndex! < availableGrades.length
+          ? availableGrades[_selectedMaxGradeIndex!]
           : null;
   String? get selectedRouteSetter => _selectedRouteSetter;
   List<String> get wallSections => _wallSections;
   List<String> get grades => _grades;
+  List<String> get availableGrades {
+    final routeGradeNames = _routes
+        .map((route) => route.gradeName)
+        .whereType<String>()
+        .toSet();
+
+    if (routeGradeNames.isEmpty) {
+      return _grades;
+    }
+
+    return _grades.where((grade) => routeGradeNames.contains(grade)).toList();
+  }
   List<Lane> get lanes => _lanes;
   List<Lane> get lanesWithRoutes {
     final laneIdsInRoutes = _routes.map((route) => route.lane).toSet();
@@ -155,6 +173,9 @@ class RouteProvider extends ChangeNotifier {
       _populateRouteData();
       print('✅ Route data populated');
 
+      // Refresh per-user interaction route IDs used by user-scoped filters.
+      await _refreshUserInteractionRouteIds(forceRefresh: forceRefresh);
+
       // Apply client-side filters
       print('🔧 Applying client-side filters...');
       _applyClientSideFilters();
@@ -187,6 +208,98 @@ class RouteProvider extends ChangeNotifier {
     await loadRoutes(forceRefresh: forceRefresh);
   }
 
+  Future<void> _refreshUserInteractionRouteIds(
+      {bool forceRefresh = false}) async {
+    _userTickedRouteIds.clear();
+    _userLikedRouteIds.clear();
+    _userProjectRouteIds.clear();
+
+    final currentUser = _authProvider.currentUser;
+    if (currentUser == null) {
+      return;
+    }
+
+    try {
+      final results = await Future.wait<List<dynamic>>([
+        _apiService.getUserTicks(forceRefresh: forceRefresh),
+        _apiService.getUserLikes(forceRefresh: forceRefresh),
+        _apiService.getUserProjects(forceRefresh: forceRefresh),
+      ]);
+
+      _userTickedRouteIds.addAll(_extractSentTickRouteIds(results[0]));
+      _userLikedRouteIds.addAll(_extractRouteIds(results[1]));
+      _userProjectRouteIds.addAll(_extractRouteIds(results[2]));
+    } catch (e) {
+      // Do not fail route loading if user interaction endpoints fail.
+    }
+  }
+
+  Set<int> _extractRouteIds(List<dynamic> items) {
+    final routeIds = <int>{};
+
+    for (final item in items) {
+      if (item is! Map) {
+        continue;
+      }
+
+      final dynamic rawRouteId = item['route_id'] ?? item['routeId'];
+      final int? routeId = rawRouteId is int
+          ? rawRouteId
+          : rawRouteId is String
+              ? int.tryParse(rawRouteId)
+              : null;
+
+      if (routeId != null) {
+        routeIds.add(routeId);
+      }
+    }
+
+    return routeIds;
+  }
+
+  Set<int> _extractSentTickRouteIds(List<dynamic> items) {
+    final routeIds = <int>{};
+
+    for (final item in items) {
+      if (item is! Map) {
+        continue;
+      }
+
+      final bool topRopeSend = _parseDynamicBool(item['top_rope_send']);
+      final bool leadSend = _parseDynamicBool(item['lead_send']);
+      if (!topRopeSend && !leadSend) {
+        continue;
+      }
+
+      final dynamic rawRouteId = item['route_id'] ?? item['routeId'];
+      final int? routeId = rawRouteId is int
+          ? rawRouteId
+          : rawRouteId is String
+              ? int.tryParse(rawRouteId)
+              : null;
+
+      if (routeId != null) {
+        routeIds.add(routeId);
+      }
+    }
+
+    return routeIds;
+  }
+
+  bool _parseDynamicBool(dynamic value) {
+    if (value is bool) {
+      return value;
+    }
+    if (value is num) {
+      return value != 0;
+    }
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      return normalized == '1' || normalized == 'true';
+    }
+    return false;
+  }
+
   // Apply client-side filters (for features not supported by API)
   void _applyClientSideFilters() {
     List<Route> filteredRoutes = List.from(_routes);
@@ -202,8 +315,9 @@ class RouteProvider extends ChangeNotifier {
     if (hasGradeRangeFilter) {
       final minIndex = _selectedMinGradeIndex!;
       final maxIndex = _selectedMaxGradeIndex!;
+      final gradeScale = availableGrades;
       final gradeIndexMap = <String, int>{
-        for (int i = 0; i < _grades.length; i++) _grades[i]: i,
+        for (int i = 0; i < gradeScale.length; i++) gradeScale[i]: i,
       };
 
       filteredRoutes = filteredRoutes.where((route) {
@@ -233,30 +347,28 @@ class RouteProvider extends ChangeNotifier {
           .toList();
     }
 
-    // Filter by ticked status (assuming we have user context)
+    // Filter by ticked status for the current user.
     if (_tickedFilter != FilterState.all) {
       if (_tickedFilter == FilterState.only) {
         filteredRoutes = filteredRoutes
-            .where((route) => route.ticksCount > 0) // Show only ticked routes
+            .where((route) => _userTickedRouteIds.contains(route.id))
             .toList();
       } else if (_tickedFilter == FilterState.exclude) {
         filteredRoutes = filteredRoutes
-            .where(
-                (route) => route.ticksCount == 0) // Show only non-ticked routes
+            .where((route) => !_userTickedRouteIds.contains(route.id))
             .toList();
       }
     }
 
-    // Filter by liked status (assuming we have user context)
+    // Filter by liked status for the current user.
     if (_likedFilter != FilterState.all) {
       if (_likedFilter == FilterState.only) {
         filteredRoutes = filteredRoutes
-            .where((route) => route.likesCount > 0) // Show only liked routes
+            .where((route) => _userLikedRouteIds.contains(route.id))
             .toList();
       } else if (_likedFilter == FilterState.exclude) {
         filteredRoutes = filteredRoutes
-            .where(
-                (route) => route.likesCount == 0) // Show only non-liked routes
+            .where((route) => !_userLikedRouteIds.contains(route.id))
             .toList();
       }
     }
@@ -276,17 +388,15 @@ class RouteProvider extends ChangeNotifier {
       }
     }
 
-    // Filter by project status
+    // Filter by project status for the current user.
     if (_projectFilter != FilterState.all) {
       if (_projectFilter == FilterState.only) {
         filteredRoutes = filteredRoutes
-            .where(
-                (route) => route.projectsCount > 0) // Show only project routes
+            .where((route) => _userProjectRouteIds.contains(route.id))
             .toList();
       } else if (_projectFilter == FilterState.exclude) {
         filteredRoutes = filteredRoutes
-            .where((route) =>
-                route.projectsCount == 0) // Show only non-project routes
+            .where((route) => !_userProjectRouteIds.contains(route.id))
             .toList();
       }
     }
@@ -827,7 +937,7 @@ class RouteProvider extends ChangeNotifier {
       return;
     }
 
-    final gradeIndex = _grades.indexOf(grade);
+    final gradeIndex = availableGrades.indexOf(grade);
     if (gradeIndex == -1) {
       return;
     }
@@ -838,7 +948,8 @@ class RouteProvider extends ChangeNotifier {
   }
 
   void setGradeRangeFilter(int? minIndex, int? maxIndex) {
-    if (minIndex == null || maxIndex == null || _grades.isEmpty) {
+    final gradeScale = availableGrades;
+    if (minIndex == null || maxIndex == null || gradeScale.isEmpty) {
       _selectedMinGradeIndex = null;
       _selectedMaxGradeIndex = null;
       _applyFiltersAndSort();
@@ -854,15 +965,15 @@ class RouteProvider extends ChangeNotifier {
       normalizedMax = temp;
     }
 
-    normalizedMin = normalizedMin.clamp(0, _grades.length - 1);
-    normalizedMax = normalizedMax.clamp(0, _grades.length - 1);
+    normalizedMin = normalizedMin.clamp(0, gradeScale.length - 1);
+    normalizedMax = normalizedMax.clamp(0, gradeScale.length - 1);
 
     _selectedMinGradeIndex = normalizedMin;
     _selectedMaxGradeIndex = normalizedMax;
 
     // Treat full-range selection as "no grade filter".
     if (_selectedMinGradeIndex == 0 &&
-        _selectedMaxGradeIndex == _grades.length - 1) {
+        _selectedMaxGradeIndex == gradeScale.length - 1) {
       _selectedMinGradeIndex = null;
       _selectedMaxGradeIndex = null;
     }
@@ -946,7 +1057,8 @@ class RouteProvider extends ChangeNotifier {
   }
 
   void _sanitizeGradeRangeFilter() {
-    if (_grades.isEmpty) {
+    final gradeScale = availableGrades;
+    if (gradeScale.isEmpty) {
       _selectedMinGradeIndex = null;
       _selectedMaxGradeIndex = null;
       return;
@@ -956,8 +1068,10 @@ class RouteProvider extends ChangeNotifier {
       return;
     }
 
-    _selectedMinGradeIndex = _selectedMinGradeIndex!.clamp(0, _grades.length - 1);
-    _selectedMaxGradeIndex = _selectedMaxGradeIndex!.clamp(0, _grades.length - 1);
+    _selectedMinGradeIndex =
+      _selectedMinGradeIndex!.clamp(0, gradeScale.length - 1);
+    _selectedMaxGradeIndex =
+      _selectedMaxGradeIndex!.clamp(0, gradeScale.length - 1);
 
     if (_selectedMinGradeIndex! > _selectedMaxGradeIndex!) {
       final temp = _selectedMinGradeIndex!;
@@ -966,7 +1080,7 @@ class RouteProvider extends ChangeNotifier {
     }
 
     if (_selectedMinGradeIndex == 0 &&
-        _selectedMaxGradeIndex == _grades.length - 1) {
+        _selectedMaxGradeIndex == gradeScale.length - 1) {
       _selectedMinGradeIndex = null;
       _selectedMaxGradeIndex = null;
     }

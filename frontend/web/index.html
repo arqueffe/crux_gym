@@ -18,6 +18,10 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  >
   <meta name="description" content="Crux Climb helps you discover routes, track sends, and level up every climbing session.">
 
   <!-- iOS meta tags & icons -->
@@ -31,6 +35,72 @@
 
   <title>Crux Climb</title>
   <link rel="manifest" href="manifest.json">
+  <style>
+    :root {
+      --app-vh: 1vh;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      min-height: 100dvh;
+      min-height: calc(var(--app-vh) * 100);
+    }
+  </style>
+  <script>
+    (function () {
+      var lastViewportHeight = -1;
+      var resizeDispatchPending = false;
+
+      function updateAppViewportHeight() {
+        var viewportHeight = window.visualViewport
+          ? window.visualViewport.height
+          : window.innerHeight;
+
+        document.documentElement.style.setProperty(
+          '--app-vh',
+          (viewportHeight * 0.01) + 'px'
+        );
+
+        if (
+          lastViewportHeight > 0 &&
+          Math.abs(lastViewportHeight - viewportHeight) > 1 &&
+          !resizeDispatchPending
+        ) {
+          // Force Flutter Web to recompute layout when mobile browser chrome changes.
+          resizeDispatchPending = true;
+          window.setTimeout(function () {
+            resizeDispatchPending = false;
+            window.dispatchEvent(new Event('resize'));
+          }, 0);
+        }
+        lastViewportHeight = viewportHeight;
+      }
+
+      updateAppViewportHeight();
+      window.addEventListener('resize', updateAppViewportHeight, {
+        passive: true,
+      });
+      window.addEventListener('orientationchange', updateAppViewportHeight, {
+        passive: true,
+      });
+
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener(
+          'resize',
+          updateAppViewportHeight,
+          { passive: true }
+        );
+        window.visualViewport.addEventListener(
+          'scroll',
+          updateAppViewportHeight,
+          { passive: true }
+        );
+      }
+    })();
+  </script>
   <script src="js/cookie_requests.js"></script>
 </head>
 <body>

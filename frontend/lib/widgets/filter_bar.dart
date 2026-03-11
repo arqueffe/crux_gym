@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/route_provider.dart';
+import '../generated/l10n/app_localizations.dart';
 
 class FilterBar extends StatelessWidget {
   const FilterBar({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Consumer<RouteProvider>(
       builder: (context, routeProvider, child) {
         return Container(
@@ -112,7 +115,7 @@ class FilterBar extends StatelessWidget {
                   child: TextButton.icon(
                     onPressed: () => routeProvider.clearFilters(),
                     icon: const Icon(Icons.clear),
-                    label: const Text('Clear Filters'),
+                    label: Text(l10n.clearAllFilters),
                   ),
                 ),
               ],

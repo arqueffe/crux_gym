@@ -4,6 +4,7 @@ import '../models/route_models.dart';
 import '../services/cached_api_service.dart';
 import '../providers/auth_provider.dart';
 import '../providers/route_provider.dart';
+import '../utils/grade_sorting.dart';
 
 class ProfileProvider extends ChangeNotifier {
   late final CachedApiService _apiService;
@@ -112,27 +113,11 @@ class ProfileProvider extends ChangeNotifier {
       ..sort((a, b) => _gradeOrder(a.grade).compareTo(_gradeOrder(b.grade)));
   }
 
-  int _gradeOrder(String grade) {
-    // Use route provider's grade definitions if available
-    if (_routeProvider != null && _routeProvider!.gradeDefinitions.isNotEmpty) {
-      for (final gradeDefinition in _routeProvider!.gradeDefinitions) {
-        if (gradeDefinition['french_name'] == grade) {
-          final value = gradeDefinition['value'];
-          if (value is String) {
-            return double.tryParse(value)?.toInt() ?? 0;
-          } else if (value is num) {
-            return value.toInt();
-          }
-        }
-      }
-    }
-
-    // Fallback to simple V-scale ordering for backwards compatibility
-    if (grade.startsWith('V')) {
-      final number = int.tryParse(grade.substring(1));
-      return number ?? 0;
-    }
-    return 0;
+  double _gradeOrder(String grade) {
+    return gradeOrderValue(
+      grade,
+      gradeDefinitions: _routeProvider?.gradeDefinitions ?? const [],
+    );
   }
 
   void setTimeFilter(ProfileTimeFilter filter) {
