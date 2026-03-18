@@ -5,7 +5,17 @@ import '../models/route_filter_models.dart';
 import '../services/cached_api_service.dart';
 import '../providers/auth_provider.dart';
 import '../utils/route_filtering.dart';
+import '../utils/route_response_parsing.dart';
 import '../utils/route_sorting.dart';
+
+enum _ActionRefreshStrategy {
+  none,
+  selectedIfOpen,
+  selectedAlways,
+  routesOnly,
+  selectedIfOpenAndRoutes,
+  selectedAlwaysAndRoutes,
+}
 
 class RouteProvider extends ChangeNotifier {
   late final CachedApiService _apiService;
@@ -236,77 +246,12 @@ class RouteProvider extends ChangeNotifier {
         _apiService.getUserProjects(forceRefresh: forceRefresh),
       ]);
 
-      _userTickedRouteIds.addAll(_extractSentTickRouteIds(results[0]));
-      _userLikedRouteIds.addAll(_extractRouteIds(results[1]));
-      _userProjectRouteIds.addAll(_extractRouteIds(results[2]));
+      _userTickedRouteIds.addAll(extractLeadSentTickRouteIds(results[0]));
+      _userLikedRouteIds.addAll(extractRouteIds(results[1]));
+      _userProjectRouteIds.addAll(extractRouteIds(results[2]));
     } catch (e) {
       // Do not fail route loading if user interaction endpoints fail.
     }
-  }
-
-  Set<int> _extractRouteIds(List<dynamic> items) {
-    final routeIds = <int>{};
-
-    for (final item in items) {
-      if (item is! Map) {
-        continue;
-      }
-
-      final dynamic rawRouteId = item['route_id'] ?? item['routeId'];
-      final int? routeId = rawRouteId is int
-          ? rawRouteId
-          : rawRouteId is String
-              ? int.tryParse(rawRouteId)
-              : null;
-
-      if (routeId != null) {
-        routeIds.add(routeId);
-      }
-    }
-
-    return routeIds;
-  }
-
-  Set<int> _extractSentTickRouteIds(List<dynamic> items) {
-    final routeIds = <int>{};
-
-    for (final item in items) {
-      if (item is! Map) {
-        continue;
-      }
-
-      final bool leadSend = _parseDynamicBool(item['lead_send']);
-      if (!leadSend) {
-        continue;
-      }
-
-      final dynamic rawRouteId = item['route_id'] ?? item['routeId'];
-      final int? routeId = rawRouteId is int
-          ? rawRouteId
-          : rawRouteId is String
-              ? int.tryParse(rawRouteId)
-              : null;
-
-      if (routeId != null) {
-        routeIds.add(routeId);
-      }
-    }
-
-    return routeIds;
-  }
-
-  bool _parseDynamicBool(dynamic value) {
-    if (value is bool) {
-      return value;
-    }
-    if (value is num) {
-      return value != 0;
-    }
-    if (value is String) {
-      final normalized = value.trim().toLowerCase();
-      return normalized == '1' || normalized == 'true';
-    }
-    return false;
   }
 
   // Apply client-side filters (for features not supported by API)
@@ -378,26 +323,49 @@ class RouteProvider extends ChangeNotifier {
     }
   }
 
-  // Like/Unlike route
-  Future<bool> toggleLike(int routeId) async {
+  Future<void> _refreshAfterAction({
+    required _ActionRefreshStrategy strategy,
+    int? routeId,
+  }) async {
+    switch (strategy) {
+      case _ActionRefreshStrategy.none:
+        return;
+      case _ActionRefreshStrategy.selectedIfOpen:
+        if (routeId != null && _selectedRoute?.id == routeId) {
+          await loadRoute(routeId);
+        }
+        return;
+      case _ActionRefreshStrategy.selectedAlways:
+        if (routeId != null) {
+          await loadRoute(routeId);
+        }
+        return;
+      case _ActionRefreshStrategy.routesOnly:
+        await loadRoutes();
+        return;
+      case _ActionRefreshStrategy.selectedIfOpenAndRoutes:
+        if (routeId != null && _selectedRoute?.id == routeId) {
+          await loadRoute(routeId);
+        }
+        await loadRoutes();
+        return;
+      case _ActionRefreshStrategy.selectedAlwaysAndRoutes:
+        if (routeId != null) {
+          await loadRoute(routeId);
+        }
+        await loadRoutes();
+        return;
+    }
+  }
+
+  Future<bool> _executeRouteAction({
+    required Future<void> Function() action,
+    _ActionRefreshStrategy refreshStrategy = _ActionRefreshStrategy.none,
+    int? routeId,
+  }) async {
     try {
-      final currentUser = _authProvider.currentUser;
-      if (currentUser == null) return false;
-
-      bool status = await getUserLikeStatus(routeId);
-
-      final isLiked = status;
-
-      if (isLiked) {
-        await _apiService.unlikeRoute(routeId);
-      } else {
-        await _apiService.likeRoute(routeId);
-      }
-
-      // Refresh the specific route to get updated data
-      await loadRoute(routeId);
-      // Also refresh the routes list
-      await loadRoutes();
+      await action();
+      await _refreshAfterAction(strategy: refreshStrategy, routeId: routeId);
       return true;
     } catch (e) {
       _error = e.toString();
@@ -406,29 +374,36 @@ class RouteProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> _toggleLikeRequest(int routeId) async {
+    final isLiked = await getUserLikeStatus(routeId);
+    if (isLiked) {
+      await _apiService.unlikeRoute(routeId);
+    } else {
+      await _apiService.likeRoute(routeId);
+    }
+  }
+
+  // Like/Unlike route
+  Future<bool> toggleLike(int routeId) async {
+    final currentUser = _authProvider.currentUser;
+    if (currentUser == null) return false;
+
+    return _executeRouteAction(
+      action: () => _toggleLikeRequest(routeId),
+      routeId: routeId,
+      refreshStrategy: _ActionRefreshStrategy.selectedAlwaysAndRoutes,
+    );
+  }
+
   // Like/Unlike route (optimized for UI interactions)
   Future<bool> toggleLikeOptimized(int routeId) async {
-    try {
-      final currentUser = _authProvider.currentUser;
-      if (currentUser == null) return false;
+    final currentUser = _authProvider.currentUser;
+    if (currentUser == null) return false;
 
-      bool status = await getUserLikeStatus(routeId);
-
-      final isLiked = status;
-
-      if (isLiked) {
-        await _apiService.unlikeRoute(routeId);
-      } else {
-        await _apiService.likeRoute(routeId);
-      }
-
-      // Don't reload everything - let the UI handle its own state updates
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return false;
-    }
+    return _executeRouteAction(
+      action: () => _toggleLikeRequest(routeId),
+      routeId: routeId,
+    );
   }
 
   // Check if user has liked a route
@@ -446,118 +421,68 @@ class RouteProvider extends ChangeNotifier {
 
   // Add attempts to a route
   Future<bool> addAttempts(int routeId, int attempts, {String? notes}) async {
-    try {
-      await _apiService.addAttempts(routeId, attempts, notes: notes);
-
-      // Refresh the specific route to get updated data
-      if (_selectedRoute?.id == routeId) {
-        await loadRoute(routeId);
-      }
-      // Also refresh the routes list
-      await loadRoutes();
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return false;
-    }
+    return _executeRouteAction(
+      action: () => _apiService.addAttempts(routeId, attempts, notes: notes),
+      routeId: routeId,
+      refreshStrategy: _ActionRefreshStrategy.selectedIfOpenAndRoutes,
+    );
   }
 
   // Add attempts to a route (optimized for UI interactions)
   Future<bool> addAttemptsOptimized(int routeId, int attempts,
       {String? notes, String? attemptType}) async {
-    try {
-      await _apiService.addAttempts(routeId, attempts,
-          notes: notes, attemptType: attemptType);
-
-      // Don't reload everything - let the UI handle its own state updates
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return false;
-    }
+    return _executeRouteAction(
+      action: () => _apiService.addAttempts(
+        routeId,
+        attempts,
+        notes: notes,
+        attemptType: attemptType,
+      ),
+      routeId: routeId,
+    );
   }
 
   // Mark a route as sent in a specific style
   Future<bool> markSend(int routeId, String sendType, {String? notes}) async {
-    try {
-      await _apiService.markSend(routeId, sendType, notes: notes);
-
-      // Refresh the specific route to get updated data
-      if (_selectedRoute?.id == routeId) {
-        await loadRoute(routeId);
-      }
-      // Also refresh the routes list
-      await loadRoutes();
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return false;
-    }
+    return _executeRouteAction(
+      action: () => _apiService.markSend(routeId, sendType, notes: notes),
+      routeId: routeId,
+      refreshStrategy: _ActionRefreshStrategy.selectedIfOpenAndRoutes,
+    );
   }
 
   // Mark a route as sent in a specific style (optimized for UI interactions)
   Future<bool> markSendOptimized(int routeId, String sendType,
       {String? notes}) async {
-    try {
-      await _apiService.markSend(routeId, sendType, notes: notes);
-
-      // Don't reload everything - let the UI handle its own state updates
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return false;
-    }
+    return _executeRouteAction(
+      action: () => _apiService.markSend(routeId, sendType, notes: notes),
+      routeId: routeId,
+    );
   }
 
   // Remove a specific send type from a route
   Future<bool> unmarkSend(int routeId, String sendType) async {
-    try {
-      await _apiService.unmarkSend(routeId, sendType);
-
-      // Refresh the specific route to get updated data
-      if (_selectedRoute?.id == routeId) {
-        await loadRoute(routeId);
-      }
-      // Also refresh the routes list
-      await loadRoutes();
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return false;
-    }
+    return _executeRouteAction(
+      action: () => _apiService.unmarkSend(routeId, sendType),
+      routeId: routeId,
+      refreshStrategy: _ActionRefreshStrategy.selectedIfOpenAndRoutes,
+    );
   }
 
   // Remove a specific send type from a route (optimized for UI interactions)
   Future<bool> unmarkSendOptimized(int routeId, String sendType) async {
-    try {
-      await _apiService.unmarkSend(routeId, sendType);
-
-      // Don't reload everything - let the UI handle its own state updates
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return false;
-    }
+    return _executeRouteAction(
+      action: () => _apiService.unmarkSend(routeId, sendType),
+      routeId: routeId,
+    );
   }
 
   // Update route notes without affecting attempts or sends
   Future<bool> updateRouteNotes(int routeId, String notes) async {
-    try {
-      await _apiService.updateRouteNotes(routeId, notes);
-
-      // Don't reload everything - let the UI handle its own state updates
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return false;
-    }
+    return _executeRouteAction(
+      action: () => _apiService.updateRouteNotes(routeId, notes),
+      routeId: routeId,
+    );
   }
 
   // Check if user has ticked a route
@@ -571,32 +496,20 @@ class RouteProvider extends ChangeNotifier {
 
   // Add comment
   Future<bool> addComment(int routeId, String content) async {
-    try {
-      await _apiService.addComment(routeId, content);
-      // Refresh the route to show new comment
-      await loadRoute(routeId);
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return false;
-    }
+    return _executeRouteAction(
+      action: () => _apiService.addComment(routeId, content),
+      routeId: routeId,
+      refreshStrategy: _ActionRefreshStrategy.selectedAlways,
+    );
   }
 
   // Add comment (optimized for UI interactions)
   Future<bool> addCommentOptimized(int routeId, String content) async {
-    try {
-      await _apiService.addComment(routeId, content);
-      // Only refresh the specific route if it's currently selected to show new comment
-      if (_selectedRoute?.id == routeId) {
-        await loadRoute(routeId);
-      }
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return false;
-    }
+    return _executeRouteAction(
+      action: () => _apiService.addComment(routeId, content),
+      routeId: routeId,
+      refreshStrategy: _ActionRefreshStrategy.selectedIfOpen,
+    );
   }
 
   // Propose grade
@@ -605,16 +518,12 @@ class RouteProvider extends ChangeNotifier {
     String proposedGrade,
     String? reasoning,
   ) async {
-    try {
-      await _apiService.proposeGrade(routeId, proposedGrade, reasoning ?? '');
-      // Refresh the route to show new proposal
-      await loadRoute(routeId);
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return false;
-    }
+    return _executeRouteAction(
+      action: () =>
+          _apiService.proposeGrade(routeId, proposedGrade, reasoning ?? ''),
+      routeId: routeId,
+      refreshStrategy: _ActionRefreshStrategy.selectedAlways,
+    );
   }
 
   // Propose grade (optimized for UI interactions)
@@ -623,18 +532,12 @@ class RouteProvider extends ChangeNotifier {
     String proposedGrade,
     String? reasoning,
   ) async {
-    try {
-      await _apiService.proposeGrade(routeId, proposedGrade, reasoning ?? '');
-      // Only refresh the specific route if it's currently selected to show new proposal
-      if (_selectedRoute?.id == routeId) {
-        await loadRoute(routeId);
-      }
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return false;
-    }
+    return _executeRouteAction(
+      action: () =>
+          _apiService.proposeGrade(routeId, proposedGrade, reasoning ?? ''),
+      routeId: routeId,
+      refreshStrategy: _ActionRefreshStrategy.selectedIfOpen,
+    );
   }
 
   // Get current user's grade proposal for a route
@@ -654,16 +557,11 @@ class RouteProvider extends ChangeNotifier {
     String warningType,
     String description,
   ) async {
-    try {
-      await _apiService.addWarning(routeId, warningType, description);
-      // Refresh the route to show new warning
-      await loadRoute(routeId);
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return false;
-    }
+    return _executeRouteAction(
+      action: () => _apiService.addWarning(routeId, warningType, description),
+      routeId: routeId,
+      refreshStrategy: _ActionRefreshStrategy.selectedAlways,
+    );
   }
 
   // Add warning (optimized for UI interactions)
@@ -672,18 +570,11 @@ class RouteProvider extends ChangeNotifier {
     String warningType,
     String description,
   ) async {
-    try {
-      await _apiService.addWarning(routeId, warningType, description);
-      // Only refresh the specific route if it's currently selected to show new warning
-      if (_selectedRoute?.id == routeId) {
-        await loadRoute(routeId);
-      }
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return false;
-    }
+    return _executeRouteAction(
+      action: () => _apiService.addWarning(routeId, warningType, description),
+      routeId: routeId,
+      refreshStrategy: _ActionRefreshStrategy.selectedIfOpen,
+    );
   }
 
   // Load wall sections
@@ -838,28 +729,64 @@ class RouteProvider extends ChangeNotifier {
     await loadGradeColors();
   }
 
+  void _mutateFilters(void Function() mutation) {
+    mutation();
+    _applyFiltersAndSort();
+  }
+
+  void _setSingleSelection<T>(Set<T> target, T? value) {
+    target
+      ..clear()
+      ..addAll(value == null ? <T>[] : <T>[value]);
+  }
+
+  void _setMultiSelection<T>(Set<T> target, Set<T> values) {
+    target
+      ..clear()
+      ..addAll(values);
+  }
+
+  void _toggleSelection<T>(Set<T> target, T value) {
+    if (target.contains(value)) {
+      target.remove(value);
+    } else {
+      target.add(value);
+    }
+  }
+
+  void _setInteractionFilter(
+    FilterState state,
+    void Function(FilterState) assign,
+  ) {
+    _mutateFilters(() {
+      assign(state);
+    });
+  }
+
+  void _resetBaseFilters() {
+    _selectedWallSections.clear();
+    _selectedLaneIds.clear();
+    _selectedMinGradeIndex = null;
+    _selectedMaxGradeIndex = null;
+  }
+
   // Filter methods
   void setWallSectionFilter(String? wallSection) {
-    _selectedWallSections
-      ..clear()
-      ..addAll(wallSection == null ? const <String>[] : <String>[wallSection]);
-    _applyFiltersAndSort();
+    _mutateFilters(() {
+      _setSingleSelection<String>(_selectedWallSections, wallSection);
+    });
   }
 
   void setWallSectionsFilter(Set<String> wallSections) {
-    _selectedWallSections
-      ..clear()
-      ..addAll(wallSections);
-    _applyFiltersAndSort();
+    _mutateFilters(() {
+      _setMultiSelection<String>(_selectedWallSections, wallSections);
+    });
   }
 
   void toggleWallSectionFilter(String wallSection) {
-    if (_selectedWallSections.contains(wallSection)) {
-      _selectedWallSections.remove(wallSection);
-    } else {
-      _selectedWallSections.add(wallSection);
-    }
-    _applyFiltersAndSort();
+    _mutateFilters(() {
+      _toggleSelection<String>(_selectedWallSections, wallSection);
+    });
   }
 
   void setGradeFilter(String? grade) {
@@ -915,71 +842,58 @@ class RouteProvider extends ChangeNotifier {
   }
 
   void setLaneFilter(int? lane) {
-    _selectedLaneIds
-      ..clear()
-      ..addAll(lane == null ? const <int>[] : <int>[lane]);
-    _applyFiltersAndSort();
+    _mutateFilters(() {
+      _setSingleSelection<int>(_selectedLaneIds, lane);
+    });
   }
 
   void setLaneIdsFilter(Set<int> laneIds) {
-    _selectedLaneIds
-      ..clear()
-      ..addAll(laneIds);
-    _applyFiltersAndSort();
+    _mutateFilters(() {
+      _setMultiSelection<int>(_selectedLaneIds, laneIds);
+    });
   }
 
   void toggleLaneFilter(int laneId) {
-    if (_selectedLaneIds.contains(laneId)) {
-      _selectedLaneIds.remove(laneId);
-    } else {
-      _selectedLaneIds.add(laneId);
-    }
-    _applyFiltersAndSort();
+    _mutateFilters(() {
+      _toggleSelection<int>(_selectedLaneIds, laneId);
+    });
   }
 
   void setRouteSetterFilter(String? routeSetter) {
-    _selectedRouteSetter = routeSetter;
-    _applyFiltersAndSort();
+    _mutateFilters(() {
+      _selectedRouteSetter = routeSetter;
+    });
   }
 
   void setSortOption(SortOption sortOption) {
-    _selectedSort = sortOption;
-    _applyFiltersAndSort();
+    _mutateFilters(() {
+      _selectedSort = sortOption;
+    });
   }
 
   void setTickedFilter(FilterState state) {
-    _tickedFilter = state;
-    _applyFiltersAndSort();
+    _setInteractionFilter(state, (value) => _tickedFilter = value);
   }
 
   void setLikedFilter(FilterState state) {
-    _likedFilter = state;
-    _applyFiltersAndSort();
+    _setInteractionFilter(state, (value) => _likedFilter = value);
   }
 
   void setWarnedFilter(FilterState state) {
-    _warnedFilter = state;
-    _applyFiltersAndSort();
+    _setInteractionFilter(state, (value) => _warnedFilter = value);
   }
 
   void setProjectFilter(FilterState state) {
-    _projectFilter = state;
-    _applyFiltersAndSort();
+    _setInteractionFilter(state, (value) => _projectFilter = value);
   }
 
   void clearFilters() {
-    _selectedWallSections.clear();
-    _selectedLaneIds.clear();
-    _selectedMinGradeIndex = null;
-    _selectedMaxGradeIndex = null;
+    _resetBaseFilters();
     loadRoutes();
   }
 
   void clearAllFilters() {
-    _selectedWallSections.clear();
-    _selectedLaneIds.clear();
-    _selectedMinGradeIndex = null;
-    _selectedMaxGradeIndex = null;
+    _resetBaseFilters();
     _selectedRouteSetter = null;
     _tickedFilter = FilterState.all;
     _likedFilter = FilterState.all;
@@ -1049,55 +963,35 @@ class RouteProvider extends ChangeNotifier {
 
   // Project management methods
   Future<bool> addProject(int routeId, {String? notes}) async {
-    try {
-      await _apiService.addProject(routeId, notes: notes);
-      // Reload routes to update project counts
-      await loadRoutes();
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return false;
-    }
+    return _executeRouteAction(
+      action: () => _apiService.addProject(routeId, notes: notes),
+      routeId: routeId,
+      refreshStrategy: _ActionRefreshStrategy.routesOnly,
+    );
   }
 
   // Add project (optimized for UI interactions)
   Future<bool> addProjectOptimized(int routeId, {String? notes}) async {
-    try {
-      await _apiService.addProject(routeId, notes: notes);
-      // Don't reload everything - let the UI handle its own state updates
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return false;
-    }
+    return _executeRouteAction(
+      action: () => _apiService.addProject(routeId, notes: notes),
+      routeId: routeId,
+    );
   }
 
   Future<bool> removeProject(int routeId) async {
-    try {
-      await _apiService.removeProject(routeId);
-      // Reload routes to update project counts
-      await loadRoutes();
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return false;
-    }
+    return _executeRouteAction(
+      action: () => _apiService.removeProject(routeId),
+      routeId: routeId,
+      refreshStrategy: _ActionRefreshStrategy.routesOnly,
+    );
   }
 
   // Remove project (optimized for UI interactions)
   Future<bool> removeProjectOptimized(int routeId) async {
-    try {
-      await _apiService.removeProject(routeId);
-      // Don't reload everything - let the UI handle its own state updates
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return false;
-    }
+    return _executeRouteAction(
+      action: () => _apiService.removeProject(routeId),
+      routeId: routeId,
+    );
   }
 
   Future<List<Project>> getUserProjects() async {
