@@ -23,40 +23,26 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  late FocusNode _focusNode;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _focusNode = FocusNode();
-    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ProfileProvider>().loadProfile();
     });
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.resumed) {
-      // Refresh profile data when app becomes active again
-      _refreshProfileData();
-    }
-  }
-
   void _refreshProfileData() {
     if (mounted) {
-      context.read<ProfileProvider>().refresh();
+      context.read<ProfileProvider>().loadProfile();
     }
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _focusNode.dispose();
     _tabController.dispose();
     super.dispose();
   }
@@ -153,152 +139,140 @@ class _ProfileScreenState extends State<ProfileScreen>
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    return Focus(
-      focusNode: _focusNode,
-      onFocusChange: (hasFocus) {
-        if (hasFocus) {
-          // Refresh data when the screen gains focus (returns from navigation)
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _refreshProfileData();
-          });
-        }
-      },
-      child: Scaffold(
-        appBar: CustomAppBar(
-          title: l10n.profileTitle,
-          actions: [
-            // Time filter dropdown
-            ValueListenableBuilder<ProfileTimeFilter>(
-              valueListenable:
-                  context.read<ProfileProvider>().timeFilterNotifier,
-              builder: (context, timeFilter, child) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: DropdownButton<ProfileTimeFilter>(
-                    value: timeFilter,
-                    underline: Container(),
-                    items: ProfileTimeFilter.values.map((filter) {
-                      return DropdownMenuItem(
-                        value: filter,
-                        child: Text(
-                          _getTimeFilterDisplayName(filter, l10n),
-                          style: const TextStyle(fontSize: 14),
+    return Scaffold(
+      appBar: CustomAppBar(
+        title: l10n.profileTitle,
+        actions: [
+          // Time filter dropdown
+          ValueListenableBuilder<ProfileTimeFilter>(
+            valueListenable: context.read<ProfileProvider>().timeFilterNotifier,
+            builder: (context, timeFilter, child) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: DropdownButton<ProfileTimeFilter>(
+                  value: timeFilter,
+                  underline: Container(),
+                  items: ProfileTimeFilter.values.map((filter) {
+                    return DropdownMenuItem(
+                      value: filter,
+                      child: Text(
+                        _getTimeFilterDisplayName(filter, l10n),
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (filter) {
+                    if (filter != null) {
+                      context.read<ProfileProvider>().setTimeFilter(filter);
+                    }
+                  },
+                ),
+              );
+            },
+          ),
+        ],
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: [
+            Tab(
+              icon: const Icon(Icons.analytics),
+              text: l10n.performanceTab,
+            ),
+            Tab(
+              icon: const Icon(Icons.map),
+              text: l10n.routesTab,
+            ),
+            Tab(
+              icon: const Icon(Icons.settings),
+              text: l10n.settingsTab,
+            ),
+          ],
+        ),
+      ),
+      body: Column(
+        children: [
+          // Loading and error state handling
+          ValueListenableBuilder<bool>(
+            valueListenable: context.read<ProfileProvider>().loadingNotifier,
+            builder: (context, isLoading, child) {
+              if (isLoading) {
+                return const Expanded(
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+          ValueListenableBuilder<String?>(
+            valueListenable: context.read<ProfileProvider>().errorNotifier,
+            builder: (context, error, child) {
+              if (error != null) {
+                return Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline,
+                            size: 64, color: Colors.red),
+                        const SizedBox(height: 16),
+                        Text(
+                          '${l10n.error}: $error',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 16),
                         ),
-                      );
-                    }).toList(),
-                    onChanged: (filter) {
-                      if (filter != null) {
-                        context.read<ProfileProvider>().setTimeFilter(filter);
-                      }
-                    },
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () =>
+                              context.read<ProfileProvider>().loadProfile(),
+                          child: Text(l10n.retry),
+                        ),
+                      ],
+                    ),
                   ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+          // Main content - only rebuild when data changes, not when filter changes
+          Expanded(
+            child: Consumer<ProfileProvider>(
+              builder: (context, profileProvider, child) {
+                // This Consumer only rebuilds when the actual data changes,
+                // not when the time filter changes
+                if (profileProvider.isLoading ||
+                    profileProvider.error != null) {
+                  return const SizedBox.shrink();
+                }
+
+                return TabBarView(
+                  controller: _tabController,
+                  children: [
+                    // Performance Tab
+                    RefreshIndicator(
+                      onRefresh: () => profileProvider.refresh(),
+                      child: const PerformanceTab(),
+                    ),
+                    // Routes Tab
+                    RefreshIndicator(
+                      onRefresh: () => profileProvider.refresh(),
+                      child: RoutesTab(
+                        onRouteReturn: () => _refreshProfileData(),
+                      ),
+                    ),
+                    // Settings Tab
+                    RefreshIndicator(
+                      onRefresh: () => profileProvider.refresh(),
+                      child: SettingsTab(
+                        onEditNickname: () => _promptEditNickname(context),
+                      ),
+                    ),
+                  ],
                 );
               },
             ),
-          ],
-          bottom: TabBar(
-            controller: _tabController,
-            tabs: [
-              Tab(
-                icon: const Icon(Icons.analytics),
-                text: l10n.performanceTab,
-              ),
-              Tab(
-                icon: const Icon(Icons.map),
-                text: l10n.routesTab,
-              ),
-              Tab(
-                icon: const Icon(Icons.settings),
-                text: l10n.settingsTab,
-              ),
-            ],
           ),
-        ),
-        body: Column(
-          children: [
-            // Loading and error state handling
-            ValueListenableBuilder<bool>(
-              valueListenable: context.read<ProfileProvider>().loadingNotifier,
-              builder: (context, isLoading, child) {
-                if (isLoading) {
-                  return const Expanded(
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-            ),
-            ValueListenableBuilder<String?>(
-              valueListenable: context.read<ProfileProvider>().errorNotifier,
-              builder: (context, error, child) {
-                if (error != null) {
-                  return Expanded(
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.error_outline,
-                              size: 64, color: Colors.red),
-                          const SizedBox(height: 16),
-                          Text(
-                            '${l10n.error}: $error',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: () =>
-                                context.read<ProfileProvider>().loadProfile(),
-                            child: Text(l10n.retry),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-            ),
-            // Main content - only rebuild when data changes, not when filter changes
-            Expanded(
-              child: Consumer<ProfileProvider>(
-                builder: (context, profileProvider, child) {
-                  // This Consumer only rebuilds when the actual data changes,
-                  // not when the time filter changes
-                  if (profileProvider.isLoading ||
-                      profileProvider.error != null) {
-                    return const SizedBox.shrink();
-                  }
-
-                  return TabBarView(
-                    controller: _tabController,
-                    children: [
-                      // Performance Tab
-                      RefreshIndicator(
-                        onRefresh: () => profileProvider.refresh(),
-                        child: const PerformanceTab(),
-                      ),
-                      // Routes Tab
-                      RefreshIndicator(
-                        onRefresh: () => profileProvider.refresh(),
-                        child: RoutesTab(
-                          onRouteReturn: () => _refreshProfileData(),
-                        ),
-                      ),
-                      // Settings Tab
-                      RefreshIndicator(
-                        onRefresh: () => profileProvider.refresh(),
-                        child: SettingsTab(
-                          onEditNickname: () => _promptEditNickname(context),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -353,8 +327,7 @@ class _PerformanceTabState extends State<PerformanceTab>
                     filteredTicks: profileProvider.filteredTicks,
                     filteredProjects: profileProvider.filteredProjects,
                     timeFilter: timeFilter,
-                    gradeDefinitions:
-                        context.read<RouteProvider>().gradeDefinitions,
+                    filteredHardestGrade: profileProvider.filteredHardestGrade,
                   );
                 },
               ),

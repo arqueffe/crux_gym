@@ -117,7 +117,7 @@ class TicksList extends StatelessWidget {
                                           size: 12, color: Colors.blue),
                                       const SizedBox(width: 2),
                                       Text(
-                                        '${l10n.topRopeShort}${tick.isTopRopeFlash ? ' ⚡' : ''}',
+                                        l10n.topRopeShort,
                                         style: const TextStyle(
                                           color: Colors.blue,
                                           fontSize: 10,

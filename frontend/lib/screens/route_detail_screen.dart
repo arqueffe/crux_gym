@@ -268,9 +268,9 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                                                 CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                route.name == 'Unnamed'
-                                                    ? l10n.unnamed
-                                                    : route.name,
+                                                route.displayName(
+                                                  unnamedFallback: l10n.unnamed,
+                                                ),
                                                 style: Theme.of(context)
                                                     .textTheme
                                                     .headlineMedium

@@ -548,6 +548,13 @@ class Crux_API
 
         $routes = Crux_Route::get_all($filters);
 
+        $route_ids = array();
+        foreach ($routes as $route_item) {
+            $route_ids[] = intval($route_item->id);
+        }
+
+        $name_proposals_by_route = $this->get_name_proposals_by_route_ids($route_ids);
+
         // Add route statistics and user interactions for each route
         foreach ($routes as &$route) {
             $stats = Crux_Route::get_stats($route->id);
@@ -565,9 +572,90 @@ class Crux_API
                 $route->user_ticked = $this->user_has_ticked($current_user->ID, $route->id);
                 $route->user_project = $this->user_has_project($current_user->ID, $route->id);
             }
+
+            $route->name_proposals = isset($name_proposals_by_route[intval($route->id)])
+                ? $name_proposals_by_route[intval($route->id)]
+                : array();
         }
 
         return array_values($routes);
+    }
+
+    /**
+     * Get name proposals grouped by route IDs in a single query.
+     */
+    private function get_name_proposals_by_route_ids($route_ids)
+    {
+        global $wpdb;
+
+        if (!is_array($route_ids) || empty($route_ids)) {
+            return array();
+        }
+
+        $normalized_ids = array();
+        foreach ($route_ids as $route_id) {
+            $route_id = intval($route_id);
+            if ($route_id > 0) {
+                $normalized_ids[$route_id] = true;
+            }
+        }
+
+        $normalized_ids = array_keys($normalized_ids);
+        if (empty($normalized_ids)) {
+            return array();
+        }
+
+        $proposals_table = $wpdb->prefix . 'crux_route_name_proposals';
+        $votes_table = $wpdb->prefix . 'crux_route_name_votes';
+        $users_table = $wpdb->users;
+
+        if ($wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $proposals_table)) !== $proposals_table) {
+            return array();
+        }
+
+        $votes_table_exists =
+            $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $votes_table)) === $votes_table;
+
+        $placeholders = implode(', ', array_fill(0, count($normalized_ids), '%d'));
+
+        if ($votes_table_exists) {
+            $sql = "SELECT p.route_id, p.id, p.proposed_name, p.user_id, u.display_name as user_name, p.created_at,
+                           COUNT(DISTINCT v.id) as vote_count
+                    FROM $proposals_table p
+                    LEFT JOIN $users_table u ON p.user_id = u.ID
+                    LEFT JOIN $votes_table v ON p.id = v.proposal_id
+                    WHERE p.route_id IN ($placeholders)
+                    GROUP BY p.route_id, p.id, p.proposed_name, p.user_id, u.display_name, p.created_at
+                    ORDER BY p.route_id ASC, vote_count DESC, p.created_at ASC";
+        } else {
+            $sql = "SELECT p.route_id, p.id, p.proposed_name, p.user_id, u.display_name as user_name, p.created_at,
+                           0 as vote_count
+                    FROM $proposals_table p
+                    LEFT JOIN $users_table u ON p.user_id = u.ID
+                    WHERE p.route_id IN ($placeholders)
+                    ORDER BY p.route_id ASC, p.created_at ASC";
+        }
+
+        $prepared_sql = $wpdb->prepare($sql, $normalized_ids);
+        $rows = $wpdb->get_results($prepared_sql);
+
+        if (!empty($wpdb->last_error)) {
+            error_log('Crux API get_name_proposals_by_route_ids SQL error: ' . $wpdb->last_error);
+            return array();
+        }
+
+        $grouped = array();
+        if ($rows) {
+            foreach ($rows as $row) {
+                $route_id = intval($row->route_id);
+                if (!isset($grouped[$route_id])) {
+                    $grouped[$route_id] = array();
+                }
+                $grouped[$route_id][] = $row;
+            }
+        }
+
+        return $grouped;
     }
 
     /**
@@ -686,6 +774,11 @@ class Crux_API
         $route->comments = $comments ?: array();
         $route->warnings = $warnings ?: array();
         $route->grade_proposals = $grade_proposals ?: array();
+
+        $name_proposals_by_route = $this->get_name_proposals_by_route_ids(array($route_id));
+        $route->name_proposals = isset($name_proposals_by_route[$route_id])
+            ? $name_proposals_by_route[$route_id]
+            : array();
 
         // Add user-specific data if user is authenticated
         $current_user = $this->_get_current_user();
@@ -872,7 +965,7 @@ class Crux_API
                 array(
                     'user_id' => $current_user->ID,
                     'route_id' => $route_id,
-                    'notes' => NULL,
+                    'notes' => null,
                     'top_rope_attempts' => 0,
                     'lead_attempts' => 0,
                     'top_rope_send' => 0,
@@ -880,7 +973,7 @@ class Crux_API
                     'created_at' => current_time('mysql'),
                     'updated_at' => current_time('mysql')
                 ),
-                array('%d', '%d', '%d', '%d', '%d', '%s', '%d', '%d', '%d', '%d', '%s', '%s')
+                array('%d', '%d', '%s', '%d', '%d', '%d', '%d', '%s', '%s')
             );
             
             if ($result === false) {
@@ -918,8 +1011,11 @@ class Crux_API
         ));
         
         if ($existing) {
+            if (intval($existing->lead_send) === 1) {
+                return new WP_Error('attempts_not_allowed', 'Cannot add attempts after a lead send', array('status' => 400));
+            }
+
             // Update existing tick - add attempts without marking as sent
-            $new_total_attempts = $existing->attempts + $attempts;
             $update_data = array(
                 'updated_at' => current_time('mysql')
             );
@@ -943,9 +1039,7 @@ class Crux_API
             $result = $wpdb->update(
                 $table_name,
                 $update_data,
-                array('user_id' => $current_user->ID, 'route_id' => $route_id),
-                array('%d', '%d', '%d', '%s', '%s', '%d', '%d'),
-                array('%d', '%d')
+                array('user_id' => $current_user->ID, 'route_id' => $route_id)
             );
         } else {
             // Create new tick without marking as sent
@@ -974,8 +1068,7 @@ class Crux_API
             
             $result = $wpdb->insert(
                 $table_name,
-                $insert_data,
-                array('%d', '%d', '%d', '%s', '%d', '%d', '%d', '%d', '%s', '%s')
+                $insert_data
             );
         }
         
@@ -999,6 +1092,10 @@ class Crux_API
         
         $send_type = sanitize_text_field($data['send_type']);
         $notes = isset($data['notes']) ? sanitize_textarea_field($data['notes']) : '';
+
+        if (!in_array($send_type, array('top_rope', 'lead'), true)) {
+            return new WP_Error('invalid_send_type', 'Invalid send type', array('status' => 400));
+        }
         
         $table_name = $wpdb->prefix . 'crux_ticks';
         
@@ -1046,16 +1143,13 @@ class Crux_API
             $send_data['user_id'] = $current_user->ID;
             $send_data['route_id'] = $route_id;
             $send_data['created_at'] = current_time('mysql');
-            if (!isset($send_data['attempts'])) {
-                $send_data['attempts'] = 1;
-            }
             
             // For new ticks, ensure attempt counts are set
             if (!isset($send_data['top_rope_attempts'])) {
-                if ($send_type === 'top_rope' || $send_type === 'flash') {
+                if ($send_type === 'top_rope') {
                     $send_data['top_rope_attempts'] = 1;
                     $send_data['lead_attempts'] = 0;
-                } elseif ($send_type === 'lead' || $send_type === 'lead_flash') {
+                } elseif ($send_type === 'lead') {
                     $send_data['top_rope_attempts'] = 0;
                     $send_data['lead_attempts'] = 1;
                 } else {
@@ -1096,6 +1190,10 @@ class Crux_API
         $data = $request->get_json_params();
         
         $send_type = sanitize_text_field($data['send_type']);
+
+        if (!in_array($send_type, array('top_rope', 'lead'), true)) {
+            return new WP_Error('invalid_send_type', 'Invalid send type', array('status' => 400));
+        }
         
         $table_name = $wpdb->prefix . 'crux_ticks';
         
@@ -2248,15 +2346,12 @@ class Crux_API
                     'user_id' => $user_id,
                     'route_id' => $route_id,
                     'notes' => $notes,
-                    'attempts' => 0,
                     'top_rope_attempts' => 0,
                     'lead_attempts' => 0,
                     'top_rope_send' => 0,
-                    'lead_send' => 0,
-                    'top_rope_flash' => 0,
-                    'lead_flash' => 0
+                    'lead_send' => 0
                 ),
-                array('%d', '%d', '%s', '%d', '%d', '%d', '%d', '%d', '%d', '%d')
+                array('%d', '%d', '%s', '%d', '%d', '%d', '%d')
             );
         }
         
@@ -2276,25 +2371,55 @@ class Crux_API
      */
     public function get_route_name_proposals($request) {
         global $wpdb;
-        
-        $route_id = $request['id'];
+
+        $route_id = intval($request['id']);
+        if ($route_id <= 0) {
+            return array();
+        }
+
         $proposals_table = $wpdb->prefix . 'crux_route_name_proposals';
         $votes_table = $wpdb->prefix . 'crux_route_name_votes';
-        $users_table = $wpdb->prefix . 'users';
-        
-        $proposals = $wpdb->get_results($wpdb->prepare(
-            "SELECT p.id, p.proposed_name, p.user_id, u.display_name as user_name, p.created_at,
-                    COUNT(DISTINCT v.id) as vote_count
-             FROM $proposals_table p
-             LEFT JOIN $users_table u ON p.user_id = u.ID
-             LEFT JOIN $votes_table v ON p.id = v.proposal_id
-             WHERE p.route_id = %d
-             GROUP BY p.id
-             ORDER BY vote_count DESC, p.created_at ASC",
-            $route_id
-        ));
-        
-        return $proposals;
+        $users_table = $wpdb->users;
+
+        // If proposals table is missing, return an empty list instead of 500.
+        if ($wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $proposals_table)) !== $proposals_table) {
+            return array();
+        }
+
+        $votes_table_exists =
+            $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $votes_table)) === $votes_table;
+
+        if ($votes_table_exists) {
+            $proposals = $wpdb->get_results($wpdb->prepare(
+                "SELECT p.id, p.proposed_name, p.user_id, u.display_name as user_name, p.created_at,
+                        COUNT(DISTINCT v.id) as vote_count
+                 FROM $proposals_table p
+                 LEFT JOIN $users_table u ON p.user_id = u.ID
+                 LEFT JOIN $votes_table v ON p.id = v.proposal_id
+                 WHERE p.route_id = %d
+                 GROUP BY p.id, p.proposed_name, p.user_id, u.display_name, p.created_at
+                 ORDER BY vote_count DESC, p.created_at ASC",
+                $route_id
+            ));
+        } else {
+            // Backward compatibility for older installations without votes table.
+            $proposals = $wpdb->get_results($wpdb->prepare(
+                "SELECT p.id, p.proposed_name, p.user_id, u.display_name as user_name, p.created_at,
+                        0 as vote_count
+                 FROM $proposals_table p
+                 LEFT JOIN $users_table u ON p.user_id = u.ID
+                 WHERE p.route_id = %d
+                 ORDER BY p.created_at ASC",
+                $route_id
+            ));
+        }
+
+        if (!empty($wpdb->last_error)) {
+            error_log('Crux API get_route_name_proposals SQL error: ' . $wpdb->last_error);
+            return array();
+        }
+
+        return $proposals ?: array();
     }
 
     /**

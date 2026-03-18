@@ -9,6 +9,7 @@ import '../utils/grade_sorting.dart';
 class ProfileProvider extends ChangeNotifier {
   late final CachedApiService _apiService;
   final RouteProvider? _routeProvider;
+  static const Duration _profileCacheTtl = Duration(seconds: 30);
 
   ProfileProvider({
     required AuthProvider authProvider,
@@ -23,6 +24,19 @@ class ProfileProvider extends ChangeNotifier {
   List<GradeStatistics> _gradeStats = [];
   ProfileStats? _profileStats;
   ProfileTimeFilter _timeFilter = ProfileTimeFilter.all;
+  Future<void>? _ongoingLoad;
+  DateTime? _lastLoadedAt;
+
+  ProfileTimeFilter? _cachedFilter;
+  List<UserTick>? _cachedFilteredTicks;
+  List<UserLike>? _cachedFilteredLikes;
+  List<Project>? _cachedFilteredProjects;
+  List<GradeStatistics>? _cachedFilteredGradeStats;
+  List<UserTick>? _cachedFilteredLeadSends;
+  List<UserTick>? _cachedFilteredInProgressRoutes;
+  String? _cachedFilteredHardestGrade;
+  bool _hasCachedFilteredHardestGrade = false;
+  final Map<String, double> _gradeOrderCache = <String, double>{};
 
   // Separate notifiers for specific concerns
   final ValueNotifier<ProfileTimeFilter> timeFilterNotifier =
@@ -42,91 +56,77 @@ class ProfileProvider extends ChangeNotifier {
 
   // Filtered getters based on time filter
   List<UserTick> get filteredTicks {
-    final startDate = _timeFilter.startDate;
-    if (startDate == null) return _userTicks;
-    return _userTicks
-        .where((tick) => tick.updatedAt.isAfter(startDate))
-        .toList();
+    _ensureFilterCaches();
+    return _cachedFilteredTicks!;
   }
 
   // New getter for lead sends only
   List<UserTick> get filteredLeadSends {
-    final startDate = _timeFilter.startDate;
-    final baseTicks = startDate == null
-        ? _userTicks
-        : _userTicks
-            .where((tick) => tick.createdAt.isAfter(startDate))
-            .toList();
-
-    return baseTicks.where((tick) => tick.leadSend).toList();
+    _ensureFilterCaches();
+    return _cachedFilteredLeadSends!;
   }
 
   // New getter for routes in progress (attempts without lead send)
   List<UserTick> get filteredInProgressRoutes {
-    final startDate = _timeFilter.startDate;
-    final baseTicks = startDate == null
-        ? _userTicks
-        : _userTicks
-            .where((tick) => tick.createdAt.isAfter(startDate))
-            .toList();
-
-    return baseTicks
-        .where((tick) =>
-            (tick.topRopeAttempts > 0 || tick.leadAttempts > 0) &&
-            !tick.leadSend)
-        .toList();
+    _ensureFilterCaches();
+    return _cachedFilteredInProgressRoutes!;
   }
 
   List<UserLike> get filteredLikes {
-    final startDate = _timeFilter.startDate;
-    if (startDate == null) return _userLikes;
-    return _userLikes
-        .where((like) => like.createdAt.isAfter(startDate))
-        .toList();
+    _ensureFilterCaches();
+    return _cachedFilteredLikes!;
   }
 
   List<Project> get filteredProjects {
-    final startDate = _timeFilter.startDate;
-    if (startDate == null) return _userProjects;
-    return _userProjects
-        .where((project) => project.createdAt.isAfter(startDate))
-        .toList();
+    _ensureFilterCaches();
+    return _cachedFilteredProjects!;
   }
 
   List<GradeStatistics> get filteredGradeStats {
-    final startDate = _timeFilter.startDate;
-    if (startDate == null) return _gradeStats;
+    _ensureFilterCaches();
+    return _cachedFilteredGradeStats!;
+  }
 
-    // Recalculate grade stats for filtered period
-    final filteredTicksMap = <String, List<UserTick>>{};
-
-    for (final tick in filteredTicks) {
-      filteredTicksMap.putIfAbsent(tick.routeGrade, () => []).add(tick);
-    }
-
-    return filteredTicksMap.entries.map((entry) {
-      final grade = entry.key;
-      final ticks = entry.value;
-
-      return GradeStatistics(grade: grade, ticks: ticks);
-    }).toList()
-      ..sort((a, b) => _gradeOrder(a.grade).compareTo(_gradeOrder(b.grade)));
+  String? get filteredHardestGrade {
+    _ensureFilterCaches();
+    return _hasCachedFilteredHardestGrade ? _cachedFilteredHardestGrade : null;
   }
 
   double _gradeOrder(String grade) {
-    return gradeOrderValue(
+    return _gradeOrderCache.putIfAbsent(
       grade,
-      gradeDefinitions: _routeProvider?.gradeDefinitions ?? const [],
+      () => gradeOrderValue(
+        grade,
+        gradeDefinitions: _routeProvider?.gradeDefinitions ?? const [],
+      ),
     );
   }
 
   void setTimeFilter(ProfileTimeFilter filter) {
     _timeFilter = filter;
     timeFilterNotifier.value = filter;
+    _clearFilterCaches();
     // Don't call notifyListeners() here - only specific consumers should rebuild
   }
 
   Future<void> loadProfile({bool forceRefresh = false}) async {
+    if (_ongoingLoad != null) {
+      return _ongoingLoad!;
+    }
+
+    if (!forceRefresh && _isProfileDataFresh()) {
+      return;
+    }
+
+    _ongoingLoad = _loadProfileInternal(forceRefresh: forceRefresh);
+    try {
+      await _ongoingLoad!;
+    } finally {
+      _ongoingLoad = null;
+    }
+  }
+
+  Future<void> _loadProfileInternal({bool forceRefresh = false}) async {
     _setLoading(true);
     errorNotifier.value = null;
 
@@ -138,6 +138,7 @@ class ProfileProvider extends ChangeNotifier {
       ]);
 
       _calculateGradeStats();
+      _lastLoadedAt = DateTime.now();
     } catch (e) {
       errorNotifier.value = 'Failed to load profile: $e';
     } finally {
@@ -175,6 +176,9 @@ class ProfileProvider extends ChangeNotifier {
   }
 
   void _calculateGradeStats() {
+    _gradeOrderCache.clear();
+    _clearFilterCaches();
+
     final gradeTicksMap = <String, List<UserTick>>{};
 
     for (final tick in _userTicks) {
@@ -208,12 +212,8 @@ class ProfileProvider extends ChangeNotifier {
     final leadSends = _userTicks.where((tick) => tick.leadSend).length;
 
     // Flash statistics
-    final topRopeFlashes = _userTicks
-        .where((tick) => tick.topRopeAttempts == 0 && tick.topRopeSend)
-        .length;
-    final leadFlashes = _userTicks
-        .where((tick) => tick.leadAttempts == 0 && tick.leadSend)
-        .length;
+    const topRopeFlashes = 0;
+    final leadFlashes = _userTicks.where((tick) => tick.isLeadFlash).length;
 
     // Grade achievements
     final grades = _userTicks.map((tick) => tick.routeGrade).toSet().toList();
@@ -221,35 +221,30 @@ class ProfileProvider extends ChangeNotifier {
     String? hardestTopRopeGrade;
     String? hardestLeadGrade;
 
-    if (grades.isNotEmpty) {
-      // Sort grades to find hardest overall
-      grades.sort((a, b) {
-        final aOrder = _gradeOrder(a);
-        final bOrder = _gradeOrder(b);
-        return bOrder.compareTo(aOrder); // Descending order for hardest first
-      });
-      hardestGrade = grades.first;
+    double? hardestGradeOrder;
+    double? hardestTopRopeGradeOrder;
+    double? hardestLeadGradeOrder;
 
-      // Find hardest top rope grade
-      final topRopeGrades = _userTicks
-          .where((tick) => tick.topRopeSend)
-          .map((tick) => tick.routeGrade)
-          .toSet()
-          .toList();
-      if (topRopeGrades.isNotEmpty) {
-        topRopeGrades.sort((a, b) => _gradeOrder(b).compareTo(_gradeOrder(a)));
-        hardestTopRopeGrade = topRopeGrades.first;
+    for (final tick in _userTicks) {
+      final grade = tick.routeGrade;
+      final order = _gradeOrder(grade);
+
+      if (hardestGradeOrder == null || order > hardestGradeOrder) {
+        hardestGradeOrder = order;
+        hardestGrade = grade;
       }
 
-      // Find hardest lead grade
-      final leadGrades = _userTicks
-          .where((tick) => tick.leadSend)
-          .map((tick) => tick.routeGrade)
-          .toSet()
-          .toList();
-      if (leadGrades.isNotEmpty) {
-        leadGrades.sort((a, b) => _gradeOrder(b).compareTo(_gradeOrder(a)));
-        hardestLeadGrade = leadGrades.first;
+      if (tick.topRopeSend &&
+          (hardestTopRopeGradeOrder == null ||
+              order > hardestTopRopeGradeOrder)) {
+        hardestTopRopeGradeOrder = order;
+        hardestTopRopeGrade = grade;
+      }
+
+      if (tick.leadSend &&
+          (hardestLeadGradeOrder == null || order > hardestLeadGradeOrder)) {
+        hardestLeadGradeOrder = order;
+        hardestLeadGrade = grade;
       }
     }
 
@@ -301,10 +296,97 @@ class ProfileProvider extends ChangeNotifier {
   /// Clear user-specific cache
   void clearUserCache() {
     _apiService.clearUserCache();
+    _lastLoadedAt = null;
   }
 
   /// Get cache statistics for debugging
   Map<String, dynamic> getCacheStats() {
     return _apiService.getCacheStats();
+  }
+
+  bool _isProfileDataFresh() {
+    if (_lastLoadedAt == null) {
+      return false;
+    }
+
+    return DateTime.now().difference(_lastLoadedAt!) < _profileCacheTtl;
+  }
+
+  void _clearFilterCaches() {
+    _cachedFilter = null;
+    _cachedFilteredTicks = null;
+    _cachedFilteredLikes = null;
+    _cachedFilteredProjects = null;
+    _cachedFilteredGradeStats = null;
+    _cachedFilteredLeadSends = null;
+    _cachedFilteredInProgressRoutes = null;
+    _cachedFilteredHardestGrade = null;
+    _hasCachedFilteredHardestGrade = false;
+  }
+
+  void _ensureFilterCaches() {
+    if (_cachedFilter == _timeFilter && _cachedFilteredTicks != null) {
+      return;
+    }
+
+    final startDate = _timeFilter.startDate;
+    final ticks = startDate == null
+        ? _userTicks
+        : _userTicks
+            .where((tick) => tick.updatedAt.isAfter(startDate))
+            .toList();
+
+    final likes = startDate == null
+        ? _userLikes
+        : _userLikes
+            .where((like) => like.createdAt.isAfter(startDate))
+            .toList();
+
+    final projects = startDate == null
+        ? _userProjects
+        : _userProjects
+            .where((project) => project.createdAt.isAfter(startDate))
+            .toList();
+
+    final leadSends = ticks.where((tick) => tick.leadSend).toList();
+    final inProgressRoutes = ticks
+        .where((tick) =>
+            (tick.topRopeAttempts > 0 ||
+                tick.leadAttempts > 0 ||
+                tick.topRopeSend) &&
+            !tick.leadSend)
+        .toList();
+
+    final gradeTicksMap = <String, List<UserTick>>{};
+    for (final tick in ticks) {
+      gradeTicksMap.putIfAbsent(tick.routeGrade, () => <UserTick>[]).add(tick);
+    }
+
+    final gradeStats = gradeTicksMap.entries
+        .map((entry) => GradeStatistics(grade: entry.key, ticks: entry.value))
+        .toList()
+      ..sort((a, b) => _gradeOrder(a.grade).compareTo(_gradeOrder(b.grade)));
+
+    String? hardestGrade;
+    bool hasHardestGrade = false;
+    double? hardestOrder;
+    for (final tick in ticks) {
+      final order = _gradeOrder(tick.routeGrade);
+      if (hardestOrder == null || order > hardestOrder) {
+        hardestOrder = order;
+        hardestGrade = tick.routeGrade;
+        hasHardestGrade = true;
+      }
+    }
+
+    _cachedFilter = _timeFilter;
+    _cachedFilteredTicks = ticks;
+    _cachedFilteredLikes = likes;
+    _cachedFilteredProjects = projects;
+    _cachedFilteredLeadSends = leadSends;
+    _cachedFilteredInProgressRoutes = inProgressRoutes;
+    _cachedFilteredGradeStats = gradeStats;
+    _cachedFilteredHardestGrade = hardestGrade;
+    _hasCachedFilteredHardestGrade = hasHardestGrade;
   }
 }

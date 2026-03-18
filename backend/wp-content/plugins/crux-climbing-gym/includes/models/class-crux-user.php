@@ -96,7 +96,9 @@ class Crux_User {
                 SUM(CASE WHEN top_rope_send = 1 OR lead_send = 1 THEN 1 ELSE 0 END) as total_sends,
                 SUM(CASE WHEN top_rope_send = 1 THEN 1 ELSE 0 END) as top_rope_sends,
                 SUM(CASE WHEN lead_send = 1 THEN 1 ELSE 0 END) as lead_sends,
-                SUM(attempts) as total_attempts
+                    SUM(top_rope_attempts + lead_attempts) as total_attempts,
+                    SUM(CASE WHEN lead_send = 1 THEN lead_attempts ELSE 0 END) as lead_attempts_on_lead_sends,
+                    SUM(CASE WHEN lead_send = 1 AND lead_attempts = 1 AND top_rope_attempts = 0 THEN 1 ELSE 0 END) as lead_flashes
             FROM $ticks_table 
             WHERE user_id = %d
         ", $user_id), ARRAY_A);
@@ -105,9 +107,13 @@ class Crux_User {
         
         // Ensure numeric values
         $stats['total_sends'] = intval($stats['total_sends'] ?? 0);
-        $stats['top_rope_flashes'] = intval($stats['top_rope_flashes'] ?? 0);
-        $stats['lead_flashes'] = intval($stats['lead_flashes'] ?? 0);
+        $stats['top_rope_sends'] = intval($stats['top_rope_sends'] ?? 0);
+        $stats['lead_sends'] = intval($stats['lead_sends'] ?? 0);
         $stats['total_attempts'] = intval($stats['total_attempts'] ?? 0);
+        $stats['lead_attempts_on_lead_sends'] = intval($stats['lead_attempts_on_lead_sends'] ?? 0);
+        $stats['lead_flashes'] = intval($stats['lead_flashes'] ?? 0);
+        // Flash is lead-only by product definition.
+        $stats['top_rope_flashes'] = 0;
         
         // Calculate average attempts correctly - divide by total sends, not total ticks
         $stats['average_attempts'] = $stats['total_sends'] > 0 ? 

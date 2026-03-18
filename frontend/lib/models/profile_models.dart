@@ -47,11 +47,12 @@ class UserTick {
     );
   }
 
-  bool get isTopRopeFlash => topRopeSend && topRopeAttempts == 1;
+  // Flash is lead-only by product definition.
+  bool get isTopRopeFlash => false;
 
   bool get isLeadFlash => leadSend && leadAttempts == 1 && topRopeAttempts == 0;
 
-  int get attempts => topRopeAttempts + leadAttempts + (topRopeSend ? 1 : 0) + (leadSend ? 1 : 0);
+  int get attempts => topRopeAttempts + leadAttempts;
 }
 
 class UserLike {
@@ -92,6 +93,7 @@ class GradeStatistics {
   final int leadSends;
   final int topRopeAttempts;
   final int leadAttempts;
+  final int leadAttemptsOnLeadSends;
   final int flashCount;
 
   GradeStatistics({
@@ -109,19 +111,19 @@ class GradeStatistics {
         leadAttempts = ticks
             .where((tick) => tick.routeGrade == grade)
             .fold(0, (sum, tick) => sum + tick.leadAttempts),
+        leadAttemptsOnLeadSends = ticks
+            .where((tick) => tick.routeGrade == grade && tick.leadSend)
+            .fold(0, (sum, tick) => sum + tick.leadAttempts),
         flashCount = ticks
             .where((tick) => tick.routeGrade == grade && tick.isLeadFlash)
             .length;
 
   double get averageAttempts {
-    final totalAttempts = topRopeAttempts + leadAttempts;
-    final totalSends = topRopeSends + leadSends;
-    return totalSends > 0 ? totalAttempts / totalSends : 0.0;
+    return leadSends > 0 ? leadAttemptsOnLeadSends / leadSends : 0.0;
   }
 
   double get flashRate {
-    final totalSends = topRopeSends + leadSends;
-    return totalSends > 0 ? flashCount / totalSends : 0.0;
+    return leadSends > 0 ? flashCount / leadSends : 0.0;
   }
 }
 

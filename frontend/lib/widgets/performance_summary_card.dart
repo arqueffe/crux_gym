@@ -2,14 +2,13 @@ import 'package:flutter/material.dart';
 import '../generated/l10n/app_localizations.dart';
 import '../models/profile_models.dart';
 import '../models/route_models.dart';
-import '../utils/grade_sorting.dart';
 
 class PerformanceSummaryCard extends StatelessWidget {
   final ProfileStats? stats;
   final List<UserTick> filteredTicks;
   final List<Project> filteredProjects;
   final ProfileTimeFilter timeFilter;
-  final List<Map<String, dynamic>> gradeDefinitions;
+  final String? filteredHardestGrade;
 
   const PerformanceSummaryCard({
     super.key,
@@ -17,7 +16,7 @@ class PerformanceSummaryCard extends StatelessWidget {
     required this.filteredTicks,
     required this.filteredProjects,
     required this.timeFilter,
-    required this.gradeDefinitions,
+    required this.filteredHardestGrade,
   });
 
   @override
@@ -35,8 +34,6 @@ class PerformanceSummaryCard extends StatelessWidget {
       );
     }
 
-    final filteredTopRopeFlashes =
-        filteredTicks.where((tick) => tick.isTopRopeFlash).length;
     final filteredLeadFlashes =
         filteredTicks.where((tick) => tick.isLeadFlash).length;
     final filteredTopRopeSends =
@@ -44,7 +41,6 @@ class PerformanceSummaryCard extends StatelessWidget {
     final filteredLeadSends =
         filteredTicks.where((tick) => tick.leadSend).length;
 
-    // Calculate flash rate based on lead sends only (as requested)
     final filteredLeadFlashRate =
         filteredLeadSends > 0 ? filteredLeadFlashes / filteredLeadSends : 0.0;
 
@@ -58,26 +54,6 @@ class PerformanceSummaryCard extends StatelessWidget {
         : 0.0;
     final filteredLeadAverageAttempts =
         filteredLeadSends > 0 ? filteredLeadAttempts / filteredLeadSends : 0.0;
-
-    // Get hardest grade from filtered ticks using proper grade ordering
-    String? filteredHardestGrade;
-    if (filteredTicks.isNotEmpty) {
-      final grades =
-          filteredTicks.map((tick) => tick.routeGrade).toSet().toList();
-
-      // Sort using grade definitions if available
-      if (gradeDefinitions.isNotEmpty) {
-        grades.sort((a, b) {
-          final aOrder = _getGradeOrder(a, gradeDefinitions);
-          final bOrder = _getGradeOrder(b, gradeDefinitions);
-          return bOrder.compareTo(aOrder); // Descending order for hardest first
-        });
-      } else {
-        // Fallback to V-scale ordering
-        grades.sort((a, b) => _gradeOrder(b).compareTo(_gradeOrder(a)));
-      }
-      filteredHardestGrade = grades.first;
-    }
 
     final screenWidth = MediaQuery.of(context).size.width;
     return Card(
@@ -179,14 +155,6 @@ class PerformanceSummaryCard extends StatelessWidget {
                   filteredLeadAverageAttempts.toStringAsFixed(1),
                   Icons.trending_up,
                   Colors.green,
-                ),
-                _buildSendTypeCard(
-                  context,
-                  l10n.trFlash,
-                  filteredTopRopeFlashes,
-                  filteredTopRopeSends,
-                  Icons.arrow_upward,
-                  Colors.blue,
                 ),
                 _buildSendTypeCard(
                   context,
@@ -316,15 +284,6 @@ class PerformanceSummaryCard extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  double _gradeOrder(String grade) {
-    return gradeOrderValue(grade, gradeDefinitions: gradeDefinitions);
-  }
-
-  double _getGradeOrder(
-      String grade, List<Map<String, dynamic>> gradeDefinitions) {
-    return gradeOrderValue(grade, gradeDefinitions: gradeDefinitions);
   }
 
   Widget _buildSendTypeCard(

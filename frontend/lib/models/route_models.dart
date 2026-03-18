@@ -57,6 +57,29 @@ class Route {
     this.nameProposals,
   });
 
+  String displayName({required String unnamedFallback}) {
+    if (name != 'Unnamed') {
+      return name;
+    }
+
+    final proposals = nameProposals;
+    if (proposals == null || proposals.isEmpty) {
+      return unnamedFallback;
+    }
+
+    final sorted = List<NameProposal>.from(proposals)
+      ..sort((a, b) {
+        final voteComparison = b.voteCount.compareTo(a.voteCount);
+        if (voteComparison != 0) {
+          return voteComparison;
+        }
+        return a.createdAt.compareTo(b.createdAt);
+      });
+
+    final topProposal = sorted.first.proposedName.trim();
+    return topProposal.isEmpty ? unnamedFallback : topProposal;
+  }
+
   factory Route.fromJson(Map<String, dynamic> json) {
     return Route(
       id: int.parse(json['id']),

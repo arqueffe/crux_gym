@@ -39,13 +39,15 @@ class RouteProvider extends ChangeNotifier {
   final Set<int> _userTickedRouteIds = <int>{};
   final Set<int> _userLikedRouteIds = <int>{};
   final Set<int> _userProjectRouteIds = <int>{};
+  bool _nameProposalsEndpointAvailable = true;
 
   // Getters
   List<Route> get routes => _currentRoutes;
   Route? get selectedRoute => _selectedRoute;
   bool get isLoading => _isLoading;
   String? get error => _error;
-  Set<String> get selectedWallSections => Set.unmodifiable(_selectedWallSections);
+  Set<String> get selectedWallSections =>
+      Set.unmodifiable(_selectedWallSections);
   Set<int> get selectedLaneIds => Set.unmodifiable(_selectedLaneIds);
   int? get selectedMinGradeIndex => _selectedMinGradeIndex;
   int? get selectedMaxGradeIndex => _selectedMaxGradeIndex;
@@ -64,7 +66,9 @@ class RouteProvider extends ChangeNotifier {
     }
     return null;
   }
-  int? get selectedLane => _selectedLaneIds.isEmpty ? null : _selectedLaneIds.first;
+
+  int? get selectedLane =>
+      _selectedLaneIds.isEmpty ? null : _selectedLaneIds.first;
 
   bool get hasGradeRangeFilter {
     final gradeScale = availableGrades;
@@ -77,24 +81,20 @@ class RouteProvider extends ChangeNotifier {
         _selectedMaxGradeIndex == gradeScale.length - 1);
   }
 
-  String? get selectedMinGrade =>
-      _selectedMinGradeIndex != null &&
-              _selectedMinGradeIndex! < availableGrades.length
-          ? availableGrades[_selectedMinGradeIndex!]
-          : null;
-  String? get selectedMaxGrade =>
-      _selectedMaxGradeIndex != null &&
-              _selectedMaxGradeIndex! < availableGrades.length
-          ? availableGrades[_selectedMaxGradeIndex!]
-          : null;
+  String? get selectedMinGrade => _selectedMinGradeIndex != null &&
+          _selectedMinGradeIndex! < availableGrades.length
+      ? availableGrades[_selectedMinGradeIndex!]
+      : null;
+  String? get selectedMaxGrade => _selectedMaxGradeIndex != null &&
+          _selectedMaxGradeIndex! < availableGrades.length
+      ? availableGrades[_selectedMaxGradeIndex!]
+      : null;
   String? get selectedRouteSetter => _selectedRouteSetter;
   List<String> get wallSections => _wallSections;
   List<String> get grades => _grades;
   List<String> get availableGrades {
-    final routeGradeNames = _routes
-        .map((route) => route.gradeName)
-        .whereType<String>()
-        .toSet();
+    final routeGradeNames =
+        _routes.map((route) => route.gradeName).whereType<String>().toSet();
 
     if (routeGradeNames.isEmpty) {
       return _grades;
@@ -102,11 +102,13 @@ class RouteProvider extends ChangeNotifier {
 
     return _grades.where((grade) => routeGradeNames.contains(grade)).toList();
   }
+
   List<Lane> get lanes => _lanes;
   List<Lane> get lanesWithRoutes {
     final laneIdsInRoutes = _routes.map((route) => route.lane).toSet();
     return _lanes.where((lane) => laneIdsInRoutes.contains(lane.id)).toList();
   }
+
   List<int> get laneIds => _lanes.map((lane) => lane.id).toList();
   List<String> get routeSetters => _routeSetters;
   List<Map<String, dynamic>> get gradeDefinitions => _gradeDefinitions;
@@ -159,6 +161,12 @@ class RouteProvider extends ChangeNotifier {
       print('🔧 Calling _apiService.getRoutes()...');
       _routes = await _apiService.getRoutes(forceRefresh: forceRefresh);
       print('✅ _apiService.getRoutes() returned ${_routes.length} routes');
+
+      // Enrich unnamed routes with name proposals because /routes payload does
+      // not include proposal details needed for display fallback.
+      await _hydrateUnnamedRoutesWithNameProposals(
+        forceRefresh: forceRefresh,
+      );
 
       // Ensure grade definitions and hold colors are loaded before populating route data
       print('🔧 Ensuring grade definitions and hold colors are loaded...');
@@ -265,9 +273,8 @@ class RouteProvider extends ChangeNotifier {
         continue;
       }
 
-      final bool topRopeSend = _parseDynamicBool(item['top_rope_send']);
       final bool leadSend = _parseDynamicBool(item['lead_send']);
-      if (!topRopeSend && !leadSend) {
+      if (!leadSend) {
         continue;
       }
 
@@ -410,6 +417,13 @@ class RouteProvider extends ChangeNotifier {
     try {
       _selectedRoute =
           await _apiService.getRoute(routeId, forceRefresh: forceRefresh);
+
+      if (_selectedRoute != null) {
+        _selectedRoute = await _hydrateRouteNameProposals(
+          _selectedRoute!,
+          forceRefresh: forceRefresh,
+        );
+      }
 
       // Ensure grade definitions and hold colors are loaded before populating route data
       await Future.wait([
@@ -776,7 +790,7 @@ class RouteProvider extends ChangeNotifier {
     try {
       print('🔧 Calling _apiService.getGrades()...');
       _grades = await _apiService.getGrades();
-        _sanitizeGradeRangeFilter();
+      _sanitizeGradeRangeFilter();
       print(
           '✅ _apiService.getGrades() returned ${_grades.length} grades: $_grades');
     } catch (e) {
@@ -1069,9 +1083,9 @@ class RouteProvider extends ChangeNotifier {
     }
 
     _selectedMinGradeIndex =
-      _selectedMinGradeIndex!.clamp(0, gradeScale.length - 1);
+        _selectedMinGradeIndex!.clamp(0, gradeScale.length - 1);
     _selectedMaxGradeIndex =
-      _selectedMaxGradeIndex!.clamp(0, gradeScale.length - 1);
+        _selectedMaxGradeIndex!.clamp(0, gradeScale.length - 1);
 
     if (_selectedMinGradeIndex! > _selectedMaxGradeIndex!) {
       final temp = _selectedMinGradeIndex!;
@@ -1353,6 +1367,106 @@ class RouteProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> _hydrateUnnamedRoutesWithNameProposals(
+      {bool forceRefresh = false}) async {
+    if (!_nameProposalsEndpointAvailable) {
+      return;
+    }
+
+    final unnamedRoutes = _routes
+        .where(
+            (route) => route.name == 'Unnamed' && route.nameProposals == null)
+        .toList();
+
+    if (unnamedRoutes.isEmpty) {
+      return;
+    }
+
+    for (final route in unnamedRoutes) {
+      if (!_nameProposalsEndpointAvailable) {
+        break;
+      }
+
+      final hydratedRoute = await _hydrateRouteNameProposals(
+        route,
+        forceRefresh: forceRefresh,
+      );
+
+      for (int i = 0; i < _routes.length; i++) {
+        if (_routes[i].id == hydratedRoute.id) {
+          _routes[i] = hydratedRoute;
+          break;
+        }
+      }
+    }
+  }
+
+  Future<Route> _hydrateRouteNameProposals(Route route,
+      {bool forceRefresh = false}) async {
+    if (!_nameProposalsEndpointAvailable) {
+      return route;
+    }
+
+    if (route.name != 'Unnamed') {
+      return route;
+    }
+
+    if (route.nameProposals != null) {
+      return route;
+    }
+
+    try {
+      final proposals = await _apiService.getRouteNameProposals(
+        route.id,
+        forceRefresh: forceRefresh,
+      );
+
+      _nameProposalsEndpointAvailable = true;
+
+      if (proposals.isEmpty) {
+        return route;
+      }
+
+      return _copyRouteWithNameProposals(route, proposals);
+    } catch (e) {
+      _nameProposalsEndpointAvailable = false;
+      print('⚠️ Disabling route name proposal hydration after API failure: $e');
+      return route;
+    }
+  }
+
+  Route _copyRouteWithNameProposals(Route route, List<NameProposal> proposals) {
+    return Route(
+      id: route.id,
+      name: route.name,
+      gradeId: route.gradeId,
+      gradeName: route.gradeName,
+      gradeColor: route.gradeColor,
+      image: route.image,
+      routeSetter: route.routeSetter,
+      wallSection: route.wallSection,
+      lane: route.lane,
+      laneName: route.laneName,
+      holdColorId: route.holdColorId,
+      colorName: route.colorName,
+      colorHex: route.colorHex,
+      description: route.description,
+      createdAt: route.createdAt,
+      likesCount: route.likesCount,
+      commentsCount: route.commentsCount,
+      gradeProposalsCount: route.gradeProposalsCount,
+      warningsCount: route.warningsCount,
+      ticksCount: route.ticksCount,
+      projectsCount: route.projectsCount,
+      likes: route.likes,
+      comments: route.comments,
+      gradeProposals: route.gradeProposals,
+      warnings: route.warnings,
+      ticks: route.ticks,
+      nameProposals: proposals,
+    );
+  }
+
   /// Populate route information (colors and grades) for a single route
   Route _populateRouteDataForSingleRoute(Route route) {
     // Get color information
@@ -1389,6 +1503,7 @@ class RouteProvider extends ChangeNotifier {
       gradeProposals: route.gradeProposals,
       warnings: route.warnings,
       ticks: route.ticks,
+      nameProposals: route.nameProposals,
     );
   }
 }

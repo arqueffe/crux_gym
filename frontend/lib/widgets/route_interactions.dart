@@ -542,15 +542,6 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                                         .onSurfaceVariant,
                               ),
                             ),
-                            if (_tickData!.isTopRopeFlash)
-                              Text(
-                                l10n.flashLabel,
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.orange,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
                           ],
                         ),
                         // Lead Status
@@ -931,7 +922,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
         final l10n = AppLocalizations.of(context);
         return AlertDialog(
           title: Text(
-              '${l10n.note} - ${widget.route.name == 'Unnamed' ? l10n.unnamed : widget.route.name}'),
+              '${l10n.note} - ${widget.route.displayName(unnamedFallback: l10n.unnamed)}'),
           content: TextField(
             controller: notesController,
             decoration: InputDecoration(
