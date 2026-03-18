@@ -1,10 +1,11 @@
 import 'package:flutter/foundation.dart';
 import '../models/route_models.dart';
 import '../models/lane_models.dart';
+import '../models/route_filter_models.dart';
 import '../services/cached_api_service.dart';
 import '../providers/auth_provider.dart';
+import '../utils/route_filtering.dart';
 import '../utils/route_sorting.dart';
-import '../widgets/filter_drawer.dart';
 
 class RouteProvider extends ChangeNotifier {
   late final CachedApiService _apiService;
@@ -310,106 +311,23 @@ class RouteProvider extends ChangeNotifier {
 
   // Apply client-side filters (for features not supported by API)
   void _applyClientSideFilters() {
-    List<Route> filteredRoutes = List.from(_routes);
-
-    // Filter by wall section
-    if (_selectedWallSections.isNotEmpty) {
-      filteredRoutes = filteredRoutes
-          .where((route) => _selectedWallSections.contains(route.wallSection))
-          .toList();
-    }
-
-    // Filter by grade range (inclusive)
-    if (hasGradeRangeFilter) {
-      final minIndex = _selectedMinGradeIndex!;
-      final maxIndex = _selectedMaxGradeIndex!;
-      final gradeScale = availableGrades;
-      final gradeIndexMap = <String, int>{
-        for (int i = 0; i < gradeScale.length; i++) gradeScale[i]: i,
-      };
-
-      filteredRoutes = filteredRoutes.where((route) {
-        final gradeName = route.gradeName;
-        if (gradeName == null) {
-          return false;
-        }
-        final gradeIndex = gradeIndexMap[gradeName];
-        if (gradeIndex == null) {
-          return false;
-        }
-        return gradeIndex >= minIndex && gradeIndex <= maxIndex;
-      }).toList();
-    }
-
-    // Filter by lane IDs
-    if (_selectedLaneIds.isNotEmpty) {
-      filteredRoutes = filteredRoutes.where((route) {
-        return _selectedLaneIds.contains(route.lane);
-      }).toList();
-    }
-
-    // Filter by route setter
-    if (_selectedRouteSetter != null) {
-      filteredRoutes = filteredRoutes
-          .where((route) => route.routeSetter == _selectedRouteSetter)
-          .toList();
-    }
-
-    // Filter by ticked status for the current user.
-    if (_tickedFilter != FilterState.all) {
-      if (_tickedFilter == FilterState.only) {
-        filteredRoutes = filteredRoutes
-            .where((route) => _userTickedRouteIds.contains(route.id))
-            .toList();
-      } else if (_tickedFilter == FilterState.exclude) {
-        filteredRoutes = filteredRoutes
-            .where((route) => !_userTickedRouteIds.contains(route.id))
-            .toList();
-      }
-    }
-
-    // Filter by liked status for the current user.
-    if (_likedFilter != FilterState.all) {
-      if (_likedFilter == FilterState.only) {
-        filteredRoutes = filteredRoutes
-            .where((route) => _userLikedRouteIds.contains(route.id))
-            .toList();
-      } else if (_likedFilter == FilterState.exclude) {
-        filteredRoutes = filteredRoutes
-            .where((route) => !_userLikedRouteIds.contains(route.id))
-            .toList();
-      }
-    }
-
-    // Filter by warned status
-    if (_warnedFilter != FilterState.all) {
-      if (_warnedFilter == FilterState.only) {
-        filteredRoutes = filteredRoutes
-            .where(
-                (route) => route.warningsCount > 0) // Show only warned routes
-            .toList();
-      } else if (_warnedFilter == FilterState.exclude) {
-        filteredRoutes = filteredRoutes
-            .where((route) =>
-                route.warningsCount == 0) // Show only non-warned routes
-            .toList();
-      }
-    }
-
-    // Filter by project status for the current user.
-    if (_projectFilter != FilterState.all) {
-      if (_projectFilter == FilterState.only) {
-        filteredRoutes = filteredRoutes
-            .where((route) => _userProjectRouteIds.contains(route.id))
-            .toList();
-      } else if (_projectFilter == FilterState.exclude) {
-        filteredRoutes = filteredRoutes
-            .where((route) => !_userProjectRouteIds.contains(route.id))
-            .toList();
-      }
-    }
-
-    _currentRoutes = filteredRoutes;
+    _currentRoutes = applyRouteFilters(
+      routes: _routes,
+      selectedWallSections: _selectedWallSections,
+      selectedLaneIds: _selectedLaneIds,
+      hasGradeRangeFilter: hasGradeRangeFilter,
+      selectedMinGradeIndex: _selectedMinGradeIndex,
+      selectedMaxGradeIndex: _selectedMaxGradeIndex,
+      availableGrades: availableGrades,
+      selectedRouteSetter: _selectedRouteSetter,
+      tickedFilter: _tickedFilter,
+      likedFilter: _likedFilter,
+      warnedFilter: _warnedFilter,
+      projectFilter: _projectFilter,
+      userTickedRouteIds: _userTickedRouteIds,
+      userLikedRouteIds: _userLikedRouteIds,
+      userProjectRouteIds: _userProjectRouteIds,
+    );
   }
 
   // Load specific route with details
