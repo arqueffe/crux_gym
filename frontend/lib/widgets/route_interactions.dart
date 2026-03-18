@@ -5,6 +5,8 @@ import '../models/profile_models.dart';
 import '../models/route_models.dart' as models;
 import '../providers/route_provider.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/route_interaction_dialogs.dart';
+import '../widgets/route_interaction_feedback.dart';
 
 class RouteInteractions extends StatefulWidget {
   final models.Route route;
@@ -409,11 +411,19 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Theme.of(context).brightness == Brightness.dark
-                      ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
-                      : Theme.of(context).colorScheme.primary.withOpacity(0.05),
+                      ? Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withValues(alpha: 0.1)
+                      : Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withValues(alpha: 0.05),
                   border: Border.all(
-                    color:
-                        Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.3),
                   ),
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -594,7 +604,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                           color: Theme.of(context)
                               .colorScheme
                               .surfaceContainerHighest
-                              .withOpacity(0.5),
+                              .withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Row(
@@ -640,13 +650,10 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     // Check if user has already lead sent this route
     if (_isLeadSent()) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              l10n.cannotAddAttempts,
-            ),
-            backgroundColor: Colors.orange,
-          ),
+        showRouteInteractionSuccess(
+          context,
+          l10n.cannotAddAttempts,
+          backgroundColor: Colors.orange,
         );
       }
       return;
@@ -655,54 +662,10 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     // Show dialog to select attempt type
     if (!mounted) return;
 
-    final attemptType = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.addAttempts),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(l10n.selectAttemptType),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => Navigator.of(context).pop('top_rope'),
-                    icon: const Icon(Icons.arrow_upward),
-                    label: Text(l10n.topRope),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => Navigator.of(context).pop('lead'),
-                    icon: const Icon(Icons.trending_up),
-                    label: Text(l10n.lead),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(l10n.cancel),
-          ),
-        ],
-      ),
-    );
+    final attemptType = await showAttemptTypeDialog(context, l10n);
 
     if (attemptType == null) return;
+    if (!mounted) return;
 
     final routeProvider = context.read<RouteProvider>();
     try {
@@ -711,15 +674,11 @@ class _RouteInteractionsState extends State<RouteInteractions> {
       // Refresh only the tick data to get updated attempt count
       await _refreshTickData();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.attemptAdded)),
-        );
+        showRouteInteractionSuccess(context, l10n.attemptAdded);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${l10n.failedToAddAttempt}: $e')),
-        );
+        showRouteInteractionError(context, '${l10n.failedToAddAttempt}: $e');
       }
     }
   }
@@ -736,15 +695,14 @@ class _RouteInteractionsState extends State<RouteInteractions> {
         if (success) {
           await _refreshTickData();
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(l10n.topRopeSendRemoved)),
-            );
+            showRouteInteractionSuccess(context, l10n.topRopeSendRemoved);
           }
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${l10n.failedToRemoveTopRopeSend}: $e')),
+          showRouteInteractionError(
+            context,
+            '${l10n.failedToRemoveTopRopeSend}: $e',
           );
         }
       }
@@ -754,14 +712,13 @@ class _RouteInteractionsState extends State<RouteInteractions> {
         await routeProvider.markSendOptimized(widget.route.id, 'top_rope');
         await _refreshTickData();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.topRopeSendMarked)),
-          );
+          showRouteInteractionSuccess(context, l10n.topRopeSendMarked);
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${l10n.failedToMarkTopRopeSend}: $e')),
+          showRouteInteractionError(
+            context,
+            '${l10n.failedToMarkTopRopeSend}: $e',
           );
         }
       }
@@ -781,15 +738,14 @@ class _RouteInteractionsState extends State<RouteInteractions> {
           await _refreshTickData();
           _checkIfProject(); // Also check project status as it may have changed
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(l10n.leadSendRemoved)),
-            );
+            showRouteInteractionSuccess(context, l10n.leadSendRemoved);
           }
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${l10n.failedToRemoveLeadSend}: $e')),
+          showRouteInteractionError(
+            context,
+            '${l10n.failedToRemoveLeadSend}: $e',
           );
         }
       }
@@ -800,14 +756,13 @@ class _RouteInteractionsState extends State<RouteInteractions> {
         await _refreshTickData();
         _checkIfProject(); // Also check project status as it may have changed
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.leadSendMarked)),
-          );
+          showRouteInteractionSuccess(context, l10n.leadSendMarked);
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${l10n.failedToMarkLeadSend}: $e')),
+          showRouteInteractionError(
+            context,
+            '${l10n.failedToMarkLeadSend}: $e',
           );
         }
       }
@@ -844,19 +799,13 @@ class _RouteInteractionsState extends State<RouteInteractions> {
 
     if (success) {
       _checkIfLiked();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_isLiked ? l10n.routeUnliked : l10n.routeLiked),
-          duration: const Duration(seconds: 2),
-        ),
+      showRouteInteractionSuccess(
+        context,
+        _isLiked ? l10n.routeUnliked : l10n.routeLiked,
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${l10n.error}: ${routeProvider.error}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      showRouteInteractionError(
+          context, '${l10n.error}: ${routeProvider.error}');
     }
   }
 
@@ -872,13 +821,10 @@ class _RouteInteractionsState extends State<RouteInteractions> {
       // Check if user has already lead sent this route
       if (_tickData != null && _tickData!.leadSend) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                l10n.cannotMarkSentRoutesAsProjects,
-              ),
-              backgroundColor: Colors.orange,
-            ),
+          showRouteInteractionSuccess(
+            context,
+            l10n.cannotMarkSentRoutesAsProjects,
+            backgroundColor: Colors.orange,
           );
         }
         return;
@@ -890,65 +836,30 @@ class _RouteInteractionsState extends State<RouteInteractions> {
 
     if (success) {
       _checkIfProject();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _isProject ? l10n.projectRemoved : l10n.routeAddedToProjects,
-          ),
-          duration: const Duration(seconds: 2),
-        ),
+      showRouteInteractionSuccess(
+        context,
+        _isProject ? l10n.projectRemoved : l10n.routeAddedToProjects,
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${l10n.error}: ${routeProvider.error}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      showRouteInteractionError(
+          context, '${l10n.error}: ${routeProvider.error}');
     }
   }
 
-  void _showNotesDialog() {
-    final notesController = TextEditingController();
+  Future<void> _showNotesDialog() async {
+    final l10n = AppLocalizations.of(context);
+    final notes = await showRouteNotesDialog(
+      context,
+      l10n: l10n,
+      routeDisplayName: widget.route.displayName(unnamedFallback: l10n.unnamed),
+      initialNotes: _tickData?.notes ?? '',
+    );
 
-    // Pre-populate with existing notes if any
-    if (_tickData != null) {
-      notesController.text = _tickData!.notes;
+    if (notes == null) {
+      return;
     }
 
-    showDialog(
-      context: context,
-      builder: (context) {
-        final l10n = AppLocalizations.of(context);
-        return AlertDialog(
-          title: Text(
-              '${l10n.note} - ${widget.route.displayName(unnamedFallback: l10n.unnamed)}'),
-          content: TextField(
-            controller: notesController,
-            decoration: InputDecoration(
-              labelText: l10n.notes,
-              border: const OutlineInputBorder(),
-              helperText: 'Personal notes for this route',
-            ),
-            maxLines: 4,
-            autofocus: true,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(l10n.cancel),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _updateNotes(notesController.text.trim());
-              },
-              child: Text(l10n.save),
-            ),
-          ],
-        );
-      },
-    );
+    await _updateNotes(notes);
   }
 
   Future<void> _updateNotes(String notes) async {
@@ -958,60 +869,30 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     final success =
         await routeProvider.updateRouteNotes(widget.route.id, notes);
 
+    if (!mounted) return;
+
     if (success) {
       await _refreshTickData();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(notes.isEmpty ? 'Note removed' : 'Note saved'),
-          backgroundColor: Colors.green,
-        ),
+      if (!mounted) return;
+      showRouteInteractionSuccess(
+        context,
+        notes.isEmpty ? 'Note removed' : 'Note saved',
+        backgroundColor: Colors.green,
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${l10n.error}: ${routeProvider.error}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      showRouteInteractionError(
+          context, '${l10n.error}: ${routeProvider.error}');
     }
   }
 
-  void _showCommentDialog() {
-    final commentController = TextEditingController();
+  Future<void> _showCommentDialog() async {
+    final l10n = AppLocalizations.of(context);
+    final comment = await showRouteCommentDialog(context, l10n);
+    if (comment == null || comment.isEmpty) {
+      return;
+    }
 
-    showDialog(
-      context: context,
-      builder: (context) {
-        final l10n = AppLocalizations.of(context);
-        return AlertDialog(
-          title: Text(l10n.addComment),
-          content: TextField(
-            controller: commentController,
-            decoration: InputDecoration(
-              labelText: l10n.yourComment,
-              border: const OutlineInputBorder(),
-            ),
-            maxLines: 4,
-            autofocus: true,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(l10n.cancel),
-            ),
-            TextButton(
-              onPressed: () {
-                if (commentController.text.trim().isNotEmpty) {
-                  Navigator.pop(context);
-                  _addComment(commentController.text.trim());
-                }
-              },
-              child: Text(l10n.addComment),
-            ),
-          ],
-        );
-      },
-    );
+    await _addComment(comment);
   }
 
   Future<void> _addComment(String content) async {
@@ -1023,19 +904,10 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     if (!mounted) return; // Check if widget is still mounted
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(l10n.commentAdded),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      showRouteInteractionSuccess(context, l10n.commentAdded);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${l10n.error}: ${routeProvider.error}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      showRouteInteractionError(
+          context, '${l10n.error}: ${routeProvider.error}');
     }
   }
 
@@ -1097,13 +969,9 @@ class _RouteInteractionsState extends State<RouteInteractions> {
       // Check if we have any valid grades
       if (grades.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                  '${l10n.unableToLoadGrades} ${l10n.gradeDefinitions}: ${routeProvider.gradeDefinitions.length}, ${l10n.gradesList}: ${routeProvider.grades.length}'),
-              backgroundColor: Colors.red,
-              duration: const Duration(seconds: 4),
-            ),
+          showRouteInteractionError(
+            context,
+            '${l10n.unableToLoadGrades} ${l10n.gradeDefinitions}: ${routeProvider.gradeDefinitions.length}, ${l10n.gradesList}: ${routeProvider.grades.length}',
           );
         }
         return;
@@ -1232,11 +1100,9 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     } catch (e) {
       if (mounted) {
         final l10n = AppLocalizations.of(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${l10n.errorLoadingGradeProposalDialog}: $e'),
-            backgroundColor: Colors.red,
-          ),
+        showRouteInteractionError(
+          context,
+          '${l10n.errorLoadingGradeProposalDialog}: $e',
         );
       }
     }
@@ -1254,109 +1120,21 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     if (!mounted) return; // Check if widget is still mounted
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(l10n.gradeProposalUpdated),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      showRouteInteractionSuccess(context, l10n.gradeProposalUpdated);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${l10n.error}: ${routeProvider.error}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      showRouteInteractionError(
+          context, '${l10n.error}: ${routeProvider.error}');
     }
   }
 
-  void _showWarningDialog() {
-    String? selectedWarningType;
-    final descriptionController = TextEditingController();
+  Future<void> _showWarningDialog() async {
+    final l10n = AppLocalizations.of(context);
+    final warningInput = await showRouteWarningDialog(context, l10n);
+    if (warningInput == null) {
+      return;
+    }
 
-    final warningTypes = [
-      'broken_hold',
-      'safety_issue',
-      'needs_cleaning',
-      'loose_hold',
-      'other',
-    ];
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, dialogSetState) {
-          final l10n = AppLocalizations.of(context);
-          final warningLabels = {
-            'broken_hold': l10n.brokenHold,
-            'safety_issue': l10n.safetyIssue,
-            'needs_cleaning': l10n.needsCleaning,
-            'loose_hold': l10n.looseHold,
-            'other': l10n.other,
-          };
-
-          return AlertDialog(
-            title: Text(l10n.reportIssue),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
-                    labelText: l10n.issueTypeOptional,
-                    border: const OutlineInputBorder(),
-                  ),
-                  initialValue: selectedWarningType,
-                  items: warningTypes
-                      .map(
-                        (type) => DropdownMenuItem(
-                          value: type,
-                          child: Text(warningLabels[type] ?? type),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    dialogSetState(() {
-                      selectedWarningType = value;
-                    });
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: descriptionController,
-                  onChanged: (value) {
-                    dialogSetState(
-                        () {}); // Trigger rebuild to update button state
-                  },
-                  decoration: InputDecoration(
-                    labelText: l10n.issueDescription,
-                    border: const OutlineInputBorder(),
-                  ),
-                  maxLines: 3,
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(l10n.cancel),
-              ),
-              TextButton(
-                onPressed: descriptionController.text.trim().isEmpty
-                    ? null
-                    : () {
-                        Navigator.pop(context);
-                        _addWarning(
-                          selectedWarningType ?? l10n.other,
-                          descriptionController.text.trim(),
-                        );
-                      },
-                child: Text(l10n.report),
-              ),
-            ],
-          );
-        },
-      ),
-    );
+    await _addWarning(warningInput.warningType, warningInput.description);
   }
 
   Future<void> _addWarning(String warningType, String description) async {
@@ -1371,19 +1149,10 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     if (!mounted) return; // Check if widget is still mounted
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(l10n.issueReported),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      showRouteInteractionSuccess(context, l10n.issueReported);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${l10n.error}: ${routeProvider.error}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      showRouteInteractionError(
+          context, '${l10n.error}: ${routeProvider.error}');
     }
   }
 }
