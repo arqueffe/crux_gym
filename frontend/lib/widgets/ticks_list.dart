@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../generated/l10n/app_localizations.dart';
 import '../models/profile_models.dart';
 import '../screens/route_detail_screen.dart';
+import '../utils/date_formatting.dart';
 import '../widgets/grade_chip.dart';
 
 class TicksList extends StatelessWidget {
@@ -160,7 +161,7 @@ class TicksList extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            _formatDate(tick.createdAt, l10n),
+                            formatRelativeDate(tick.createdAt, l10n),
                             style: TextStyle(
                               color: Colors.grey.shade500,
                               fontSize: 12,
@@ -184,23 +185,5 @@ class TicksList extends StatelessWidget {
         );
       },
     );
-  }
-
-  String _formatDate(DateTime date, AppLocalizations l10n) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays == 0) {
-      return l10n.today;
-    } else if (difference.inDays == 1) {
-      return l10n.yesterday;
-    } else if (difference.inDays < 7) {
-      return l10n.daysAgo(difference.inDays);
-    } else if (difference.inDays < 30) {
-      final weeks = (difference.inDays / 7).floor();
-      return weeks == 1 ? l10n.weekAgo : l10n.weeksAgo(weeks);
-    } else {
-      return '${date.day}/${date.month}/${date.year}';
-    }
   }
 }

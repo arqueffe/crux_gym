@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../generated/l10n/app_localizations.dart';
 import '../models/route_models.dart';
 import '../screens/route_detail_screen.dart';
+import '../utils/date_formatting.dart';
 import '../widgets/grade_chip.dart';
 
 class ProjectsList extends StatelessWidget {
@@ -116,7 +117,7 @@ class ProjectsList extends StatelessWidget {
                               color: Theme.of(context)
                                   .colorScheme
                                   .surfaceContainerHighest
-                                  .withOpacity(0.5),
+                                  .withValues(alpha: 0.5),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Row(
@@ -150,7 +151,7 @@ class ProjectsList extends StatelessWidget {
                         ],
                         const SizedBox(height: 8),
                         Text(
-                          '${l10n.added} ${_formatDate(project.createdAt, l10n)}',
+                          '${l10n.added} ${formatRelativeDate(project.createdAt, l10n, includeMonths: true)}',
                           style:
                               Theme.of(context).textTheme.bodySmall?.copyWith(
                                     color: Theme.of(context)
@@ -168,26 +169,5 @@ class ProjectsList extends StatelessWidget {
         );
       },
     );
-  }
-
-  String _formatDate(DateTime date, AppLocalizations l10n) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays == 0) {
-      return l10n.today;
-    } else if (difference.inDays == 1) {
-      return l10n.yesterday;
-    } else if (difference.inDays < 7) {
-      return l10n.daysAgo(difference.inDays);
-    } else if (difference.inDays < 30) {
-      final weeks = (difference.inDays / 7).floor();
-      return weeks == 1 ? l10n.weekAgo : l10n.weeksAgo(weeks);
-    } else if (difference.inDays < 365) {
-      final months = (difference.inDays / 30).floor();
-      return months == 1 ? l10n.monthAgo : l10n.monthsAgo(months);
-    } else {
-      return '${date.day}/${date.month}/${date.year}';
-    }
   }
 }

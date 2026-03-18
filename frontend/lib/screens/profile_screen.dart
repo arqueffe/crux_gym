@@ -14,6 +14,7 @@ import '../widgets/likes_list.dart';
 import '../widgets/projects_list.dart';
 import '../widgets/language_selector.dart';
 import '../widgets/custom_app_bar.dart';
+import '../widgets/empty_state_display.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -502,8 +503,10 @@ class _RoutesTabState extends State<RoutesTab>
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color:
-                        Theme.of(context).colorScheme.shadow.withOpacity(0.1),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .shadow
+                        .withValues(alpha: 0.1),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -550,7 +553,7 @@ class _RoutesTabState extends State<RoutesTab>
             final leadSends = profileProvider.filteredLeadSends;
 
             if (leadSends.isEmpty) {
-              return _buildEmptyState(
+              return EmptyStateDisplay(
                 icon: Icons.trending_up_outlined,
                 title: l10n.noTicksFound,
                 description: l10n.noTicksDescription,
@@ -596,7 +599,7 @@ class _RoutesTabState extends State<RoutesTab>
             final inProgressRoutes = profileProvider.filteredInProgressRoutes;
 
             if (inProgressRoutes.isEmpty) {
-              return _buildEmptyState(
+              return EmptyStateDisplay(
                 icon: Icons.schedule_outlined,
                 title: l10n.noInProgressFound,
                 description: l10n.noInProgressDescription,
@@ -642,7 +645,7 @@ class _RoutesTabState extends State<RoutesTab>
             final likes = profileProvider.filteredLikes;
 
             if (likes.isEmpty) {
-              return _buildEmptyState(
+              return EmptyStateDisplay(
                 icon: Icons.favorite_outline,
                 title: l10n.noLikesFound,
                 description: l10n.noLikesDescription,
@@ -688,7 +691,7 @@ class _RoutesTabState extends State<RoutesTab>
             final projects = profileProvider.filteredProjects;
 
             if (projects.isEmpty) {
-              return _buildEmptyState(
+              return EmptyStateDisplay(
                 icon: Icons.flag_outlined,
                 title: l10n.noProjectsFound,
                 description: l10n.noProjectsDescription,
@@ -721,52 +724,6 @@ class _RoutesTabState extends State<RoutesTab>
           },
         );
       },
-    );
-  }
-
-  Widget _buildEmptyState({
-    required IconData icon,
-    required String title,
-    required String description,
-  }) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                size: 48,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              description,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -915,7 +872,7 @@ class _SettingsTabState extends State<SettingsTab>
                               color: Theme.of(context)
                                   .colorScheme
                                   .onPrimaryContainer
-                                  .withOpacity(0.7),
+                                  .withValues(alpha: 0.7),
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -927,7 +884,7 @@ class _SettingsTabState extends State<SettingsTab>
                               color: Theme.of(context)
                                   .colorScheme
                                   .onPrimaryContainer
-                                  .withOpacity(0.7),
+                                  .withValues(alpha: 0.7),
                             ),
                           ),
                         ],

@@ -3,6 +3,7 @@ import '../models/route_models.dart';
 import '../models/lane_models.dart';
 import '../services/cached_api_service.dart';
 import '../providers/auth_provider.dart';
+import '../utils/route_sorting.dart';
 import '../widgets/filter_drawer.dart';
 
 class RouteProvider extends ChangeNotifier {
@@ -1120,46 +1121,7 @@ class RouteProvider extends ChangeNotifier {
 
   // Private method to sort routes based on the selected sort option
   void _sortRoutes() {
-    switch (_selectedSort) {
-      case SortOption.newest:
-        _currentRoutes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        break;
-      case SortOption.oldest:
-        _currentRoutes.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-        break;
-      case SortOption.nameAZ:
-        _currentRoutes.sort((a, b) => a.name.compareTo(b.name));
-        break;
-      case SortOption.nameZA:
-        _currentRoutes.sort((a, b) => b.name.compareTo(a.name));
-        break;
-      case SortOption.gradeAsc:
-        _currentRoutes.sort((a, b) => a.gradeId.compareTo(b.gradeId));
-        break;
-      case SortOption.gradeDesc:
-        _currentRoutes.sort((a, b) => b.gradeId.compareTo(a.gradeId));
-        break;
-      case SortOption.mostLikes:
-        _currentRoutes.sort((a, b) => b.likesCount.compareTo(a.likesCount));
-        break;
-      case SortOption.leastLikes:
-        _currentRoutes.sort((a, b) => a.likesCount.compareTo(b.likesCount));
-        break;
-      case SortOption.mostComments:
-        _currentRoutes
-            .sort((a, b) => b.commentsCount.compareTo(a.commentsCount));
-        break;
-      case SortOption.leastComments:
-        _currentRoutes
-            .sort((a, b) => a.commentsCount.compareTo(b.commentsCount));
-        break;
-      case SortOption.mostTicks:
-        _currentRoutes.sort((a, b) => b.ticksCount.compareTo(a.ticksCount));
-        break;
-      case SortOption.leastTicks:
-        _currentRoutes.sort((a, b) => a.ticksCount.compareTo(b.ticksCount));
-        break;
-    }
+    sortRoutesInPlace(_currentRoutes, _selectedSort);
   }
 
   // Helper method to get color for a specific grade
