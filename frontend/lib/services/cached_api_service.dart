@@ -14,6 +14,98 @@ class CachedApiService {
 
   CachedApiService({required this.authProvider});
 
+  Map<String, dynamic> _successResponse(dynamic data, {bool? fromCache}) {
+    final response = <String, dynamic>{
+      'success': true,
+      'data': data,
+    };
+    if (fromCache != null) {
+      response['fromCache'] = fromCache;
+    }
+    return response;
+  }
+
+  Map<String, dynamic> _failureResponse(
+    String error, {
+    dynamic errorCode,
+    bool? fromCache,
+  }) {
+    final response = <String, dynamic>{
+      'success': false,
+      'error': error,
+    };
+    if (errorCode != null) {
+      response['errorCode'] = errorCode;
+    }
+    if (fromCache != null) {
+      response['fromCache'] = fromCache;
+    }
+    return response;
+  }
+
+  Map<String, dynamic> _parseErrorResponse(
+    http.Response response, {
+    bool includeFromCache = false,
+  }) {
+    try {
+      final errorData = json.decode(response.body);
+      if (errorData is Map &&
+          errorData.containsKey('code') &&
+          errorData.containsKey('message')) {
+        return _failureResponse(
+          errorData['message'] ?? 'Request failed',
+          errorCode: errorData['code'],
+          fromCache: includeFromCache ? false : null,
+        );
+      }
+    } catch (_) {
+      // Keep generic error message when response body is not a structured API error.
+    }
+
+    return _failureResponse(
+      'Request failed with status ${response.statusCode}',
+      fromCache: includeFromCache ? false : null,
+    );
+  }
+
+  Map<String, dynamic> _networkErrorResponse(
+    Object error, {
+    bool includeFromCache = false,
+  }) {
+    return _failureResponse(
+      'Network error: $error',
+      fromCache: includeFromCache ? false : null,
+    );
+  }
+
+  void _invalidateCachePatterns(List<String>? invalidatePatterns) {
+    if (invalidatePatterns == null) {
+      return;
+    }
+    for (final pattern in invalidatePatterns) {
+      _cacheService.invalidatePattern(pattern);
+    }
+  }
+
+  dynamic _requireSuccessData(
+    Map<String, dynamic> response,
+    String fallbackError,
+  ) {
+    if (response['success']) {
+      return response['data'];
+    }
+    throw Exception(response['error'] ?? fallbackError);
+  }
+
+  void _ensureSuccess(
+    Map<String, dynamic> response,
+    String fallbackError,
+  ) {
+    if (!response['success']) {
+      throw Exception(response['error'] ?? fallbackError);
+    }
+  }
+
   /// Generic cached GET request using JavaScript interop for web, HTTP for others
   Future<Map<String, dynamic>> get(
     String endpoint, {
@@ -32,11 +124,7 @@ class CachedApiService {
         maxAge: duration,
       );
       if (cachedData != null) {
-        return {
-          'success': true,
-          'data': cachedData['data'],
-          'fromCache': true,
-        };
+        return _successResponse(cachedData['data'], fromCache: true);
       }
     }
 
@@ -57,11 +145,8 @@ class CachedApiService {
       final response = await http.get(uri, headers: headers);
 
       if (response.statusCode == 200) {
-        final responseData = {
-          'success': true,
-          'data': json.decode(response.body),
-          'fromCache': false,
-        };
+        final responseData =
+            _successResponse(json.decode(response.body), fromCache: false);
 
         // Cache the successful response
         if (isPermanentCache) {
@@ -72,35 +157,10 @@ class CachedApiService {
 
         return responseData;
       } else {
-        // Try to parse error response
-        try {
-          final errorData = json.decode(response.body);
-          if (errorData is Map &&
-              errorData.containsKey('code') &&
-              errorData.containsKey('message')) {
-            return {
-              'success': false,
-              'error': errorData['message'] ?? 'Request failed',
-              'errorCode': errorData['code'],
-              'fromCache': false,
-            };
-          }
-        } catch (e) {
-          // Couldn't parse error, continue with generic message
-        }
-
-        return {
-          'success': false,
-          'error': 'Request failed with status ${response.statusCode}',
-          'fromCache': false,
-        };
+        return _parseErrorResponse(response, includeFromCache: true);
       }
     } catch (e) {
-      return {
-        'success': false,
-        'error': 'Network error: $e',
-        'fromCache': false,
-      };
+      return _networkErrorResponse(e, includeFromCache: true);
     }
   }
 
@@ -125,43 +185,14 @@ class CachedApiService {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         // Invalidate related cache entries after successful POST
-        if (invalidatePatterns != null) {
-          for (final pattern in invalidatePatterns) {
-            _cacheService.invalidatePattern(pattern);
-          }
-        }
+        _invalidateCachePatterns(invalidatePatterns);
 
-        return {
-          'success': true,
-          'data': json.decode(response.body),
-        };
+        return _successResponse(json.decode(response.body));
       } else {
-        // Try to parse error response
-        try {
-          final errorData = json.decode(response.body);
-          if (errorData is Map &&
-              errorData.containsKey('code') &&
-              errorData.containsKey('message')) {
-            return {
-              'success': false,
-              'error': errorData['message'] ?? 'Request failed',
-              'errorCode': errorData['code'],
-            };
-          }
-        } catch (e) {
-          // Couldn't parse error, continue with generic message
-        }
-
-        return {
-          'success': false,
-          'error': 'Request failed with status ${response.statusCode}',
-        };
+        return _parseErrorResponse(response);
       }
     } catch (e) {
-      return {
-        'success': false,
-        'error': 'Network error: $e',
-      };
+      return _networkErrorResponse(e);
     }
   }
 
@@ -186,43 +217,14 @@ class CachedApiService {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         // Invalidate related cache entries after successful PUT
-        if (invalidatePatterns != null) {
-          for (final pattern in invalidatePatterns) {
-            _cacheService.invalidatePattern(pattern);
-          }
-        }
+        _invalidateCachePatterns(invalidatePatterns);
 
-        return {
-          'success': true,
-          'data': json.decode(response.body),
-        };
+        return _successResponse(json.decode(response.body));
       } else {
-        // Try to parse error response
-        try {
-          final errorData = json.decode(response.body);
-          if (errorData is Map &&
-              errorData.containsKey('code') &&
-              errorData.containsKey('message')) {
-            return {
-              'success': false,
-              'error': errorData['message'] ?? 'Request failed',
-              'errorCode': errorData['code'],
-            };
-          }
-        } catch (e) {
-          // Couldn't parse error, continue with generic message
-        }
-
-        return {
-          'success': false,
-          'error': 'Request failed with status ${response.statusCode}',
-        };
+        return _parseErrorResponse(response);
       }
     } catch (e) {
-      return {
-        'success': false,
-        'error': 'Network error: $e',
-      };
+      return _networkErrorResponse(e);
     }
   }
 
@@ -245,43 +247,16 @@ class CachedApiService {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         // Invalidate related cache entries after successful DELETE
-        if (invalidatePatterns != null) {
-          for (final pattern in invalidatePatterns) {
-            _cacheService.invalidatePattern(pattern);
-          }
-        }
+        _invalidateCachePatterns(invalidatePatterns);
 
-        return {
-          'success': true,
-          'data': response.body.isNotEmpty ? json.decode(response.body) : {},
-        };
+        return _successResponse(
+          response.body.isNotEmpty ? json.decode(response.body) : {},
+        );
       } else {
-        // Try to parse error response
-        try {
-          final errorData = json.decode(response.body);
-          if (errorData is Map &&
-              errorData.containsKey('code') &&
-              errorData.containsKey('message')) {
-            return {
-              'success': false,
-              'error': errorData['message'] ?? 'Request failed',
-              'errorCode': errorData['code'],
-            };
-          }
-        } catch (e) {
-          // Couldn't parse error, continue with generic message
-        }
-
-        return {
-          'success': false,
-          'error': 'Request failed with status ${response.statusCode}',
-        };
+        return _parseErrorResponse(response);
       }
     } catch (e) {
-      return {
-        'success': false,
-        'error': 'Network error: $e',
-      };
+      return _networkErrorResponse(e);
     }
   }
 
@@ -342,12 +317,8 @@ class CachedApiService {
   /// Get single route with caching
   Future<Route> getRoute(int routeId, {bool forceRefresh = false}) async {
     final response = await get('/routes/$routeId', forceRefresh: forceRefresh);
-
-    if (response['success']) {
-      return Route.fromJson(response['data']);
-    } else {
-      throw Exception(response['error'] ?? 'Failed to load route');
-    }
+    final data = _requireSuccessData(response, 'Failed to load route');
+    return Route.fromJson(data);
   }
 
   /// Get wall sections with caching
@@ -383,16 +354,11 @@ class CachedApiService {
       isPermanentCache: true,
     );
 
-    if (response['success']) {
-      final data = response['data'];
-      if (data is List) {
-        return data.cast<String>();
-      } else {
-        return <String>[];
-      }
-    } else {
-      throw Exception(response['error'] ?? 'Failed to load grades');
+    final data = _requireSuccessData(response, 'Failed to load grades');
+    if (data is List) {
+      return data.cast<String>();
     }
+    return <String>[];
   }
 
   /// Get lanes with permanent caching (never expires)
@@ -447,16 +413,12 @@ class CachedApiService {
       isPermanentCache: true,
     );
 
-    if (response['success']) {
-      final data = response['data'];
-      if (data is List) {
-        return data.cast<Map<String, dynamic>>();
-      } else {
-        return <Map<String, dynamic>>[];
-      }
-    } else {
-      throw Exception(response['error'] ?? 'Failed to load grade definitions');
+    final data =
+        _requireSuccessData(response, 'Failed to load grade definitions');
+    if (data is List) {
+      return data.cast<Map<String, dynamic>>();
     }
+    return <Map<String, dynamic>>[];
   }
 
   /// Get hold colors with permanent caching (never expires)
@@ -468,16 +430,11 @@ class CachedApiService {
       isPermanentCache: true,
     );
 
-    if (response['success']) {
-      final data = response['data'];
-      if (data is List) {
-        return data.cast<Map<String, dynamic>>();
-      } else {
-        return <Map<String, dynamic>>[];
-      }
-    } else {
-      throw Exception(response['error'] ?? 'Failed to load hold colors');
+    final data = _requireSuccessData(response, 'Failed to load hold colors');
+    if (data is List) {
+      return data.cast<Map<String, dynamic>>();
     }
+    return <Map<String, dynamic>>[];
   }
 
   /// Get grade colors with permanent caching (never expires)
@@ -489,85 +446,56 @@ class CachedApiService {
       isPermanentCache: true,
     );
 
-    if (response['success']) {
-      final data = response['data'];
-      if (data is Map) {
-        return Map<String, String>.from(data);
-      } else {
-        return <String, String>{};
-      }
-    } else {
-      throw Exception(response['error'] ?? 'Failed to load grade colors');
+    final data = _requireSuccessData(response, 'Failed to load grade colors');
+    if (data is Map) {
+      return Map<String, String>.from(data);
     }
+    return <String, String>{};
   }
 
   /// Get user ticks with caching
   Future<List<dynamic>> getUserTicks({bool forceRefresh = false}) async {
     final response = await get('/user/ticks', forceRefresh: forceRefresh);
-
-    if (response['success']) {
-      return response['data'] as List<dynamic>;
-    } else {
-      throw Exception(response['error'] ?? 'Failed to load user ticks');
-    }
+    final data = _requireSuccessData(response, 'Failed to load user ticks');
+    return data as List<dynamic>;
   }
 
   /// Get user likes with caching
   Future<List<dynamic>> getUserLikes({bool forceRefresh = false}) async {
     final response = await get('/user/likes', forceRefresh: forceRefresh);
-
-    if (response['success']) {
-      return response['data'] as List<dynamic>;
-    } else {
-      throw Exception(response['error'] ?? 'Failed to load user likes');
-    }
+    final data = _requireSuccessData(response, 'Failed to load user likes');
+    return data as List<dynamic>;
   }
 
   /// Get user projects with caching - returns List<Project>
   Future<List<Project>> getUserProjectsTyped(
       {bool forceRefresh = false}) async {
     final response = await get('/user/projects', forceRefresh: forceRefresh);
-
-    if (response['success']) {
-      final List<dynamic> data = response['data'];
-      return data.map((json) => Project.fromJson(json)).toList();
-    } else {
-      throw Exception(response['error'] ?? 'Failed to load user projects');
-    }
+    final data = _requireSuccessData(response, 'Failed to load user projects');
+    final projects = data as List<dynamic>;
+    return projects.map((json) => Project.fromJson(json)).toList();
   }
 
   /// Get user projects with caching
   Future<List<dynamic>> getUserProjects({bool forceRefresh = false}) async {
     final response = await get('/user/projects', forceRefresh: forceRefresh);
-
-    if (response['success']) {
-      return response['data'] as List<dynamic>;
-    } else {
-      throw Exception(response['error'] ?? 'Failed to load user projects');
-    }
+    final data = _requireSuccessData(response, 'Failed to load user projects');
+    return data as List<dynamic>;
   }
 
   /// Create a new route
   Future<Route> createRoute(Route route) async {
     final response =
         await post('/routes', route.toJson(), invalidatePatterns: ['/routes']);
-
-    if (response['success']) {
-      return Route.fromJson(response['data']);
-    } else {
-      throw Exception(response['error'] ?? 'Failed to create route');
-    }
+    final data = _requireSuccessData(response, 'Failed to create route');
+    return Route.fromJson(data);
   }
 
   /// Get user's tick status for a route
   Future<Map<String, dynamic>> getUserTick(int routeId) async {
     final response = await get('/routes/$routeId/ticks/me');
-
-    if (response['success']) {
-      return response['data'] as Map<String, dynamic>;
-    } else {
-      throw Exception(response['error'] ?? 'Failed to get tick status');
-    }
+    final data = _requireSuccessData(response, 'Failed to get tick status');
+    return data as Map<String, dynamic>;
   }
 
   /// Add attempts to a route (without marking as sent)
@@ -581,10 +509,7 @@ class CachedApiService {
 
     final response = await post('/routes/$routeId/attempts', body,
         invalidatePatterns: ['/user/ticks', '/user/stats', '/routes/$routeId']);
-
-    if (!response['success']) {
-      throw Exception(response['error'] ?? 'Failed to add attempts');
-    }
+    _ensureSuccess(response, 'Failed to add attempts');
   }
 
   /// Mark a route as sent in a specific style
@@ -601,10 +526,7 @@ class CachedApiService {
           '/routes/$routeId',
           '/routes'
         ]);
-
-    if (!response['success']) {
-      throw Exception(response['error'] ?? 'Failed to mark send');
-    }
+    _ensureSuccess(response, 'Failed to mark send');
   }
 
   /// Remove a specific send type from a route
@@ -620,10 +542,7 @@ class CachedApiService {
           '/routes/$routeId',
           '/routes'
         ]);
-
-    if (!response['success']) {
-      throw Exception(response['error'] ?? 'Failed to unmark send');
-    }
+    _ensureSuccess(response, 'Failed to unmark send');
   }
 
   /// Update notes for a route without affecting attempts or sends
@@ -637,10 +556,7 @@ class CachedApiService {
       '/user/ticks',
       '/routes/$routeId',
     ]);
-
-    if (!response['success']) {
-      throw Exception(response['error'] ?? 'Failed to update notes');
-    }
+    _ensureSuccess(response, 'Failed to update notes');
   }
 
   /// Add a comment to a route
@@ -649,10 +565,7 @@ class CachedApiService {
 
     final response = await post('/routes/$routeId/comments', body,
         invalidatePatterns: ['/routes/$routeId']);
-
-    if (!response['success']) {
-      throw Exception(response['error'] ?? 'Failed to add comment');
-    }
+    _ensureSuccess(response, 'Failed to add comment');
   }
 
   /// Propose a grade for a route
@@ -665,28 +578,20 @@ class CachedApiService {
 
     final response = await post('/routes/$routeId/grade-proposals', body,
         invalidatePatterns: ['/routes/$routeId']);
-
-    if (!response['success']) {
-      throw Exception(response['error'] ?? 'Failed to propose grade');
-    }
+    _ensureSuccess(response, 'Failed to propose grade');
   }
 
   /// Get user's grade proposal for a route
   Future<GradeProposal?> getUserGradeProposal(int routeId) async {
     final response = await get('/routes/$routeId/grade-proposals/me');
 
-    if (response['success']) {
-      final data = response['data'];
-      // Check if data is null, empty object, or doesn't have required fields
-      if (data == null ||
-          data is Map<String, dynamic> &&
-              (data.isEmpty || data['id'] == null)) {
-        return null;
-      }
-      return GradeProposal.fromJson(data);
-    } else {
-      throw Exception(response['error'] ?? 'Failed to get grade proposal');
+    final data = _requireSuccessData(response, 'Failed to get grade proposal');
+    // Check if data is null, empty object, or doesn't have required fields
+    if (data == null ||
+        data is Map<String, dynamic> && (data.isEmpty || data['id'] == null)) {
+      return null;
     }
+    return GradeProposal.fromJson(data);
   }
 
   /// Add a warning to a route
@@ -699,51 +604,34 @@ class CachedApiService {
 
     final response = await post('/routes/$routeId/warnings', body,
         invalidatePatterns: ['/routes/$routeId']);
-
-    if (!response['success']) {
-      throw Exception(response['error'] ?? 'Failed to add warning');
-    }
+    _ensureSuccess(response, 'Failed to add warning');
   }
 
   /// Get user stats with caching
   Future<Map<String, dynamic>> getUserStats({bool forceRefresh = false}) async {
     final response = await get('/user/stats', forceRefresh: forceRefresh);
-
-    if (response['success']) {
-      return response['data'] as Map<String, dynamic>;
-    } else {
-      throw Exception(response['error'] ?? 'Failed to load user stats');
-    }
+    final data = _requireSuccessData(response, 'Failed to load user stats');
+    return data as Map<String, dynamic>;
   }
 
   /// Like a route (invalidates user likes and route data)
   Future<void> likeRoute(int routeId) async {
     final response = await post('/routes/$routeId/like', {},
         invalidatePatterns: ['/user/likes', '/routes/$routeId', '/routes']);
-
-    if (!response['success']) {
-      throw Exception(response['error'] ?? 'Failed to like route');
-    }
+    _ensureSuccess(response, 'Failed to like route');
   }
 
   /// Unlike a route (invalidates user likes and route data)
   Future<void> unlikeRoute(int routeId) async {
     final response = await delete('/routes/$routeId/unlike',
         invalidatePatterns: ['/user/likes', '/routes/$routeId', '/routes']);
-
-    if (!response['success']) {
-      throw Exception(response['error'] ?? 'Failed to unlike route');
-    }
+    _ensureSuccess(response, 'Failed to unlike route');
   }
 
   Future<bool> getUserLikeStatus(int routeId) async {
     final response = await get('/routes/$routeId/like-status');
-
-    if (response['success']) {
-      return response['data']['liked'] as bool;
-    } else {
-      throw Exception(response['error'] ?? 'Failed to get like status');
-    }
+    final data = _requireSuccessData(response, 'Failed to get like status');
+    return data['liked'] as bool;
   }
 
   /// Add project (invalidates user projects and route data)
@@ -754,20 +642,14 @@ class CachedApiService {
 
     final response = await post('/routes/$routeId/projects', body,
         invalidatePatterns: ['/user/projects', '/routes/$routeId', '/routes']);
-
-    if (!response['success']) {
-      throw Exception(response['error'] ?? 'Failed to add project');
-    }
+    _ensureSuccess(response, 'Failed to add project');
   }
 
   /// Remove project (invalidates user projects and route data)
   Future<void> removeProject(int routeId) async {
     final response = await delete('/routes/$routeId/projects',
         invalidatePatterns: ['/user/projects', '/routes/$routeId', '/routes']);
-
-    if (!response['success']) {
-      throw Exception(response['error'] ?? 'Failed to remove project');
-    }
+    _ensureSuccess(response, 'Failed to remove project');
   }
 
   /// Force refresh all data (clears entire cache)
@@ -779,12 +661,9 @@ class CachedApiService {
   Future<Map<String, dynamic>> getUserPermissions(
       {bool forceRefresh = false}) async {
     final response = await get('/auth/permissions', forceRefresh: forceRefresh);
-
-    if (response['success']) {
-      return response['data'] as Map<String, dynamic>;
-    } else {
-      throw Exception(response['error'] ?? 'Failed to load user permissions');
-    }
+    final data =
+        _requireSuccessData(response, 'Failed to load user permissions');
+    return data as Map<String, dynamic>;
   }
 
   /// Clear user-specific cache (useful for logout)
@@ -817,15 +696,11 @@ class CachedApiService {
       {bool forceRefresh = false}) async {
     final response = await get('/routes/$routeId/name-proposals',
         forceRefresh: forceRefresh);
-
-    if (response['success']) {
-      final List<dynamic> data = response['data'] as List<dynamic>;
-      return data
-          .map((json) => NameProposal.fromJson(json as Map<String, dynamic>))
-          .toList();
-    } else {
-      throw Exception(response['error'] ?? 'Failed to load name proposals');
-    }
+    final data = _requireSuccessData(response, 'Failed to load name proposals')
+        as List<dynamic>;
+    return data
+        .map((json) => NameProposal.fromJson(json as Map<String, dynamic>))
+        .toList();
   }
 
   /// Propose a name for a route
@@ -837,10 +712,7 @@ class CachedApiService {
           '/routes/$routeId/name-proposals',
           '/routes/$routeId'
         ]);
-
-    if (!response['success']) {
-      throw Exception(response['error'] ?? 'Failed to propose name');
-    }
+    _ensureSuccess(response, 'Failed to propose name');
   }
 
   /// Vote for a name proposal
@@ -850,20 +722,14 @@ class CachedApiService {
           '/routes/$routeId/name-proposals',
           '/routes/$routeId'
         ]);
-
-    if (!response['success']) {
-      throw Exception(response['error'] ?? 'Failed to vote for proposal');
-    }
+    _ensureSuccess(response, 'Failed to vote for proposal');
   }
 
   /// Get user's action status for a route's name proposals
   Future<Map<String, dynamic>> getUserNameProposalAction(int routeId) async {
     final response = await get('/routes/$routeId/name-proposals/user-action');
-
-    if (response['success']) {
-      return response['data'] as Map<String, dynamic>;
-    } else {
-      throw Exception(response['error'] ?? 'Failed to get user action status');
-    }
+    final data =
+        _requireSuccessData(response, 'Failed to get user action status');
+    return data as Map<String, dynamic>;
   }
 }
