@@ -69,10 +69,7 @@ class GradeChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            IconTheme(
-              data: IconThemeData(color: textColor),
-              child: icon!,
-            ),
+            icon!,
             const SizedBox(width: 4),
           ],
           Text(

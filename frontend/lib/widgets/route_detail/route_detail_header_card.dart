@@ -18,6 +18,50 @@ class RouteHeaderCard extends StatelessWidget {
     required this.l10n,
   });
 
+  Widget? _buildGradeTrendIcon(RouteProvider routeProvider) {
+    try {
+      final baseGrade = route.gradeName;
+      if (baseGrade == null) {
+        return null;
+      }
+
+      final averageDifficulty = GradeUtils.calculateAverageProposedDifficulty(
+        route.gradeProposals,
+        routeProvider.gradeDefinitions,
+      );
+
+      if (averageDifficulty == null) {
+        return null;
+      }
+
+      final comparison = GradeUtils.compareAverageProposedToGrade(
+        route.gradeProposals,
+        baseGrade,
+        routeProvider.gradeDefinitions,
+      );
+
+      if (comparison > 0) {
+        return const Icon(
+          Icons.keyboard_arrow_up,
+          color: Colors.red,
+          size: 14,
+        );
+      }
+
+      if (comparison < 0) {
+        return const Icon(
+          Icons.keyboard_arrow_down,
+          color: Colors.green,
+          size: 14,
+        );
+      }
+
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -55,33 +99,13 @@ class RouteHeaderCard extends StatelessWidget {
                         runSpacing: 8,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          GradeChip(
-                            grade: route.gradeName!,
-                            gradeColorHex: route.gradeColor,
-                          ),
                           Consumer<RouteProvider>(
                             builder: (context, routeProvider, child) {
-                              try {
-                                final averageGrade =
-                                    GradeUtils.calculateAverageProposedGrade(
-                                  route.gradeProposals,
-                                  routeProvider.gradeDefinitions,
-                                );
-
-                                if (averageGrade == null) {
-                                  return const SizedBox.shrink();
-                                }
-
-                                final averageGradeColor =
-                                    routeProvider.getGradeColor(averageGrade);
-
-                                return AverageGradeChip(
-                                  grade: averageGrade,
-                                  gradeColorHex: averageGradeColor,
-                                );
-                              } catch (e) {
-                                return const SizedBox.shrink();
-                              }
+                              return GradeChip(
+                                grade: route.gradeName ?? '-',
+                                gradeColorHex: route.gradeColor,
+                                icon: _buildGradeTrendIcon(routeProvider),
+                              );
                             },
                           ),
                           if (route.colorHex != null)
@@ -100,53 +124,6 @@ class RouteHeaderCard extends StatelessWidget {
                               ),
                             ),
                         ],
-                      ),
-                      Consumer<RouteProvider>(
-                        builder: (context, routeProvider, child) {
-                          try {
-                            final averageGrade =
-                                GradeUtils.calculateAverageProposedGrade(
-                              route.gradeProposals,
-                              routeProvider.gradeDefinitions,
-                            );
-
-                            if (averageGrade == null) {
-                              return const SizedBox.shrink();
-                            }
-
-                            return Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.info_outline,
-                                    size: 14,
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Flexible(
-                                    child: Text(
-                                      l10n.communitySuggested(
-                                        averageGrade,
-                                        route.gradeProposalsCount,
-                                      ),
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          } catch (e) {
-                            return const SizedBox.shrink();
-                          }
-                        },
                       ),
                       const SizedBox(height: 16),
                       const Divider(),

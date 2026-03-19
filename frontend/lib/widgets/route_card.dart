@@ -82,34 +82,7 @@ class RouteCard extends StatelessWidget {
                               runSpacing: 8,
                               crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
-                                GradeChip(
-                                  grade: route.gradeName!,
-                                  gradeColorHex: route.gradeColor,
-                                ),
-                                if (route.gradeProposalsCount > 0)
-                                  Consumer<RouteProvider>(
-                                    builder: (context, routeProvider, child) {
-                                      final averageGrade = GradeUtils
-                                          .calculateAverageProposedGrade(
-                                        route.gradeProposals,
-                                        routeProvider.gradeDefinitions,
-                                      );
-
-                                      if (averageGrade == null) {
-                                        return const SizedBox.shrink();
-                                      }
-
-                                      final averageGradeColor =
-                                          routeProvider.getGradeColor(
-                                        averageGrade,
-                                      );
-
-                                      return AverageGradeChip(
-                                        grade: averageGrade,
-                                        gradeColorHex: averageGradeColor,
-                                      );
-                                    },
-                                  ),
+                                _RouteCardGradeChip(route: route),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 10,
@@ -200,20 +173,6 @@ class RouteCard extends StatelessWidget {
                               Text('${route.ticksCount}'),
                             ],
                           ),
-                          if (route.gradeProposalsCount > 0) ...[
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.grade,
-                                  color: Colors.orange,
-                                  size: 16,
-                                ),
-                                const SizedBox(width: 4),
-                                Text('${route.gradeProposalsCount}'),
-                              ],
-                            ),
-                          ],
                           if (route.warningsCount > 0) ...[
                             const SizedBox(height: 4),
                             Row(
@@ -296,6 +255,112 @@ class RouteCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _RouteCardGradeChip extends StatefulWidget {
+  final models.Route route;
+
+  const _RouteCardGradeChip({required this.route});
+
+  @override
+  State<_RouteCardGradeChip> createState() => _RouteCardGradeChipState();
+}
+
+class _RouteCardGradeChipState extends State<_RouteCardGradeChip> {
+  Future<models.Route>? _detailFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncDetailFuture();
+  }
+
+  @override
+  void didUpdateWidget(covariant _RouteCardGradeChip oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.route.id != widget.route.id ||
+        oldWidget.route.gradeProposalsCount !=
+            widget.route.gradeProposalsCount) {
+      _syncDetailFuture();
+    }
+  }
+
+  void _syncDetailFuture() {
+    if (widget.route.gradeProposalsCount > 0) {
+      _detailFuture = context.read<RouteProvider>().apiService.getRoute(
+            widget.route.id,
+          );
+      return;
+    }
+
+    _detailFuture = null;
+  }
+
+  Widget? _buildTrendIcon(
+    models.Route detailedRoute,
+    RouteProvider routeProvider,
+  ) {
+    final baseGrade = widget.route.gradeName;
+    if (baseGrade == null || routeProvider.gradeDefinitions.isEmpty) {
+      return null;
+    }
+
+    final comparison = GradeUtils.compareAverageProposedToGrade(
+      detailedRoute.gradeProposals,
+      baseGrade,
+      routeProvider.gradeDefinitions,
+    );
+
+    if (comparison > 0) {
+      return const Icon(
+        Icons.keyboard_arrow_up,
+        color: Colors.red,
+        size: 14,
+      );
+    }
+
+    if (comparison < 0) {
+      return const Icon(
+        Icons.keyboard_arrow_down,
+        color: Colors.green,
+        size: 14,
+      );
+    }
+
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<RouteProvider>(
+      builder: (context, routeProvider, child) {
+        if (widget.route.gradeProposalsCount == 0 ||
+            routeProvider.gradeDefinitions.isEmpty ||
+            _detailFuture == null) {
+          return GradeChip(
+            grade: widget.route.gradeName ?? '-',
+            gradeColorHex: widget.route.gradeColor,
+          );
+        }
+
+        return FutureBuilder<models.Route>(
+          future: _detailFuture,
+          builder: (context, snapshot) {
+            final detailedRoute = snapshot.data;
+            final trendIcon = detailedRoute == null
+                ? null
+                : _buildTrendIcon(detailedRoute, routeProvider);
+
+            return GradeChip(
+              grade: widget.route.gradeName ?? '-',
+              gradeColorHex: widget.route.gradeColor,
+              icon: trendIcon,
+            );
+          },
+        );
+      },
     );
   }
 }
