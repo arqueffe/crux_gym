@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../generated/l10n/app_localizations.dart';
@@ -784,15 +785,17 @@ class SettingsTab extends StatefulWidget {
 
 class _SettingsTabState extends State<SettingsTab>
     with AutomaticKeepAliveClientMixin {
-  static final Uri _bugReportUri =
+  static final Uri _githubIssuesUri =
       Uri.parse('https://github.com/arqueffe/crux_gym/issues');
+  static final Uri _whatsAppSupportUri =
+      Uri.parse('https://chat.whatsapp.com/KwuXyfsNF0kCMxPUTB9eij');
 
   @override
   bool get wantKeepAlive => true;
 
-  Future<void> _openBugReportUrl(AppLocalizations l10n) async {
+  Future<void> _openSupportUrl(Uri uri, AppLocalizations l10n) async {
     final opened = await launchUrl(
-      _bugReportUri,
+      uri,
       webOnlyWindowName: '_blank',
     );
     if (!opened && mounted) {
@@ -925,13 +928,23 @@ class _SettingsTabState extends State<SettingsTab>
               ),
               const SizedBox(height: 8),
 
-              // Report Bug Setting
+              // Support links
               Card(
                 child: ListTile(
-                  leading: const Icon(Icons.bug_report_outlined),
-                  title: Text(l10n.reportIssue),
+                  leading: const FaIcon(FontAwesomeIcons.whatsapp),
+                  title: Text(l10n.whatsAppSupportAction),
                   trailing: const Icon(Icons.open_in_new),
-                  onTap: () => _openBugReportUrl(l10n),
+                  onTap: () => _openSupportUrl(_whatsAppSupportUri, l10n),
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              Card(
+                child: ListTile(
+                  leading: const FaIcon(FontAwesomeIcons.github),
+                  title: Text(l10n.githubSupportAction),
+                  trailing: const Icon(Icons.open_in_new),
+                  onTap: () => _openSupportUrl(_githubIssuesUri, l10n),
                 ),
               ),
               const SizedBox(height: 24),

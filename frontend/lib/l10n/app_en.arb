@@ -204,6 +204,8 @@
   "issueDescription": "Description",
   "issueDescriptionHelper": "Describe the issue",
   "submitReport": "Submit Report",
+  "whatsAppSupportAction": "Report a bug or suggest an improvement",
+  "githubSupportAction": "Post an issue or contribute",
   "projectRoute": "Add to Projects",
   "removeProject": "Remove from Projects",
   "likeRoute": "Like",

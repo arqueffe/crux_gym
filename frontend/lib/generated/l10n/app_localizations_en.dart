@@ -509,6 +509,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get submitReport => 'Submit Report';
 
   @override
+  String get whatsAppSupportAction => 'Report a bug or suggest an improvement';
+
+  @override
+  String get githubSupportAction => 'Post an issue or contribute';
+
+  @override
   String get projectRoute => 'Add to Projects';
 
   @override

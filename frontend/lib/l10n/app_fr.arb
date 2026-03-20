@@ -154,6 +154,8 @@
   "issueDescription": "Description",
   "issueDescriptionHelper": "Décrivez le problème",
   "submitReport": "Soumettre le rapport",
+  "whatsAppSupportAction": "Signaler un bug ou suggérer une amélioration",
+  "githubSupportAction": "Publier une issue ou contribuer",
   "projectRoute": "Ajouter aux projets",
   "removeProject": "Retirer des projets",
   "likeRoute": "Aimer",

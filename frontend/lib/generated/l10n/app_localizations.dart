@@ -1052,6 +1052,18 @@ abstract class AppLocalizations {
   /// **'Submit Report'**
   String get submitReport;
 
+  /// No description provided for @whatsAppSupportAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Report a bug or suggest an improvement'**
+  String get whatsAppSupportAction;
+
+  /// No description provided for @githubSupportAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Post an issue or contribute'**
+  String get githubSupportAction;
+
   /// No description provided for @projectRoute.
   ///
   /// In en, this message translates to:
