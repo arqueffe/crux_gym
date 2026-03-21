@@ -26,10 +26,10 @@ $routes_by_grade = $wpdb->get_results("
 ");
 
 // Users statistics
-$total_users = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}crux_users WHERE active = 1");
+$total_users = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}users");
 $new_users_this_month = $wpdb->get_var("
-    SELECT COUNT(*) FROM {$wpdb->prefix}crux_users 
-    WHERE created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH)
+    SELECT COUNT(*) FROM {$wpdb->prefix}users 
+    WHERE user_registered >= DATE_SUB(NOW(), INTERVAL 1 MONTH)
 ");
 
 // Climbing statistics
@@ -257,6 +257,10 @@ $grade_colors = Crux_Grade::get_colors();
 
 .stats-column {
     min-width: 0;
+}
+
+.stats-row .postbox {
+    padding: 20px;
 }
 
 .progress-bar {

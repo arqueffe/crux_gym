@@ -203,7 +203,7 @@ sort($lane_numbers);
                     <option value="">Select Lane</option>
                     <?php foreach ($lanes as $lane): ?>
                         <option value="<?php echo esc_attr($lane->id); ?>">
-                            <?php echo esc_html($lane->name ? $lane->name : "Lane {$lane->number}"); ?>
+                            <?php echo esc_html($lane->name ? $lane->name : "Lane {$lane->id}"); ?>
                         </option>
                     <?php endforeach; ?>
                 </select>

@@ -137,7 +137,7 @@ class Crux_Admin {
             "SELECT r.*, 
                     g.french_name as grade, 
                     g.color as grade_color, 
-                    COALESCE(l.number, 0) as lane, 
+                    COALESCE(l.id, 0) as lane,
                     hc.name as color_name, 
                     hc.hex_code as color
              FROM {$wpdb->prefix}crux_routes r

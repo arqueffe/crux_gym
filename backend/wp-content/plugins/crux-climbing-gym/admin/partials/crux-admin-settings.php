@@ -282,7 +282,7 @@ $hold_colors = Crux_Hold_Colors::get_all();
 }
 
 .settings-sections .postbox {
-    margin-bottom: 20px;
+    padding: 20px;
 }
 
 .settings-sections .postbox .inside {
