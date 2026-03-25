@@ -144,7 +144,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
         // Show loading screen during initialization
-        if (authProvider.isLoading) {
+        if (authProvider.isInitializing) {
           return Scaffold(
             body: Center(
               child: Column(

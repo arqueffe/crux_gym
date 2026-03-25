@@ -20,6 +20,33 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
 
+  String _buildLoginErrorMessage(AppLocalizations l10n, String? rawError) {
+    if (rawError == null || rawError.trim().isEmpty) {
+      return l10n.loginFailed;
+    }
+
+    final normalized = rawError.toLowerCase();
+
+    // Map common backend/network patterns to clearer client-side messages.
+    if (normalized.contains('invalid') ||
+        normalized.contains('incorrect') ||
+        normalized.contains('wrong') ||
+        normalized.contains('credential') ||
+        normalized.contains('unauthorized') ||
+        normalized.contains('401')) {
+      return '${l10n.loginFailed}: ${l10n.usernameOrEmail} / ${l10n.password}';
+    }
+
+    if (normalized.contains('network') ||
+        normalized.contains('timeout') ||
+        normalized.contains('socket') ||
+        normalized.contains('connection')) {
+      return '${l10n.loginFailed}. ${l10n.retry}';
+    }
+
+    return '${l10n.loginFailed}: $rawError';
+  }
+
   @override
   void dispose() {
     _usernameController.dispose();
@@ -52,11 +79,13 @@ class _LoginScreenState extends State<LoginScreen> {
         TextInput.finishAutofillContext(shouldSave: true);
         // Navigation will happen automatically via AuthWrapper
       } else {
+        final l10n = AppLocalizations.of(context);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(authProvider.errorMessage ??
-                  AppLocalizations.of(context).loginFailed),
+              content: Text(
+                _buildLoginErrorMessage(l10n, authProvider.errorMessage),
+              ),
               backgroundColor: Colors.red,
             ),
           );

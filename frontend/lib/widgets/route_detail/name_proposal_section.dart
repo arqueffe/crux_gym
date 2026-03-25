@@ -49,12 +49,12 @@ class _NameProposalSectionState extends State<NameProposalSection> {
           _isLoading = false;
         });
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         setState(() => _isLoading = false);
         final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.errorLoadingProposals(e.toString()))),
+          SnackBar(content: Text(l10n.errorLoadingProposals(l10n.error))),
         );
       }
     }
@@ -106,10 +106,10 @@ class _NameProposalSectionState extends State<NameProposalSection> {
         );
         await _loadProposals();
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${AppLocalizations.of(context).error}: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context).error)),
         );
       }
     } finally {
@@ -154,10 +154,10 @@ class _NameProposalSectionState extends State<NameProposalSection> {
         );
         await _loadProposals();
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${AppLocalizations.of(context).error}: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context).error)),
         );
       }
     } finally {

@@ -7,23 +7,25 @@ class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
 
   bool _isLoading = false;
+  bool _isInitializing = false;
   String? _errorMessage;
 
   // Getters
   bool get isLoading => _isLoading;
+  bool get isInitializing => _isInitializing;
   String? get errorMessage => _errorMessage;
   bool get isAuthenticated => _authService.isAuthenticated;
   User? get currentUser => _authService.currentUser;
 
   // Initialize the provider
   Future<void> initialize() async {
-    _setLoading(true);
+    _setInitializing(true);
     try {
       await _authService.initialize();
     } catch (e) {
       _setError('Initialization failed: $e');
     } finally {
-      _setLoading(false);
+      _setInitializing(false);
     }
   }
 
@@ -166,6 +168,11 @@ class AuthProvider with ChangeNotifier {
   // Private methods
   void _setLoading(bool loading) {
     _isLoading = loading;
+    notifyListeners();
+  }
+
+  void _setInitializing(bool initializing) {
+    _isInitializing = initializing;
     notifyListeners();
   }
 

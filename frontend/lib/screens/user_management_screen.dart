@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../generated/l10n/app_localizations.dart';
 import '../providers/role_provider.dart';
 
 /// Screen for managing user roles (admin only)
@@ -61,16 +62,18 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         _users[userIndex]['role_name'] = _getRoleDisplayName(newRole);
       }
 
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('User role updated successfully'),
+        SnackBar(
+          content: Text(l10n.success),
           backgroundColor: Colors.green,
         ),
       );
-    } catch (e) {
+    } catch (_) {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to update user role: $e'),
+          content: Text(l10n.updateFailed),
           backgroundColor: Colors.red,
         ),
       );

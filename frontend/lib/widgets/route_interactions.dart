@@ -676,9 +676,9 @@ class _RouteInteractionsState extends State<RouteInteractions> {
       if (mounted) {
         showRouteInteractionSuccess(context, l10n.attemptAdded);
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
-        showRouteInteractionError(context, '${l10n.failedToAddAttempt}: $e');
+        showRouteInteractionError(context, l10n.failedToAddAttempt);
       }
     }
   }
@@ -698,11 +698,11 @@ class _RouteInteractionsState extends State<RouteInteractions> {
             showRouteInteractionSuccess(context, l10n.topRopeSendRemoved);
           }
         }
-      } catch (e) {
+      } catch (_) {
         if (mounted) {
           showRouteInteractionError(
             context,
-            '${l10n.failedToRemoveTopRopeSend}: $e',
+            l10n.failedToRemoveTopRopeSend,
           );
         }
       }
@@ -714,11 +714,11 @@ class _RouteInteractionsState extends State<RouteInteractions> {
         if (mounted) {
           showRouteInteractionSuccess(context, l10n.topRopeSendMarked);
         }
-      } catch (e) {
+      } catch (_) {
         if (mounted) {
           showRouteInteractionError(
             context,
-            '${l10n.failedToMarkTopRopeSend}: $e',
+            l10n.failedToMarkTopRopeSend,
           );
         }
       }
@@ -741,11 +741,11 @@ class _RouteInteractionsState extends State<RouteInteractions> {
             showRouteInteractionSuccess(context, l10n.leadSendRemoved);
           }
         }
-      } catch (e) {
+      } catch (_) {
         if (mounted) {
           showRouteInteractionError(
             context,
-            '${l10n.failedToRemoveLeadSend}: $e',
+            l10n.failedToRemoveLeadSend,
           );
         }
       }
@@ -758,11 +758,11 @@ class _RouteInteractionsState extends State<RouteInteractions> {
         if (mounted) {
           showRouteInteractionSuccess(context, l10n.leadSendMarked);
         }
-      } catch (e) {
+      } catch (_) {
         if (mounted) {
           showRouteInteractionError(
             context,
-            '${l10n.failedToMarkLeadSend}: $e',
+            l10n.failedToMarkLeadSend,
           );
         }
       }
