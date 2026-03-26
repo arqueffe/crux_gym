@@ -7,11 +7,13 @@ import 'grade_chip.dart';
 class RouteCard extends StatelessWidget {
   final models.Route route;
   final VoidCallback onTap;
+  final bool hasLeadSent;
 
   const RouteCard({
     super.key,
     required this.route,
     required this.onTap,
+    this.hasLeadSent = false,
   });
 
   @override
@@ -59,134 +61,144 @@ class RouteCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              route.displayName(unnamedFallback: l10n.unnamed),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge
-                                  ?.copyWith(fontWeight: FontWeight.w700),
-                            ),
-                            const SizedBox(height: 10),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              crossAxisAlignment: WrapCrossAlignment.center,
-                              children: [
-                                _RouteCardGradeChip(route: route),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .surfaceContainerHighest,
-                                    borderRadius: BorderRadius.circular(999),
-                                    border: Border.all(
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                route.displayName(
+                                    unnamedFallback: l10n.unnamed),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleLarge
+                                    ?.copyWith(fontWeight: FontWeight.w700),
+                              ),
+                              const SizedBox(height: 10),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  _RouteCardGradeChip(route: route),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
                                       color: Theme.of(context)
                                           .colorScheme
-                                          .outlineVariant,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        'Prises:',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .labelMedium
-                                            ?.copyWith(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurface,
-                                              fontWeight: FontWeight.w700,
-                                            ),
+                                          .surfaceContainerHighest,
+                                      borderRadius: BorderRadius.circular(999),
+                                      border: Border.all(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .outlineVariant,
                                       ),
-                                      const SizedBox(width: 6),
-                                      Container(
-                                        width: 12,
-                                        height: 12,
-                                        decoration: BoxDecoration(
-                                          color: holdColor,
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: Colors.white,
-                                            width: 1,
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          'Prises:',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .labelMedium
+                                              ?.copyWith(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          width: 12,
+                                          height: 12,
+                                          decoration: BoxDecoration(
+                                            color: holdColor,
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: Colors.white,
+                                              width: 1,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (hasLeadSent) ...[
+                          const SizedBox(width: 10),
+                          Center(
+                            child: _LeadSentChip(tooltip: l10n.leadSent),
+                          ),
+                          const SizedBox(width: 10),
+                        ],
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.favorite,
+                                  color: Colors.red,
+                                  size: 16,
                                 ),
+                                const SizedBox(width: 4),
+                                Text('${route.likesCount}'),
                               ],
                             ),
-                          ],
-                        ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.favorite,
-                                color: Colors.red,
-                                size: 16,
-                              ),
-                              const SizedBox(width: 4),
-                              Text('${route.likesCount}'),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.comment,
-                                color: Colors.blue,
-                                size: 16,
-                              ),
-                              const SizedBox(width: 4),
-                              Text('${route.commentsCount}'),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.check_circle,
-                                color: Colors.green,
-                                size: 16,
-                              ),
-                              const SizedBox(width: 4),
-                              Text('${route.ticksCount}'),
-                            ],
-                          ),
-                          if (route.warningsCount > 0) ...[
                             const SizedBox(height: 4),
                             Row(
                               children: [
                                 const Icon(
-                                  Icons.warning,
-                                  color: Colors.orange,
+                                  Icons.comment,
+                                  color: Colors.blue,
                                   size: 16,
                                 ),
                                 const SizedBox(width: 4),
-                                Text('${route.warningsCount}'),
+                                Text('${route.commentsCount}'),
                               ],
                             ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.check_circle,
+                                  color: Colors.green,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 4),
+                                Text('${route.ticksCount}'),
+                              ],
+                            ),
+                            if (route.warningsCount > 0) ...[
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.warning,
+                                    color: Colors.orange,
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text('${route.warningsCount}'),
+                                ],
+                              ),
+                            ],
                           ],
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -266,6 +278,46 @@ class _RouteCardGradeChip extends StatelessWidget {
     return GradeChip(
       grade: route.gradeName ?? '-',
       gradeColorHex: route.gradeColor,
+    );
+  }
+}
+
+class _LeadSentChip extends StatelessWidget {
+  final String tooltip;
+
+  const _LeadSentChip({required this.tooltip});
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Semantics(
+        label: tooltip,
+        child: Container(
+          width: 28,
+          height: 28,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF00A86B), Color(0xFF2ECC71)],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x3300A86B),
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: const Icon(
+            Icons.verified_rounded,
+            size: 16,
+            color: Colors.white,
+          ),
+        ),
+      ),
     );
   }
 }

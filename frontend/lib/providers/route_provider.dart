@@ -143,6 +143,10 @@ class RouteProvider extends ChangeNotifier {
       _warnedFilter != FilterState.all ||
       _projectFilter != FilterState.all;
 
+  bool hasUserLeadSentRoute(int routeId) {
+    return _userTickedRouteIds.contains(routeId);
+  }
+
   // Load initial data
   Future<void> loadInitialData({bool forceRefresh = false}) async {
     print('🔧 RouteProvider.loadInitialData() called');

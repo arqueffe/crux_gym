@@ -213,8 +213,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           itemCount: routeProvider.routes.length,
                           itemBuilder: (context, index) {
                             final route = routeProvider.routes[index];
+                            final hasLeadSent =
+                                routeProvider.hasUserLeadSentRoute(route.id);
                             return RouteCard(
                               route: route,
+                              hasLeadSent: hasLeadSent,
                               onTap: () {
                                 Navigator.push(
                                   context,
