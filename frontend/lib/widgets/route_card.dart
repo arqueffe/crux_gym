@@ -38,6 +38,43 @@ class RouteCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: Stack(
           children: [
+            if (hasLeadSent)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomRight,
+                        end: Alignment.topLeft,
+                        colors: [
+                          const Color(0x1F34D399),
+                          holdColor.withValues(alpha: 0.08),
+                          Colors.transparent,
+                        ],
+                        stops: const [0.0, 0.35, 0.85],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            if (hasLeadSent)
+              Positioned(
+                bottom: -34,
+                right: -28,
+                child: IgnorePointer(
+                  child: Container(
+                    width: 128,
+                    height: 128,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [Color(0x2F34D399), Color(0x0034D399)],
+                        stops: [0.0, 1.0],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             Positioned(
               left: 0,
               top: 0,
@@ -136,13 +173,6 @@ class RouteCard extends StatelessWidget {
                             ],
                           ),
                         ),
-                        if (hasLeadSent) ...[
-                          const SizedBox(width: 10),
-                          Center(
-                            child: _LeadSentChip(tooltip: l10n.leadSent),
-                          ),
-                          const SizedBox(width: 10),
-                        ],
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
@@ -261,6 +291,14 @@ class RouteCard extends StatelessWidget {
                 ],
               ),
             ),
+            if (hasLeadSent)
+              Positioned(
+                right: 12,
+                bottom: 12,
+                child: _LeadSentChip(
+                  tooltip: l10n.leadSent,
+                ),
+              ),
           ],
         ),
       ),
@@ -285,7 +323,9 @@ class _RouteCardGradeChip extends StatelessWidget {
 class _LeadSentChip extends StatelessWidget {
   final String tooltip;
 
-  const _LeadSentChip({required this.tooltip});
+  const _LeadSentChip({
+    required this.tooltip,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -294,27 +334,52 @@ class _LeadSentChip extends StatelessWidget {
       child: Semantics(
         label: tooltip,
         child: Container(
-          width: 28,
-          height: 28,
-          decoration: const BoxDecoration(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: LinearGradient(
+            gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [Color(0xFF00A86B), Color(0xFF2ECC71)],
             ),
-            boxShadow: [
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.78),
+              width: 1.2,
+            ),
+            boxShadow: const [
               BoxShadow(
                 color: Color(0x3300A86B),
-                blurRadius: 10,
+                blurRadius: 12,
                 offset: Offset(0, 4),
               ),
             ],
           ),
-          child: const Icon(
-            Icons.verified_rounded,
-            size: 16,
-            color: Colors.white,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.white.withValues(alpha: 0.35),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const Center(
+                child: Icon(
+                  Icons.verified_rounded,
+                  size: 18,
+                  color: Colors.white,
+                ),
+              ),
+            ],
           ),
         ),
       ),
