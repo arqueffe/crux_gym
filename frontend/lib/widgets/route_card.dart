@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../generated/l10n/app_localizations.dart';
 import '../models/route_models.dart' as models;
-import '../providers/route_provider.dart';
 import '../utils/color_utils.dart';
-import '../utils/grade_utils.dart';
 import 'grade_chip.dart';
 
 class RouteCard extends StatelessWidget {
@@ -259,108 +256,16 @@ class RouteCard extends StatelessWidget {
   }
 }
 
-class _RouteCardGradeChip extends StatefulWidget {
+class _RouteCardGradeChip extends StatelessWidget {
   final models.Route route;
 
   const _RouteCardGradeChip({required this.route});
 
   @override
-  State<_RouteCardGradeChip> createState() => _RouteCardGradeChipState();
-}
-
-class _RouteCardGradeChipState extends State<_RouteCardGradeChip> {
-  Future<models.Route>? _detailFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _syncDetailFuture();
-  }
-
-  @override
-  void didUpdateWidget(covariant _RouteCardGradeChip oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.route.id != widget.route.id ||
-        oldWidget.route.gradeProposalsCount !=
-            widget.route.gradeProposalsCount) {
-      _syncDetailFuture();
-    }
-  }
-
-  void _syncDetailFuture() {
-    if (widget.route.gradeProposalsCount > 0) {
-      _detailFuture = context.read<RouteProvider>().apiService.getRoute(
-            widget.route.id,
-          );
-      return;
-    }
-
-    _detailFuture = null;
-  }
-
-  Widget? _buildTrendIcon(
-    models.Route detailedRoute,
-    RouteProvider routeProvider,
-  ) {
-    final baseGrade = widget.route.gradeName;
-    if (baseGrade == null || routeProvider.gradeDefinitions.isEmpty) {
-      return null;
-    }
-
-    final comparison = GradeUtils.compareAverageProposedToGrade(
-      detailedRoute.gradeProposals,
-      baseGrade,
-      routeProvider.gradeDefinitions,
-    );
-
-    if (comparison > 0) {
-      return const Icon(
-        Icons.keyboard_arrow_up,
-        color: Colors.red,
-        size: 14,
-      );
-    }
-
-    if (comparison < 0) {
-      return const Icon(
-        Icons.keyboard_arrow_down,
-        color: Colors.green,
-        size: 14,
-      );
-    }
-
-    return null;
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Consumer<RouteProvider>(
-      builder: (context, routeProvider, child) {
-        if (widget.route.gradeProposalsCount == 0 ||
-            routeProvider.gradeDefinitions.isEmpty ||
-            _detailFuture == null) {
-          return GradeChip(
-            grade: widget.route.gradeName ?? '-',
-            gradeColorHex: widget.route.gradeColor,
-          );
-        }
-
-        return FutureBuilder<models.Route>(
-          future: _detailFuture,
-          builder: (context, snapshot) {
-            final detailedRoute = snapshot.data;
-            final trendIcon = detailedRoute == null
-                ? null
-                : _buildTrendIcon(detailedRoute, routeProvider);
-
-            return GradeChip(
-              grade: widget.route.gradeName ?? '-',
-              gradeColorHex: widget.route.gradeColor,
-              icon: trendIcon,
-            );
-          },
-        );
-      },
+    return GradeChip(
+      grade: route.gradeName ?? '-',
+      gradeColorHex: route.gradeColor,
     );
   }
 }
