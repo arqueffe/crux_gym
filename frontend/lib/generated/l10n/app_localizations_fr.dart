@@ -987,6 +987,21 @@ class AppLocalizationsFr extends AppLocalizations {
   String get gradesAchieved => 'Cotations Réussies';
 
   @override
+  String get profileDataInfoTooltip => 'En savoir plus';
+
+  @override
+  String get flashRateInfoDescription =>
+      'Pourcentage de voies réussies dès le premier essai (flash) parmi toutes vos ascensions en tête sur la période.';
+
+  @override
+  String get trAverageAttemptsInfoDescription =>
+      'Nombre moyen d\'essais nécessaires pour valider une voie en moulinette.';
+
+  @override
+  String get leadAverageAttemptsInfoDescription =>
+      'Nombre moyen d\'essais nécessaires pour enchaîner une voie en tête.';
+
+  @override
   String get noGradeData => 'Aucune donnée de cotation disponible';
 
   @override

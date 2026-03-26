@@ -974,6 +974,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gradesAchieved => 'Grades Achieved';
 
   @override
+  String get profileDataInfoTooltip => 'Learn more';
+
+  @override
+  String get flashRateInfoDescription =>
+      'Percentage of lead routes flashed (sent on the first attempt) during the selected period.';
+
+  @override
+  String get trAverageAttemptsInfoDescription =>
+      'Average number of attempts needed to send a top-rope route.';
+
+  @override
+  String get leadAverageAttemptsInfoDescription =>
+      'Average number of attempts needed to send a route on lead.';
+
+  @override
   String get noGradeData => 'No grade data available';
 
   @override

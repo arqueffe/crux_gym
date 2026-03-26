@@ -1958,6 +1958,30 @@ abstract class AppLocalizations {
   /// **'Grades Achieved'**
   String get gradesAchieved;
 
+  /// No description provided for @profileDataInfoTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Learn more'**
+  String get profileDataInfoTooltip;
+
+  /// No description provided for @flashRateInfoDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Percentage of lead routes flashed (sent on the first attempt) during the selected period.'**
+  String get flashRateInfoDescription;
+
+  /// No description provided for @trAverageAttemptsInfoDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Average number of attempts needed to send a top-rope route.'**
+  String get trAverageAttemptsInfoDescription;
+
+  /// No description provided for @leadAverageAttemptsInfoDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Average number of attempts needed to send a route on lead.'**
+  String get leadAverageAttemptsInfoDescription;
+
   /// No description provided for @noGradeData.
   ///
   /// In en, this message translates to:

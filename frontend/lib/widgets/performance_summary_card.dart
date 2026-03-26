@@ -130,13 +130,6 @@ class PerformanceSummaryCard extends StatelessWidget {
                 ),
                 _buildStatCard(
                   context,
-                  l10n.flashRate,
-                  '${(filteredLeadFlashRate * 100).toStringAsFixed(1)}%',
-                  Icons.flash_on,
-                  Colors.orange,
-                ),
-                _buildStatCard(
-                  context,
                   l10n.hardestGrade,
                   filteredHardestGrade ?? stats!.hardestGrade ?? 'N/A',
                   Icons.emoji_events,
@@ -148,6 +141,7 @@ class PerformanceSummaryCard extends StatelessWidget {
                   filteredTopRopeAverageAttempts.toStringAsFixed(1),
                   Icons.arrow_upward,
                   Colors.blue,
+                  infoDescription: l10n.trAverageAttemptsInfoDescription,
                 ),
                 _buildStatCard(
                   context,
@@ -155,6 +149,7 @@ class PerformanceSummaryCard extends StatelessWidget {
                   filteredLeadAverageAttempts.toStringAsFixed(1),
                   Icons.trending_up,
                   Colors.green,
+                  infoDescription: l10n.leadAverageAttemptsInfoDescription,
                 ),
                 _buildSendTypeCard(
                   context,
@@ -163,6 +158,7 @@ class PerformanceSummaryCard extends StatelessWidget {
                   filteredLeadSends,
                   Icons.trending_up,
                   Colors.green,
+                  infoDescription: l10n.flashRateInfoDescription,
                 ),
               ],
             ),
@@ -212,8 +208,9 @@ class PerformanceSummaryCard extends StatelessWidget {
     String title,
     String value,
     IconData icon,
-    Color color,
-  ) {
+    Color color, {
+    String? infoDescription,
+  }) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -240,6 +237,26 @@ class PerformanceSummaryCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
+              if (infoDescription != null)
+                Tooltip(
+                  message: AppLocalizations.of(context).profileDataInfoTooltip,
+                  child: InkWell(
+                    onTap: () => _showInfoDialog(
+                      context,
+                      title,
+                      infoDescription,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.all(2),
+                      child: Icon(
+                        Icons.info_outline,
+                        size: 16,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 4),
@@ -292,8 +309,9 @@ class PerformanceSummaryCard extends StatelessWidget {
     int flashCount,
     int totalCount,
     IconData icon,
-    Color color,
-  ) {
+    Color color, {
+    String? infoDescription,
+  }) {
     final percentage = totalCount > 0 ? (flashCount / totalCount * 100) : 0.0;
 
     return Container(
@@ -322,6 +340,26 @@ class PerformanceSummaryCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
+              if (infoDescription != null)
+                Tooltip(
+                  message: AppLocalizations.of(context).profileDataInfoTooltip,
+                  child: InkWell(
+                    onTap: () => _showInfoDialog(
+                      context,
+                      title,
+                      infoDescription,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.all(2),
+                      child: Icon(
+                        Icons.info_outline,
+                        size: 14,
+                        color: color,
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 4),
@@ -359,5 +397,24 @@ class PerformanceSummaryCard extends StatelessWidget {
       case ProfileTimeFilter.lastYear:
         return l10n.filterThisYear;
     }
+  }
+
+  void _showInfoDialog(BuildContext context, String title, String description) {
+    final l10n = AppLocalizations.of(context);
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(description),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(l10n.ok),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

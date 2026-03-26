@@ -350,6 +350,10 @@
   "commentsPosted": "Commentaires Postés",
   "wallSectionsClimbed": "Sections de Mur Escaladées",
   "gradesAchieved": "Cotations Réussies",
+  "profileDataInfoTooltip": "En savoir plus",
+  "flashRateInfoDescription": "Pourcentage de voies réussies dès le premier essai (flash) parmi toutes vos ascensions en tête sur la période.",
+  "trAverageAttemptsInfoDescription": "Nombre moyen d'essais nécessaires pour valider une voie en moulinette.",
+  "leadAverageAttemptsInfoDescription": "Nombre moyen d'essais nécessaires pour enchaîner une voie en tête.",
   
   "@_ROUTE_CARDS": {},
   "added": "Ajouté",
