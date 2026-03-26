@@ -89,7 +89,7 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                     child: Image.network(
                       route.image!,
                       fit: BoxFit.cover,
-                      webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
+                      webHtmlElementStrategy: WebHtmlElementStrategy.never,
                     ),
                   ),
                 ),

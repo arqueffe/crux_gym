@@ -24,7 +24,9 @@ class RouteImageDialog extends StatelessWidget {
           child: Image.network(
             url,
             fit: BoxFit.contain,
-            webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
+            // Use Flutter rendering on web so desktop drag pans via InteractiveViewer
+            // instead of triggering native browser image drag behavior.
+            webHtmlElementStrategy: WebHtmlElementStrategy.never,
           ),
         ),
       ),
@@ -53,7 +55,7 @@ class RouteImage extends StatelessWidget {
           url,
           width: width,
           fit: BoxFit.contain,
-          webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
+          webHtmlElementStrategy: WebHtmlElementStrategy.never,
         ),
       ),
     );
