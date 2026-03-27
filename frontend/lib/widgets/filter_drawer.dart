@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/route_filter_models.dart';
 import '../providers/route_provider.dart';
 import '../generated/l10n/app_localizations.dart';
+import '../utils/app_semantic_colors.dart';
 
 class FilterDrawer extends StatelessWidget {
   const FilterDrawer({super.key});
@@ -55,33 +56,33 @@ class FilterDrawer extends StatelessWidget {
                   padding: const EdgeInsets.all(16),
                   children: [
                     // Sorting section
-                    _buildSectionHeader(l10n.sortBy),
+                    _buildSectionHeader(context, l10n.sortBy),
                     const SizedBox(height: 8),
                     _buildSortDropdown(context, routeProvider, l10n),
                     const SizedBox(height: 24),
 
                     // Basic filters section
-                    _buildSectionHeader(l10n.basicFilters),
+                    _buildSectionHeader(context, l10n.basicFilters),
                     const SizedBox(height: 8),
-                    _buildWallSectionFilter(routeProvider, l10n),
+                    _buildWallSectionFilter(context, routeProvider, l10n),
                     const SizedBox(height: 16),
-                    _buildGradeFilter(routeProvider, l10n),
+                    _buildGradeFilter(context, routeProvider, l10n),
                     const SizedBox(height: 16),
-                    _buildLaneFilter(routeProvider, l10n),
+                    _buildLaneFilter(context, routeProvider, l10n),
                     const SizedBox(height: 16),
                     _buildRouteSetterFilter(routeProvider, l10n),
                     const SizedBox(height: 24),
 
                     // User interaction filters
-                    _buildSectionHeader(l10n.userInteractions),
+                    _buildSectionHeader(context, l10n.userInteractions),
                     const SizedBox(height: 12),
-                    _buildTickedFilter(routeProvider, l10n),
+                    _buildTickedFilter(context, routeProvider, l10n),
                     const SizedBox(height: 16),
-                    _buildLikedFilter(routeProvider, l10n),
+                    _buildLikedFilter(context, routeProvider, l10n),
                     const SizedBox(height: 16),
-                    _buildWarnedFilter(routeProvider, l10n),
+                    _buildWarnedFilter(context, routeProvider, l10n),
                     const SizedBox(height: 16),
-                    _buildProjectFilter(routeProvider, l10n),
+                    _buildProjectFilter(context, routeProvider, l10n),
                     const SizedBox(height: 32),
 
                     // Clear filters button
@@ -91,8 +92,10 @@ class FilterDrawer extends StatelessWidget {
                         icon: const Icon(Icons.clear_all),
                         label: Text(l10n.clearAllFilters),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red[100],
-                          foregroundColor: Colors.red[800],
+                          backgroundColor:
+                              Theme.of(context).colorScheme.errorContainer,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onErrorContainer,
                         ),
                       ),
                     ],
@@ -106,13 +109,13 @@ class FilterDrawer extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(BuildContext context, String title) {
     return Text(
       title,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.bold,
-        color: Colors.black87,
+        color: Theme.of(context).colorScheme.onSurface,
       ),
     );
   }
@@ -140,8 +143,10 @@ class FilterDrawer extends StatelessWidget {
     );
   }
 
-  Widget _buildWallSectionFilter(
+  Widget _buildWallSectionFilter(BuildContext context,
       RouteProvider routeProvider, AppLocalizations l10n) {
+    final semantic = context.semanticColors;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -149,7 +154,7 @@ class FilterDrawer extends StatelessWidget {
           l10n.wallSection,
           style: TextStyle(
             fontSize: 16,
-            color: Colors.grey[700],
+            color: semantic.neutralMuted,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -178,7 +183,9 @@ class FilterDrawer extends StatelessWidget {
     );
   }
 
-  Widget _buildGradeFilter(RouteProvider routeProvider, AppLocalizations l10n) {
+  Widget _buildGradeFilter(BuildContext context, RouteProvider routeProvider,
+      AppLocalizations l10n) {
+    final semantic = context.semanticColors;
     final availableGrades = routeProvider.availableGrades;
 
     if (availableGrades.isEmpty) {
@@ -186,7 +193,7 @@ class FilterDrawer extends StatelessWidget {
         '${l10n.grade}: ${l10n.allGrades}',
         style: TextStyle(
           fontSize: 16,
-          color: Colors.grey[700],
+          color: semantic.neutralMuted,
           fontWeight: FontWeight.w500,
         ),
       );
@@ -205,7 +212,7 @@ class FilterDrawer extends StatelessWidget {
           '${l10n.grade}: $selectedMinGrade - $selectedMaxGrade',
           style: TextStyle(
             fontSize: 16,
-            color: Colors.grey[700],
+            color: semantic.neutralMuted,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -238,7 +245,9 @@ class FilterDrawer extends StatelessWidget {
     );
   }
 
-  Widget _buildLaneFilter(RouteProvider routeProvider, AppLocalizations l10n) {
+  Widget _buildLaneFilter(BuildContext context, RouteProvider routeProvider,
+      AppLocalizations l10n) {
+    final semantic = context.semanticColors;
     final availableLanes = routeProvider.lanesWithRoutes;
 
     return Column(
@@ -248,7 +257,7 @@ class FilterDrawer extends StatelessWidget {
           l10n.lane,
           style: TextStyle(
             fontSize: 16,
-            color: Colors.grey[700],
+            color: semantic.neutralMuted,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -270,6 +279,156 @@ class FilterDrawer extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTickedFilter(BuildContext context, RouteProvider routeProvider,
+      AppLocalizations l10n) {
+    return _buildThreeStageFilter(
+      context,
+      l10n.tickedRoutes,
+      routeProvider.tickedFilter,
+      (state) => routeProvider.setTickedFilter(state),
+      l10n,
+    );
+  }
+
+  Widget _buildLikedFilter(BuildContext context, RouteProvider routeProvider,
+      AppLocalizations l10n) {
+    return _buildThreeStageFilter(
+      context,
+      l10n.likedRoutes,
+      routeProvider.likedFilter,
+      (state) => routeProvider.setLikedFilter(state),
+      l10n,
+    );
+  }
+
+  Widget _buildWarnedFilter(BuildContext context, RouteProvider routeProvider,
+      AppLocalizations l10n) {
+    return _buildThreeStageFilter(
+      context,
+      l10n.warnedRoutes,
+      routeProvider.warnedFilter,
+      (state) => routeProvider.setWarnedFilter(state),
+      l10n,
+    );
+  }
+
+  Widget _buildProjectFilter(BuildContext context, RouteProvider routeProvider,
+      AppLocalizations l10n) {
+    return _buildThreeStageFilter(
+      context,
+      l10n.projectRoutes,
+      routeProvider.projectFilter,
+      (state) => routeProvider.setProjectFilter(state),
+      l10n,
+    );
+  }
+
+  Color _filterStateColor(BuildContext context, FilterState state) {
+    final semantic = context.semanticColors;
+    switch (state) {
+      case FilterState.all:
+        return semantic.neutralMuted;
+      case FilterState.only:
+        return semantic.success;
+      case FilterState.exclude:
+        return Theme.of(context).colorScheme.error;
+    }
+  }
+
+  Widget _buildThreeStageFilter(
+    BuildContext context,
+    String label,
+    FilterState currentState,
+    Function(FilterState) onChanged,
+    AppLocalizations l10n,
+  ) {
+    final semantic = context.semanticColors;
+    final scheme = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 16,
+            color: semantic.neutralMuted,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: scheme.outlineVariant),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: FilterState.values.map((state) {
+              final stateColor = _filterStateColor(context, state);
+              final isSelected = currentState == state;
+              final isFirst = state == FilterState.values.first;
+              final isLast = state == FilterState.values.last;
+
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => onChanged(state),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected ? stateColor : Colors.transparent,
+                      borderRadius: BorderRadius.only(
+                        topLeft:
+                            isFirst ? const Radius.circular(6) : Radius.zero,
+                        bottomLeft:
+                            isFirst ? const Radius.circular(6) : Radius.zero,
+                        topRight:
+                            isLast ? const Radius.circular(6) : Radius.zero,
+                        bottomRight:
+                            isLast ? const Radius.circular(6) : Radius.zero,
+                      ),
+                      border: !isLast
+                          ? Border(
+                              right: BorderSide(
+                                color: scheme.outlineVariant,
+                                width: 1,
+                              ),
+                            )
+                          : null,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          state.icon,
+                          size: 16,
+                          color: isSelected ? scheme.surface : stateColor,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          state.getDisplayName(l10n),
+                          style: TextStyle(
+                            color: isSelected ? scheme.surface : stateColor,
+                            fontWeight:
+                                isSelected ? FontWeight.bold : FontWeight.w500,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
         ),
       ],
     );
@@ -299,134 +458,6 @@ class FilterDrawer extends StatelessWidget {
       onChanged: (value) {
         routeProvider.setRouteSetterFilter(value);
       },
-    );
-  }
-
-  Widget _buildTickedFilter(
-      RouteProvider routeProvider, AppLocalizations l10n) {
-    return _buildThreeStageFilter(
-      l10n.tickedRoutes,
-      routeProvider.tickedFilter,
-      (state) => routeProvider.setTickedFilter(state),
-      l10n,
-    );
-  }
-
-  Widget _buildLikedFilter(RouteProvider routeProvider, AppLocalizations l10n) {
-    return _buildThreeStageFilter(
-      l10n.likedRoutes,
-      routeProvider.likedFilter,
-      (state) => routeProvider.setLikedFilter(state),
-      l10n,
-    );
-  }
-
-  Widget _buildWarnedFilter(
-      RouteProvider routeProvider, AppLocalizations l10n) {
-    return _buildThreeStageFilter(
-      l10n.warnedRoutes,
-      routeProvider.warnedFilter,
-      (state) => routeProvider.setWarnedFilter(state),
-      l10n,
-    );
-  }
-
-  Widget _buildProjectFilter(
-      RouteProvider routeProvider, AppLocalizations l10n) {
-    return _buildThreeStageFilter(
-      l10n.projectRoutes,
-      routeProvider.projectFilter,
-      (state) => routeProvider.setProjectFilter(state),
-      l10n,
-    );
-  }
-
-  Widget _buildThreeStageFilter(
-    String label,
-    FilterState currentState,
-    Function(FilterState) onChanged,
-    AppLocalizations l10n,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.grey[700],
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            children: FilterState.values.map((state) {
-              final isSelected = currentState == state;
-              final isFirst = state == FilterState.values.first;
-              final isLast = state == FilterState.values.last;
-
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () => onChanged(state),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isSelected ? state.color : Colors.transparent,
-                      borderRadius: BorderRadius.only(
-                        topLeft:
-                            isFirst ? const Radius.circular(6) : Radius.zero,
-                        bottomLeft:
-                            isFirst ? const Radius.circular(6) : Radius.zero,
-                        topRight:
-                            isLast ? const Radius.circular(6) : Radius.zero,
-                        bottomRight:
-                            isLast ? const Radius.circular(6) : Radius.zero,
-                      ),
-                      border: !isLast
-                          ? Border(
-                              right: BorderSide(
-                                color: Colors.grey[300]!,
-                                width: 1,
-                              ),
-                            )
-                          : null,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          state.icon,
-                          size: 16,
-                          color: isSelected ? Colors.white : state.color,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          state.getDisplayName(l10n),
-                          style: TextStyle(
-                            color: isSelected ? Colors.white : state.color,
-                            fontWeight:
-                                isSelected ? FontWeight.bold : FontWeight.w500,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-      ],
     );
   }
 }

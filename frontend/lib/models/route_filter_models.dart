@@ -118,15 +118,4 @@ extension FilterStateExtension on FilterState {
         return Icons.close;
     }
   }
-
-  Color get color {
-    switch (this) {
-      case FilterState.all:
-        return Colors.grey;
-      case FilterState.only:
-        return Colors.green;
-      case FilterState.exclude:
-        return Colors.red;
-    }
-  }
 }

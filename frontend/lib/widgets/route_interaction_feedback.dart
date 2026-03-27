@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../utils/app_semantic_colors.dart';
 
 void showRouteInteractionSuccess(
   BuildContext context,
@@ -12,23 +13,34 @@ void showRouteInteractionSuccess(
   bool showDurationProgress = false,
 }) {
   final scaffoldMessenger = ScaffoldMessenger.of(context);
+  final semantic = context.semanticColors;
+  final colorScheme = Theme.of(context).colorScheme;
+  final snackBarBackground = backgroundColor ?? semantic.successContainer;
+  final foregroundColor = backgroundColor == null
+      ? semantic.onSuccessContainer
+      : colorScheme.onInverseSurface;
   scaffoldMessenger.hideCurrentSnackBar();
 
   final snackBarContent = showDurationProgress
       ? _RouteInteractionSnackBarContent(
           message: message,
           duration: duration,
+          foregroundColor: foregroundColor,
         )
-      : Text(message);
+      : Text(
+          message,
+          style: TextStyle(color: foregroundColor),
+        );
 
   final controller = scaffoldMessenger.showSnackBar(
     SnackBar(
       content: snackBarContent,
       duration: duration,
-      backgroundColor: backgroundColor,
+      backgroundColor: snackBarBackground,
       action: actionLabel != null && onAction != null
           ? SnackBarAction(
               label: actionLabel,
+              textColor: foregroundColor,
               onPressed: () {
                 scaffoldMessenger.hideCurrentSnackBar();
                 unawaited(onAction());
@@ -46,10 +58,14 @@ void showRouteInteractionSuccess(
 }
 
 void showRouteInteractionError(BuildContext context, String message) {
+  final colorScheme = Theme.of(context).colorScheme;
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
-      content: Text(message),
-      backgroundColor: Colors.red,
+      content: Text(
+        message,
+        style: TextStyle(color: colorScheme.onErrorContainer),
+      ),
+      backgroundColor: colorScheme.errorContainer,
     ),
   );
 }
@@ -58,10 +74,12 @@ class _RouteInteractionSnackBarContent extends StatelessWidget {
   const _RouteInteractionSnackBarContent({
     required this.message,
     required this.duration,
+    required this.foregroundColor,
   });
 
   final String message;
   final Duration duration;
+  final Color foregroundColor;
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +87,10 @@ class _RouteInteractionSnackBarContent extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(message),
+        Text(
+          message,
+          style: TextStyle(color: foregroundColor),
+        ),
         const SizedBox(height: 8),
         TweenAnimationBuilder<double>(
           tween: Tween<double>(begin: 1, end: 0),
@@ -78,8 +99,8 @@ class _RouteInteractionSnackBarContent extends StatelessWidget {
             return LinearProgressIndicator(
               value: value,
               minHeight: 3,
-              backgroundColor: Colors.white.withAlpha(70),
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+              backgroundColor: foregroundColor.withValues(alpha: 0.22),
+              valueColor: AlwaysStoppedAnimation<Color>(foregroundColor),
             );
           },
         ),

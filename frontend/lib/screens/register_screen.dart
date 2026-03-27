@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../generated/l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 import '../providers/locale_provider.dart';
+import '../utils/app_semantic_colors.dart';
 import '../widgets/auth_html_input.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -107,9 +108,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content:
-                  Text(AppLocalizations.of(context).registrationSuccessful),
-              backgroundColor: Colors.green,
+              content: Text(
+                AppLocalizations.of(context).registrationSuccessful,
+                style:
+                    TextStyle(color: context.semanticColors.onSuccessContainer),
+              ),
+              backgroundColor: context.semanticColors.successContainer,
             ),
           );
         }
@@ -118,8 +122,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(AppLocalizations.of(context).registrationFailed),
-              backgroundColor: Colors.red,
+              content: Text(
+                AppLocalizations.of(context).registrationFailed,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onErrorContainer,
+                ),
+              ),
+              backgroundColor: Theme.of(context).colorScheme.errorContainer,
             ),
           );
         }

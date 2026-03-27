@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/app_semantic_colors.dart';
 
 class ThemeProvider with ChangeNotifier {
   static const String _themeKey = 'theme_mode';
@@ -46,13 +47,18 @@ class ThemeProvider with ChangeNotifier {
     const accentColor = Color(0xFFFCB900); // #fcb900
 
     if (_isDarkMode) {
+      final colorScheme = ColorScheme.fromSeed(
+        seedColor: accentColor,
+        brightness: Brightness.dark,
+      );
+
       return ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: accentColor,
-          brightness: Brightness.dark,
-        ),
+        colorScheme: colorScheme,
         useMaterial3: true,
         brightness: Brightness.dark,
+        extensions: <ThemeExtension<dynamic>>[
+          AppSemanticColors.dark(colorScheme),
+        ],
         appBarTheme: const AppBarTheme(
           centerTitle: true,
         ),
@@ -71,13 +77,18 @@ class ThemeProvider with ChangeNotifier {
         ),
       );
     } else {
+      final colorScheme = ColorScheme.fromSeed(
+        seedColor: accentColor,
+        brightness: Brightness.light,
+      );
+
       return ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: accentColor,
-          brightness: Brightness.light,
-        ),
+        colorScheme: colorScheme,
         useMaterial3: true,
         brightness: Brightness.light,
+        extensions: <ThemeExtension<dynamic>>[
+          AppSemanticColors.light(colorScheme),
+        ],
         appBarTheme: const AppBarTheme(
           centerTitle: true,
         ),

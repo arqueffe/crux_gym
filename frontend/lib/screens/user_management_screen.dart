@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../generated/l10n/app_localizations.dart';
 import '../providers/role_provider.dart';
+import '../utils/app_semantic_colors.dart';
 
 /// Screen for managing user roles (admin only)
 class UserManagementScreen extends StatefulWidget {
@@ -65,16 +66,24 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(l10n.success),
-          backgroundColor: Colors.green,
+          content: Text(
+            l10n.success,
+            style: TextStyle(color: context.semanticColors.onSuccessContainer),
+          ),
+          backgroundColor: context.semanticColors.successContainer,
         ),
       );
     } catch (_) {
       final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(l10n.updateFailed),
-          backgroundColor: Colors.red,
+          content: Text(
+            l10n.updateFailed,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onErrorContainer,
+            ),
+          ),
+          backgroundColor: Theme.of(context).colorScheme.errorContainer,
         ),
       );
     }

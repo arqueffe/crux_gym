@@ -5,6 +5,7 @@ import '../models/profile_models.dart';
 import '../models/route_models.dart' as models;
 import '../providers/route_provider.dart';
 import '../providers/auth_provider.dart';
+import '../utils/app_semantic_colors.dart';
 import '../widgets/route_interaction_dialogs.dart';
 import '../widgets/route_interaction_feedback.dart';
 
@@ -889,7 +890,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
           showRouteInteractionSuccess(
             context,
             l10n.cannotMarkSentRoutesAsProjects,
-            backgroundColor: Colors.orange,
+            backgroundColor: context.semanticColors.warningContainer,
           );
         }
         return;
@@ -942,7 +943,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
       showRouteInteractionSuccess(
         context,
         notes.isEmpty ? 'Note removed' : 'Note saved',
-        backgroundColor: Colors.green,
+        backgroundColor: context.semanticColors.successContainer,
       );
     } else {
       showRouteInteractionError(

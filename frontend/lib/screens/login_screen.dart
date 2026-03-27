@@ -101,8 +101,11 @@ class _LoginScreenState extends State<LoginScreen> {
             SnackBar(
               content: Text(
                 _buildLoginErrorMessage(l10n, authProvider.errorMessage),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onErrorContainer,
+                ),
               ),
-              backgroundColor: Colors.red,
+              backgroundColor: Theme.of(context).colorScheme.errorContainer,
             ),
           );
         }

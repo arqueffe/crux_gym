@@ -361,8 +361,13 @@ class _RoleManagementScreenState extends State<RoleManagementScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: ${roleProvider.error}'),
-          backgroundColor: Colors.red,
+          content: Text(
+            'Error: ${roleProvider.error}',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onErrorContainer,
+            ),
+          ),
+          backgroundColor: Theme.of(context).colorScheme.errorContainer,
         ),
       );
     }
@@ -382,7 +387,10 @@ class _RoleManagementScreenState extends State<RoleManagementScreen> {
           ),
           ElevatedButton(
             onPressed: () => _deleteRole(context, role),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
             child: const Text('Delete'),
           ),
         ],
@@ -403,8 +411,13 @@ class _RoleManagementScreenState extends State<RoleManagementScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: ${roleProvider.error}'),
-          backgroundColor: Colors.red,
+          content: Text(
+            'Error: ${roleProvider.error}',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onErrorContainer,
+            ),
+          ),
+          backgroundColor: Theme.of(context).colorScheme.errorContainer,
         ),
       );
     }
