@@ -712,7 +712,14 @@ class _RouteInteractionsState extends State<RouteInteractions> {
         await routeProvider.markSendOptimized(widget.route.id, 'top_rope');
         await _refreshTickData();
         if (mounted) {
-          showRouteInteractionSuccess(context, l10n.topRopeSendMarked);
+          showRouteInteractionSuccess(
+            context,
+            l10n.topRopeSendMarked,
+            duration: const Duration(seconds: 4),
+            actionLabel: l10n.undo,
+            onAction: _undoTopRopeSend,
+            showDurationProgress: true,
+          );
         }
       } catch (_) {
         if (mounted) {
@@ -756,7 +763,14 @@ class _RouteInteractionsState extends State<RouteInteractions> {
         await _refreshTickData();
         _checkIfProject(); // Also check project status as it may have changed
         if (mounted) {
-          showRouteInteractionSuccess(context, l10n.leadSendMarked);
+          showRouteInteractionSuccess(
+            context,
+            l10n.leadSendMarked,
+            duration: const Duration(seconds: 4),
+            actionLabel: l10n.undo,
+            onAction: _undoLeadSend,
+            showDurationProgress: true,
+          );
         }
       } catch (_) {
         if (mounted) {
@@ -765,6 +779,57 @@ class _RouteInteractionsState extends State<RouteInteractions> {
             l10n.failedToMarkLeadSend,
           );
         }
+      }
+    }
+  }
+
+  Future<void> _undoTopRopeSend() async {
+    final l10n = AppLocalizations.of(context);
+    final routeProvider = context.read<RouteProvider>();
+
+    try {
+      final success =
+          await routeProvider.unmarkSendOptimized(widget.route.id, 'top_rope');
+      if (!success) {
+        if (mounted) {
+          showRouteInteractionError(context, l10n.failedToRemoveTopRopeSend);
+        }
+        return;
+      }
+
+      await _refreshTickData();
+      if (mounted) {
+        showRouteInteractionSuccess(context, l10n.topRopeSendRemoved);
+      }
+    } catch (_) {
+      if (mounted) {
+        showRouteInteractionError(context, l10n.failedToRemoveTopRopeSend);
+      }
+    }
+  }
+
+  Future<void> _undoLeadSend() async {
+    final l10n = AppLocalizations.of(context);
+    final routeProvider = context.read<RouteProvider>();
+
+    try {
+      final success =
+          await routeProvider.unmarkSendOptimized(widget.route.id, 'lead');
+      if (!success) {
+        if (mounted) {
+          showRouteInteractionError(context, l10n.failedToRemoveLeadSend);
+        }
+        return;
+      }
+
+      await _refreshTickData();
+      _checkIfProject();
+      if (mounted) {
+        showRouteInteractionSuccess(context, l10n.leadSendRemoved);
+      }
+    } catch (_) {
+      if (mounted) {
+        showRouteInteractionError(context, l10n.failedToRemoveLeadSend);
       }
     }
   }

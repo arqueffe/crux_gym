@@ -24,6 +24,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get cancel => 'Annuler';
 
   @override
+  String get undo => 'Annuler';
+
+  @override
   String get save => 'Enregistrer';
 
   @override

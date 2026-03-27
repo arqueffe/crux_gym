@@ -128,6 +128,12 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get cancel;
 
+  /// No description provided for @undo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get undo;
+
   /// No description provided for @save.
   ///
   /// In en, this message translates to:
