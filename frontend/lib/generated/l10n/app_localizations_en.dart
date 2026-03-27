@@ -114,10 +114,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get usernameMinLength => 'Username must be at least 3 characters';
 
   @override
-  String get nicknameLength => 'Nickname must be 3-20 characters';
+  String get nicknameLength => 'Nickname must be 3-100 characters';
 
   @override
-  String get nicknameFormat => 'Only letters, numbers, and underscores';
+  String get nicknameFormat =>
+      'Nickname can include most characters, except control characters and < >';
 
   @override
   String get emailInvalid => 'Please enter a valid email address';

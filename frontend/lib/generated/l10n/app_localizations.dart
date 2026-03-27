@@ -311,13 +311,13 @@ abstract class AppLocalizations {
   /// No description provided for @nicknameLength.
   ///
   /// In en, this message translates to:
-  /// **'Nickname must be 3-20 characters'**
+  /// **'Nickname must be 3-100 characters'**
   String get nicknameLength;
 
   /// No description provided for @nicknameFormat.
   ///
   /// In en, this message translates to:
-  /// **'Only letters, numbers, and underscores'**
+  /// **'Nickname can include most characters, except control characters and < >'**
   String get nicknameFormat;
 
   /// No description provided for @emailInvalid.

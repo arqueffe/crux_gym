@@ -195,7 +195,9 @@ class AuthService {
   }
 
   // Get current user from server
-  Future<Map<String, dynamic>> getCurrentUser() async {
+  Future<Map<String, dynamic>> getCurrentUser({
+    bool clearAuthOnFailure = true,
+  }) async {
     try {
       print('🔍 Getting current user via JavaScript interop...');
 
@@ -234,7 +236,9 @@ class AuthService {
       }
 
       // If we get here, authentication failed
-      await _clearAuth();
+      if (clearAuthOnFailure) {
+        await _clearAuth();
+      }
       return {'success': false, 'message': 'Not authenticated'};
     } catch (e) {
       print('❌ Get current user error: $e');
@@ -246,10 +250,17 @@ class AuthService {
     try {
       print('🔄 Updating nickname via JavaScript interop...');
 
+      final headers = <String, String>{};
+      if (_token != null && _token!.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $_token';
+        headers['X-Auth-Token'] = _token!;
+      }
+
       final response = await JSAuthService.makeJSRequest(
         '$baseUrl/user/nickname',
         method: 'PUT',
         body: {'nickname': nickname},
+        headers: headers,
       );
 
       print('📨 Nickname update response: $response');

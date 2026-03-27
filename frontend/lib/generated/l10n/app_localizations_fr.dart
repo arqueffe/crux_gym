@@ -116,11 +116,11 @@ class AppLocalizationsFr extends AppLocalizations {
       'Le nom d\'utilisateur doit contenir au moins 3 caractères';
 
   @override
-  String get nicknameLength => 'Le pseudonyme doit contenir 3 à 20 caractères';
+  String get nicknameLength => 'Le pseudonyme doit contenir 3 à 100 caractères';
 
   @override
   String get nicknameFormat =>
-      'Seuls les lettres, chiffres et underscores sont autorisés';
+      'Le pseudonyme accepte la plupart des caractères, sauf les caractères de contrôle et < >';
 
   @override
   String get emailInvalid => 'Veuillez saisir une adresse email valide';

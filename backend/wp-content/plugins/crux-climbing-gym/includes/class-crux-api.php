@@ -357,11 +357,19 @@ class Crux_API
         require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-crux-auth.php';
         $auth = new Crux_Auth();
         
-        // Get token from Authorization header or X-Auth-Token header
+        // Get token from Authorization header or X-Auth-Token header.
+        // Some proxy/server setups only expose auth headers via server vars.
         $auth_header = $request->get_header('Authorization');
+        if (!$auth_header && isset($_SERVER['HTTP_AUTHORIZATION'])) {
+            $auth_header = $_SERVER['HTTP_AUTHORIZATION'];
+        }
+        if (!$auth_header && isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+            $auth_header = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+        }
+
         $token = null;
         
-        if ($auth_header && strpos($auth_header, 'Bearer ') === 0) {
+        if ($auth_header && stripos($auth_header, 'Bearer ') === 0) {
             $token = substr($auth_header, 7);
         } else {
             $token = $request->get_header('X-Auth-Token');
@@ -472,7 +480,7 @@ class Crux_API
         return false;
     }
 
-    private function _get_current_user()
+    private function _get_current_user($request = null)
     {
         // First, let's try to determine user from cookie and set current user
         $user_id = $this->determine_user_from_cookie();
@@ -484,7 +492,7 @@ class Crux_API
         // Now try the standard WordPress method
         $current_user = wp_get_current_user();
 
-        if (!$current_user || $current_user->ID == 0) {
+        if ((!$current_user || $current_user->ID == 0) && $request) {
             // Check if we have a custom WordPress cookie header
             $user_id = $this->check_wp_cookie_header($request);
             if ($user_id) {
@@ -505,7 +513,7 @@ class Crux_API
      */
     public function get_current_user($request)
     {
-        $current_user = $this->_get_current_user();
+        $current_user = $this->_get_current_user($request);
 
         // Ensure user has a role assigned (auto-assign member role if none)
         $this->ensure_user_has_role($current_user->ID);
@@ -1599,24 +1607,41 @@ class Crux_API
             return new WP_Error('empty_nickname', 'Nickname cannot be empty', array('status' => 400));
         }
         
-        $nickname = sanitize_text_field(trim($data['nickname']));
+        $nickname = $this->normalizeNicknameWhitespace($data['nickname']);
+
+        if ($nickname === '') {
+            return new WP_Error('empty_nickname', 'Nickname cannot be empty', array('status' => 400));
+        }
+
+        if (!seems_utf8($nickname)) {
+            return new WP_Error('invalid_nickname_encoding', 'Nickname contains invalid characters', array('status' => 400));
+        }
+
+        if (class_exists('Normalizer')) {
+            $normalized_nickname = Normalizer::normalize($nickname, Normalizer::FORM_C);
+            if ($normalized_nickname !== false) {
+                $nickname = $normalized_nickname;
+            }
+        }
+
+        // Block control characters and markup brackets while allowing international letters and common punctuation.
+        if ($this->containsDisallowedNicknameChars($nickname)) {
+            return new WP_Error('invalid_nickname_format', 'Nickname contains unsupported characters', array('status' => 400));
+        }
         
         // Validate nickname length (3-100 characters)
-        if (strlen($nickname) < 3) {
+        $nickname_length = $this->getTextLength($nickname);
+        if ($nickname_length < 3) {
             return new WP_Error('nickname_too_short', 'Nickname must be at least 3 characters long', array('status' => 400));
         }
         
-        if (strlen($nickname) > 100) {
+        if ($nickname_length > 100) {
             return new WP_Error('nickname_too_long', 'Nickname must be less than 100 characters long', array('status' => 400));
         }
         
         // Check for profanity or inappropriate content (basic check)
-        $inappropriate_words = array('admin', 'administrator', 'root', 'moderator', 'staff');
-        $nickname_lower = strtolower($nickname);
-        foreach ($inappropriate_words as $word) {
-            if (strpos($nickname_lower, $word) !== false) {
-                return new WP_Error('inappropriate_nickname', 'This nickname is not allowed', array('status' => 400));
-            }
+        if ($this->hasBlockedNicknameWord($nickname)) {
+            return new WP_Error('inappropriate_nickname', 'This nickname is not allowed', array('status' => 400));
         }
         
         $table_name = $wpdb->prefix . 'crux_user_nicknames';
@@ -1659,6 +1684,51 @@ class Crux_API
                 'message' => 'Nickname updated successfully'
             )
         );
+    }
+
+    private function normalizeNicknameWhitespace($value)
+    {
+        $trimmed = trim((string) $value);
+        return preg_replace('/\s+/u', ' ', $trimmed);
+    }
+
+    private function containsDisallowedNicknameChars($value)
+    {
+        return preg_match('/[<>\x00-\x1F\x7F]/u', $value) === 1;
+    }
+
+    private function getTextLength($value)
+    {
+        if (function_exists('mb_strlen')) {
+            return mb_strlen($value, 'UTF-8');
+        }
+
+        if (preg_match_all('/./u', $value, $matches)) {
+            return count($matches[0]);
+        }
+
+        return strlen($value);
+    }
+
+    private function containsCaseInsensitive($haystack, $needle)
+    {
+        if (function_exists('mb_stripos')) {
+            return mb_stripos($haystack, $needle, 0, 'UTF-8') !== false;
+        }
+
+        return stripos($haystack, $needle) !== false;
+    }
+
+    private function hasBlockedNicknameWord($nickname)
+    {
+        $inappropriate_words = array('admin', 'administrator', 'root', 'moderator', 'staff');
+        foreach ($inappropriate_words as $word) {
+            if ($this->containsCaseInsensitive($nickname, $word)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // Helper methods

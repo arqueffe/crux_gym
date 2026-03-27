@@ -56,18 +56,20 @@ class _ProfileScreenState extends State<ProfileScreen>
       text: authProvider.currentUser?.nickname ?? '',
     );
     String? errorText;
+    bool isSubmitting = false;
 
     bool validate(String value) {
-      if (value.trim().isEmpty) {
+      final trimmedValue = value.trim();
+      if (trimmedValue.isEmpty) {
         errorText = l10n.pleaseEnterNickname;
         return false;
       }
-      if (value.length < 3 || value.length > 20) {
+      if (trimmedValue.length < 3 || trimmedValue.length > 100) {
         errorText = l10n.nicknameLength;
         return false;
       }
-      final regex = RegExp(r'^[A-Za-z0-9_]+$');
-      if (!regex.hasMatch(value)) {
+      final disallowedPattern = RegExp(r'[<>]|[\x00-\x1F\x7F]');
+      if (disallowedPattern.hasMatch(trimmedValue)) {
         errorText = l10n.nicknameFormat;
         return false;
       }
@@ -99,27 +101,34 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
+                onPressed:
+                    isSubmitting ? null : () => Navigator.of(ctx).pop(false),
                 child: Text(l10n.cancel),
               ),
               ElevatedButton(
-                onPressed: () async {
-                  final value = controller.text.trim();
-                  if (!validate(value)) {
-                    setState(() {});
-                    return;
-                  }
-                  final ok = await authProvider.updateNickname(value);
-                  if (!ctx.mounted) return;
-                  if (ok) {
-                    Navigator.of(ctx).pop(true);
-                  } else {
-                    setState(() {
-                      errorText =
-                          authProvider.errorMessage ?? l10n.updateFailed;
-                    });
-                  }
-                },
+                onPressed: isSubmitting
+                    ? null
+                    : () async {
+                        final value = controller.text.trim();
+                        if (!validate(value)) {
+                          setState(() {});
+                          return;
+                        }
+                        setState(() {
+                          isSubmitting = true;
+                        });
+                        final ok = await authProvider.updateNickname(value);
+                        if (!ctx.mounted) return;
+                        if (ok) {
+                          Navigator.of(ctx).pop(true);
+                        } else {
+                          setState(() {
+                            isSubmitting = false;
+                            errorText =
+                                authProvider.errorMessage ?? l10n.updateFailed;
+                          });
+                        }
+                      },
                 child: Text(l10n.save),
               ),
             ],

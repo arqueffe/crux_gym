@@ -119,7 +119,7 @@ class AuthProvider with ChangeNotifier {
     if (!_authService.isAuthenticated) return;
 
     try {
-      await _authService.getCurrentUser();
+      await _authService.getCurrentUser(clearAuthOnFailure: false);
       notifyListeners();
     } catch (e) {
       _setError('Failed to refresh user data: $e');
