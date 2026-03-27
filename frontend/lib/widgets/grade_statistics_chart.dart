@@ -54,8 +54,9 @@ class GradeStatisticsChart extends StatelessWidget {
             final barWidth = isCompact ? 30.0 : 40.0;
             final maxLeadSends = gradeStats.fold<int>(
               0,
-              (maxValue, stat) =>
-                  stat.leadSends > maxValue ? stat.leadSends : maxValue,
+              (maxValue, stat) => stat.leadAttemptedRoutes > maxValue
+                  ? stat.leadAttemptedRoutes
+                  : maxValue,
             );
 
             return SizedBox(
@@ -150,7 +151,9 @@ class GradeStatisticsChart extends StatelessWidget {
               ),
               child: Center(
                 child: Text(
-                  '${(stat.flashRate * 100).toInt()}%',
+                  stat.flashRate == null
+                      ? '-'
+                      : stat.flashRate!.toStringAsFixed(2),
                   style: const TextStyle(
                     fontSize: 8,
                     fontWeight: FontWeight.bold,
@@ -166,12 +169,14 @@ class GradeStatisticsChart extends StatelessWidget {
                 builder: (context, constraints) {
                   final currentBarAreaHeight = constraints.maxHeight;
                   final barHeight = maxTicks > 0
-                      ? (stat.leadSends / maxTicks) * currentBarAreaHeight
+                      ? (stat.leadAttemptedRoutes / maxTicks) *
+                          currentBarAreaHeight
                       : 0.0;
                   final clampedBarHeight =
                       barHeight.clamp(0.0, currentBarAreaHeight);
-                  final flashHeight = (clampedBarHeight * stat.flashRate)
-                      .clamp(0.0, clampedBarHeight);
+                  final flashHeight =
+                      (clampedBarHeight * stat.flashShareOnLeadAttempts)
+                          .clamp(0.0, clampedBarHeight);
 
                   return Container(
                     width: barWidth,
@@ -212,7 +217,7 @@ class GradeStatisticsChart extends StatelessWidget {
 
             // Tick count
             Text(
-              '${stat.leadSends}',
+              '${stat.leadAttemptedRoutes}',
               style: const TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
@@ -265,12 +270,15 @@ class GradeStatisticsChart extends StatelessWidget {
                                     routeProvider.getGradeColor(stat.grade),
                               ),
                             ),
-                            DataCell(Text('${stat.leadSends}')),
+                            DataCell(Text('${stat.leadAttemptedRoutes}')),
                             DataCell(Text('${stat.flashCount}')),
                             DataCell(
                                 Text(stat.averageAttempts.toStringAsFixed(1))),
                             DataCell(Text(
-                                '${(stat.flashRate * 100).toStringAsFixed(1)}%')),
+                              stat.flashRate == null
+                                  ? '-'
+                                  : stat.flashRate!.toStringAsFixed(2),
+                            )),
                           ],
                         ))
                     .toList(),
@@ -292,14 +300,16 @@ class GradeStatisticsChart extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildDetailRow(l10n.routesCompleted, '${stat.leadSends}'),
+            _buildDetailRow(l10n.lead, '${stat.leadAttemptedRoutes}'),
             _buildDetailRow(l10n.totalAttemptsColon,
                 '${stat.leadAttempts + stat.topRopeAttempts}'),
             _buildDetailRow(l10n.flashes, '${stat.flashCount}'),
             _buildDetailRow(l10n.leadAverageAttempts,
                 stat.averageAttempts.toStringAsFixed(1)),
-            _buildDetailRow(l10n.flashRate,
-                '${(stat.flashRate * 100).toStringAsFixed(1)}%'),
+            _buildDetailRow(
+              l10n.flashRate,
+              stat.flashRate == null ? '-' : stat.flashRate!.toStringAsFixed(2),
+            ),
           ],
         ),
         actions: [

@@ -100,7 +100,7 @@
   "totalAttempts": "Tentatives moy.",
   "topRopeFlash": "Moulinette flash",
   "leadFlash": "Tête flash",
-  "flashRate": "Taux de flash",
+  "flashRate": "Ratio flash",
   "averageAttempts": "Tentatives moy.",
   "trAverageAttempts": "Moul. Tent. Moy.",
   "leadAverageAttempts": "Tête Tent. Moy.",
@@ -351,7 +351,7 @@
   "wallSectionsClimbed": "Sections de Mur Escaladées",
   "gradesAchieved": "Cotations Réussies",
   "profileDataInfoTooltip": "En savoir plus",
-  "flashRateInfoDescription": "Pourcentage de voies réussies dès le premier essai (flash) parmi toutes vos ascensions en tête sur la période.",
+  "flashRateInfoDescription": "Nombre de voies enchaînées en tête au premier essai divisé par le nombre de voies tentées en tête (y compris celles enchaînées) sur la période sélectionnée.",
   "trAverageAttemptsInfoDescription": "Nombre moyen d'essais nécessaires pour valider une voie en moulinette.",
   "leadAverageAttemptsInfoDescription": "Nombre moyen d'essais nécessaires pour enchaîner une voie en tête.",
   

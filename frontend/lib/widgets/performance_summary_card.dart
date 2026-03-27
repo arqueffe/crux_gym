@@ -36,6 +36,9 @@ class PerformanceSummaryCard extends StatelessWidget {
 
     final filteredLeadFlashes =
         filteredTicks.where((tick) => tick.isLeadFlash).length;
+    final filteredLeadAttemptedRoutes = filteredTicks
+        .where((tick) => tick.leadAttempts > 0 || tick.leadSend)
+        .length;
     final filteredTopRopeSends =
         filteredTicks.where((tick) => tick.topRopeSend).length;
     final filteredLeadSends =
@@ -154,7 +157,7 @@ class PerformanceSummaryCard extends StatelessWidget {
                   context,
                   l10n.leadFlash,
                   filteredLeadFlashes,
-                  filteredLeadSends,
+                  filteredLeadAttemptedRoutes,
                   Icons.trending_up,
                   Colors.green,
                   infoDescription: l10n.flashRateInfoDescription,
@@ -305,13 +308,13 @@ class PerformanceSummaryCard extends StatelessWidget {
   Widget _buildSendTypeCard(
     BuildContext context,
     String title,
-    int flashCount,
-    int totalCount,
+    int numerator,
+    int denominator,
     IconData icon,
     Color color, {
     String? infoDescription,
   }) {
-    final percentage = totalCount > 0 ? (flashCount / totalCount * 100) : 0.0;
+    final ratio = denominator > 0 ? (numerator / denominator) : null;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -363,7 +366,7 @@ class PerformanceSummaryCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '$flashCount / $totalCount',
+            '$numerator / $denominator',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -371,7 +374,7 @@ class PerformanceSummaryCard extends StatelessWidget {
             ),
           ),
           Text(
-            '${percentage.toStringAsFixed(1)}%',
+            ratio == null ? '-' : ratio.toStringAsFixed(2),
             style: TextStyle(
               fontSize: 11,
               color: Colors.grey.shade600,

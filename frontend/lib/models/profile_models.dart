@@ -91,6 +91,7 @@ class GradeStatistics {
   final String grade;
   final int topRopeSends;
   final int leadSends;
+  final int leadAttemptedRoutes;
   final int topRopeAttempts;
   final int leadAttempts;
   final int leadAttemptsOnLeadSends;
@@ -104,6 +105,11 @@ class GradeStatistics {
             .length,
         leadSends = ticks
             .where((tick) => tick.leadSend && tick.routeGrade == grade)
+            .length,
+        leadAttemptedRoutes = ticks
+            .where((tick) =>
+                tick.routeGrade == grade &&
+                (tick.leadAttempts > 0 || tick.leadSend))
             .length,
         topRopeAttempts = ticks
             .where((tick) => tick.routeGrade == grade)
@@ -122,8 +128,13 @@ class GradeStatistics {
     return leadSends > 0 ? leadAttemptsOnLeadSends / leadSends : 0.0;
   }
 
-  double get flashRate {
-    return leadSends > 0 ? flashCount / leadSends : 0.0;
+  // Ratio requested by product: first-attempt lead sends / lead attempted routes.
+  double? get flashRate {
+    return leadAttemptedRoutes > 0 ? flashCount / leadAttemptedRoutes : null;
+  }
+
+  double get flashShareOnLeadAttempts {
+    return flashRate ?? 0.0;
   }
 }
 

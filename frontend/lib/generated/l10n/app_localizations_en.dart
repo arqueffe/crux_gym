@@ -299,7 +299,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get leadFlash => 'Lead Flash';
 
   @override
-  String get flashRate => 'Flash Rate';
+  String get flashRate => 'Flash Ratio';
 
   @override
   String get averageAttempts => 'Avg. Attempts';
@@ -979,7 +979,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get flashRateInfoDescription =>
-      'Percentage of lead routes flashed (sent on the first attempt) during the selected period.';
+      'Lead routes sent on the first attempt divided by lead-attempted routes (including lead sends) during the selected period.';
 
   @override
   String get trAverageAttemptsInfoDescription =>

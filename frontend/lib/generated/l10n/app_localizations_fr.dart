@@ -302,7 +302,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get leadFlash => 'Tête flash';
 
   @override
-  String get flashRate => 'Taux de flash';
+  String get flashRate => 'Ratio flash';
 
   @override
   String get averageAttempts => 'Tentatives moy.';
@@ -991,7 +991,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get flashRateInfoDescription =>
-      'Pourcentage de voies réussies dès le premier essai (flash) parmi toutes vos ascensions en tête sur la période.';
+      'Nombre de voies enchaînées en tête au premier essai divisé par le nombre de voies tentées en tête (y compris celles enchaînées) sur la période sélectionnée.';
 
   @override
   String get trAverageAttemptsInfoDescription =>

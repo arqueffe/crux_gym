@@ -665,7 +665,7 @@ abstract class AppLocalizations {
   /// No description provided for @flashRate.
   ///
   /// In en, this message translates to:
-  /// **'Flash Rate'**
+  /// **'Flash Ratio'**
   String get flashRate;
 
   /// No description provided for @averageAttempts.
@@ -1967,7 +1967,7 @@ abstract class AppLocalizations {
   /// No description provided for @flashRateInfoDescription.
   ///
   /// In en, this message translates to:
-  /// **'Percentage of lead routes flashed (sent on the first attempt) during the selected period.'**
+  /// **'Lead routes sent on the first attempt divided by lead-attempted routes (including lead sends) during the selected period.'**
   String get flashRateInfoDescription;
 
   /// No description provided for @trAverageAttemptsInfoDescription.
