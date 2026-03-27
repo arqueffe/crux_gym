@@ -58,18 +58,18 @@ class _RouteInteractionsState extends State<RouteInteractions> {
     if (mounted) {
       setState(() {
         _tickData = userTicks; // Store the tick data
-        _isTicked = tickStatus != null &&
-            (_tickData!.topRopeSend || _tickData!.leadSend);
+        _isTicked =
+            userTicks != null && (userTicks.topRopeSend || userTicks.leadSend);
         // Debug logging
         print('Debug - Route ${widget.route.id}:');
         print('  tickStatus: $tickStatus');
         print('  _isTicked: $_isTicked');
         print('  _tickData: $_tickData');
-        if (tickStatus != null) {
+        if (userTicks != null) {
           print(
-              '  top_rope_send: ${_tickData!.topRopeSend} (${_tickData!.topRopeSend.runtimeType})');
+              '  top_rope_send: ${userTicks.topRopeSend} (${userTicks.topRopeSend.runtimeType})');
           print(
-              '  lead_send: ${_tickData!.leadSend} (${_tickData!.leadSend.runtimeType})');
+              '  lead_send: ${userTicks.leadSend} (${userTicks.leadSend.runtimeType})');
         }
       });
     }
@@ -584,7 +584,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                                         .onSurfaceVariant,
                               ),
                             ),
-                            if (_tickData!.isLeadFlash)
+                            if (_tickData?.isLeadFlash == true)
                               Text(
                                 l10n.flashLabel,
                                 style: const TextStyle(
@@ -597,7 +597,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                         ),
                       ],
                     ),
-                    if (_tickData!.notes.isNotEmpty) ...[
+                    if ((_tickData?.notes ?? '').isNotEmpty) ...[
                       const SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.all(8),
@@ -621,7 +621,7 @@ class _RouteInteractionsState extends State<RouteInteractions> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                _tickData!.notes,
+                                _tickData?.notes ?? '',
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontStyle: FontStyle.italic,
@@ -846,8 +846,8 @@ class _RouteInteractionsState extends State<RouteInteractions> {
       if (mounted) {
         setState(() {
           _tickData = userTicks;
-          _isTicked = tickStatus != null &&
-              (userTicks!.topRopeSend || userTicks.leadSend);
+          _isTicked = userTicks != null &&
+              (userTicks.topRopeSend || userTicks.leadSend);
         });
       }
     } catch (e) {

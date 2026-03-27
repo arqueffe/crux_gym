@@ -1,3 +1,41 @@
+int _parseInt(dynamic value) {
+  if (value == null) return 0;
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value.toString()) ?? 0;
+}
+
+String _parseString(dynamic value, {String fallback = ''}) {
+  if (value == null) return fallback;
+  final str = value.toString();
+  if (str == 'null') return fallback;
+  return str;
+}
+
+String? _parseNullableString(dynamic value) {
+  if (value == null) return null;
+  final str = value.toString();
+  if (str.isEmpty || str == 'null') return null;
+  return str;
+}
+
+bool _parseBool(dynamic value) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  final normalized = value?.toString().trim().toLowerCase();
+  return normalized == '1' || normalized == 'true';
+}
+
+DateTime _parseDateTime(dynamic value) {
+  final raw = value?.toString().trim();
+  if (raw == null || raw.isEmpty || raw.startsWith('0000-00-00')) {
+    return DateTime.fromMillisecondsSinceEpoch(0);
+  }
+  return DateTime.tryParse(raw) ??
+      DateTime.tryParse(raw.replaceFirst(' ', 'T')) ??
+      DateTime.fromMillisecondsSinceEpoch(0);
+}
+
 class Route {
   final int id;
   final String name;
@@ -83,27 +121,27 @@ class Route {
 
   factory Route.fromJson(Map<String, dynamic> json) {
     return Route(
-      id: int.parse(json['id']),
-      name: json['name'],
-      gradeId: int.parse(json['grade_id']),
+      id: _parseInt(json['id']),
+      name: _parseString(json['name'], fallback: 'Unnamed'),
+      gradeId: _parseInt(json['grade_id']),
       gradeName: null, // Will be populated by frontend mapping
       gradeColor: null, // Will be populated by frontend mapping
-      image: json['image'],
-      routeSetter: json['route_setter'],
-      wallSection: json['wall_section'],
-      lane: int.parse(json['lane_id']),
-      laneName: json['lane_name'],
-      holdColorId: int.parse(json['hold_color_id']),
+      image: _parseNullableString(json['image']),
+      routeSetter: _parseString(json['route_setter']),
+      wallSection: _parseString(json['wall_section']),
+      lane: _parseInt(json['lane_id']),
+      laneName: _parseNullableString(json['lane_name']),
+      holdColorId: _parseInt(json['hold_color_id']),
       colorName: null, // Will be populated by frontend mapping
       colorHex: null, // Will be populated by frontend mapping
-      description: json['description'],
-      createdAt: DateTime.parse(json['created_at']),
-      likesCount: json['likes_count'] ?? 0,
-      commentsCount: json['comments_count'] ?? 0,
-      gradeProposalsCount: json['grade_proposals_count'] ?? 0,
-      warningsCount: json['warnings_count'] ?? 0,
-      ticksCount: json['ticks_count'] ?? 0,
-      projectsCount: json['projects_count'] ?? 0,
+      description: _parseNullableString(json['description']),
+      createdAt: _parseDateTime(json['created_at']),
+      likesCount: _parseInt(json['likes_count']),
+      commentsCount: _parseInt(json['comments_count']),
+      gradeProposalsCount: _parseInt(json['grade_proposals_count']),
+      warningsCount: _parseInt(json['warnings_count']),
+      ticksCount: _parseInt(json['ticks_count']),
+      projectsCount: _parseInt(json['projects_count']),
       likes: json['likes'] != null
           ? (json['likes'] as List).map((e) => Like.fromJson(e)).toList()
           : null,
@@ -165,11 +203,11 @@ class Like {
 
   factory Like.fromJson(Map<String, dynamic> json) {
     return Like(
-      id: int.parse(json['id']),
-      userId: int.parse(json['user_id']),
-      userName: json['user_name'],
-      routeId: int.parse(json['route_id']),
-      createdAt: DateTime.parse(json['created_at']),
+      id: _parseInt(json['id']),
+      userId: _parseInt(json['user_id']),
+      userName: _parseString(json['user_name']),
+      routeId: _parseInt(json['route_id']),
+      createdAt: _parseDateTime(json['created_at']),
     );
   }
 
@@ -199,12 +237,12 @@ class Comment {
 
   factory Comment.fromJson(Map<String, dynamic> json) {
     return Comment(
-      id: int.parse(json['id']),
-      userId: int.parse(json['user_id']),
-      userName: json['user_name'],
-      content: json['content'],
-      routeId: int.parse(json['route_id']),
-      createdAt: DateTime.parse(json['created_at']),
+      id: _parseInt(json['id']),
+      userId: _parseInt(json['user_id']),
+      userName: _parseString(json['user_name']),
+      content: _parseString(json['content']),
+      routeId: _parseInt(json['route_id']),
+      createdAt: _parseDateTime(json['created_at']),
     );
   }
 
@@ -236,13 +274,13 @@ class GradeProposal {
 
   factory GradeProposal.fromJson(Map<String, dynamic> json) {
     return GradeProposal(
-      id: int.parse(json['id']),
-      userId: int.parse(json['user_id']),
-      userName: json['user_name'],
-      proposedGrade: json['proposed_grade'],
-      reasoning: json['reasoning'],
-      routeId: int.parse(json['route_id']),
-      createdAt: DateTime.parse(json['created_at']),
+      id: _parseInt(json['id']),
+      userId: _parseInt(json['user_id']),
+      userName: _parseString(json['user_name']),
+      proposedGrade: _parseString(json['proposed_grade']),
+      reasoning: _parseNullableString(json['reasoning']),
+      routeId: _parseInt(json['route_id']),
+      createdAt: _parseDateTime(json['created_at']),
     );
   }
 
@@ -277,14 +315,14 @@ class Warning {
 
   factory Warning.fromJson(Map<String, dynamic> json) {
     return Warning(
-      id: int.parse(json['id']),
-      userId: int.parse(json['user_id']),
-      userName: json['user_name'],
-      warningType: json['warning_type'],
-      description: json['description'],
-      routeId: int.parse(json['route_id']),
-      status: json['status'],
-      createdAt: DateTime.parse(json['created_at']),
+      id: _parseInt(json['id']),
+      userId: _parseInt(json['user_id']),
+      userName: _parseString(json['user_name']),
+      warningType: _parseString(json['warning_type']),
+      description: _parseString(json['description']),
+      routeId: _parseInt(json['route_id']),
+      status: _parseString(json['status']),
+      createdAt: _parseDateTime(json['created_at']),
     );
   }
 
@@ -325,17 +363,17 @@ class Tick {
 
   factory Tick.fromJson(Map<String, dynamic> json) {
     return Tick(
-      id: int.parse(json['id']),
-      userId: int.parse(json['user_id']),
-      userName: json['user_name'],
-      routeId: int.parse(json['route_id']),
-      topRopeAttempts: json['top_rope_attempts'] ?? 0,
-      leadAttempts: json['lead_attempts'] ?? 0,
-      topRopeSend: json['top_rope_send'] ?? false,
-      leadSend: json['lead_send'] ?? false,
-      notes: json['notes'],
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
+      id: _parseInt(json['id']),
+      userId: _parseInt(json['user_id']),
+      userName: _parseString(json['user_name']),
+      routeId: _parseInt(json['route_id']),
+      topRopeAttempts: _parseInt(json['top_rope_attempts']),
+      leadAttempts: _parseInt(json['lead_attempts']),
+      topRopeSend: _parseBool(json['top_rope_send']),
+      leadSend: _parseBool(json['lead_send']),
+      notes: _parseNullableString(json['notes']),
+      createdAt: _parseDateTime(json['created_at']),
+      updatedAt: _parseDateTime(json['updated_at']),
     );
   }
 
@@ -377,16 +415,16 @@ class Project {
 
   factory Project.fromJson(Map<String, dynamic> json) {
     return Project(
-      id: int.parse(json['id']),
-      userId: int.parse(json['user_id']),
-      userName: json['user_name'],
-      routeId: int.parse(json['route_id']),
-      routeName: json['route_name'],
-      routeGrade: json['route_grade'],
-      routeWallSection: json['route_wall_section'],
-      notes: json['notes'],
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
+      id: _parseInt(json['id']),
+      userId: _parseInt(json['user_id']),
+      userName: _parseString(json['user_name']),
+      routeId: _parseInt(json['route_id']),
+      routeName: _parseNullableString(json['route_name']),
+      routeGrade: _parseNullableString(json['route_grade']),
+      routeWallSection: _parseNullableString(json['route_wall_section']),
+      notes: _parseNullableString(json['notes']),
+      createdAt: _parseDateTime(json['created_at']),
+      updatedAt: _parseDateTime(json['updated_at']),
     );
   }
 
@@ -416,12 +454,12 @@ class NameProposal {
 
   factory NameProposal.fromJson(Map<String, dynamic> json) {
     return NameProposal(
-      id: int.parse(json['id'].toString()),
-      proposedName: json['proposed_name'],
-      userId: int.parse(json['user_id'].toString()),
-      userName: json['user_name'],
-      createdAt: DateTime.parse(json['created_at']),
-      voteCount: int.parse(json['vote_count'].toString()),
+      id: _parseInt(json['id']),
+      proposedName: _parseString(json['proposed_name']),
+      userId: _parseInt(json['user_id']),
+      userName: _parseString(json['user_name']),
+      createdAt: _parseDateTime(json['created_at']),
+      voteCount: _parseInt(json['vote_count']),
     );
   }
 }

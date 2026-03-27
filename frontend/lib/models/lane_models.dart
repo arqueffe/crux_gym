@@ -10,10 +10,20 @@ class Lane {
   });
 
   factory Lane.fromJson(Map<String, dynamic> json) {
+    final rawDate = json['created_at']?.toString().trim();
+    final parsedDate =
+        (rawDate == null || rawDate.isEmpty || rawDate.startsWith('0000-00-00'))
+            ? DateTime.fromMillisecondsSinceEpoch(0)
+            : DateTime.tryParse(rawDate) ??
+                DateTime.tryParse(rawDate.replaceFirst(' ', 'T')) ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+
     return Lane(
-      id: int.parse(json['id']),
-      name: json['name'] ?? 'Lane ${json['id']}',
-      createdAt: DateTime.parse(json['created_at']),
+      id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
+      name: (json['name']?.toString().isNotEmpty ?? false)
+          ? json['name'].toString()
+          : 'Lane ${json['id']}',
+      createdAt: parsedDate,
     );
   }
 

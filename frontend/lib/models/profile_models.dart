@@ -1,3 +1,31 @@
+int _parseInt(dynamic value) {
+  if (value == null) return 0;
+  if (value is int) return value;
+  return int.tryParse(value.toString()) ?? 0;
+}
+
+bool _parseBool(dynamic value) {
+  if (value is bool) return value;
+  if (value is num) return value == 1;
+  final normalized = value?.toString().trim().toLowerCase();
+  return normalized == '1' || normalized == 'true';
+}
+
+String _parseString(dynamic value) {
+  return value?.toString() ?? '';
+}
+
+DateTime _parseDateTime(dynamic value) {
+  final raw = value?.toString().trim();
+  if (raw == null || raw.isEmpty || raw.startsWith('0000-00-00')) {
+    return DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
+  return DateTime.tryParse(raw) ??
+      DateTime.tryParse(raw.replaceFirst(' ', 'T')) ??
+      DateTime.fromMillisecondsSinceEpoch(0);
+}
+
 class UserTick {
   final int id;
   final int userId;
@@ -31,19 +59,19 @@ class UserTick {
 
   factory UserTick.fromJson(Map<String, dynamic> json) {
     return UserTick(
-      id: int.parse(json['id']),
-      userId: int.parse(json['user_id']),
-      routeId: int.parse(json['route_id']),
-      topRopeAttempts: int.parse(json['top_rope_attempts']),
-      leadAttempts: int.parse(json['lead_attempts']),
-      topRopeSend: int.parse(json['top_rope_send']) == 1,
-      leadSend: int.parse(json['lead_send']) == 1,
-      notes: json['notes'] ?? '',
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
-      routeName: json['route_name'] ?? '',
-      routeGrade: json['route_grade'] ?? '',
-      wallSection: json['wall_section'] ?? '',
+      id: _parseInt(json['id']),
+      userId: _parseInt(json['user_id']),
+      routeId: _parseInt(json['route_id']),
+      topRopeAttempts: _parseInt(json['top_rope_attempts']),
+      leadAttempts: _parseInt(json['lead_attempts']),
+      topRopeSend: _parseBool(json['top_rope_send']),
+      leadSend: _parseBool(json['lead_send']),
+      notes: _parseString(json['notes']),
+      createdAt: _parseDateTime(json['created_at']),
+      updatedAt: _parseDateTime(json['updated_at']),
+      routeName: _parseString(json['route_name']),
+      routeGrade: _parseString(json['route_grade']),
+      wallSection: _parseString(json['wall_section']),
     );
   }
 
@@ -76,13 +104,13 @@ class UserLike {
 
   factory UserLike.fromJson(Map<String, dynamic> json) {
     return UserLike(
-      id: int.parse(json['id']),
-      userId: int.parse(json['user_id']),
-      routeId: int.parse(json['route_id']),
-      routeName: json['route_name'],
-      routeGrade: json['route_grade'],
-      wallSection: json['wall_section'],
-      createdAt: DateTime.parse(json['created_at']),
+      id: _parseInt(json['id']),
+      userId: _parseInt(json['user_id']),
+      routeId: _parseInt(json['route_id']),
+      routeName: _parseString(json['route_name']),
+      routeGrade: _parseString(json['route_grade']),
+      wallSection: _parseString(json['wall_section']),
+      createdAt: _parseDateTime(json['created_at']),
     );
   }
 }
@@ -244,13 +272,13 @@ class UserProject {
 
   factory UserProject.fromJson(Map<String, dynamic> json) {
     return UserProject(
-      id: int.parse(json['id']),
-      userId: int.parse(json['user_id']),
-      routeId: int.parse(json['route_id']),
-      routeName: json['route_name'],
-      routeGrade: json['route_grade'],
-      wallSection: json['route_wall_section'],
-      createdAt: DateTime.parse(json['created_at']),
+      id: _parseInt(json['id']),
+      userId: _parseInt(json['user_id']),
+      routeId: _parseInt(json['route_id']),
+      routeName: _parseString(json['route_name']),
+      routeGrade: _parseString(json['route_grade']),
+      wallSection: _parseString(json['route_wall_section']),
+      createdAt: _parseDateTime(json['created_at']),
     );
   }
 }

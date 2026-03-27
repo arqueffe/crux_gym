@@ -333,7 +333,11 @@ class CachedApiService {
       print('🔧 Processing wall sections data: $data (${data.runtimeType})');
       if (data is List) {
         print('🔧 Converting to List<String>...');
-        final result = data.cast<String>();
+        final result = data
+            .where((item) => item != null)
+            .map((item) => item.toString())
+            .where((item) => item.isNotEmpty && item != 'null')
+            .toList();
         print('✅ Wall sections converted: $result');
         return result;
       } else {
@@ -356,7 +360,11 @@ class CachedApiService {
 
     final data = _requireSuccessData(response, 'Failed to load grades');
     if (data is List) {
-      return data.cast<String>();
+      return data
+          .where((item) => item != null)
+          .map((item) => item.toString())
+          .where((item) => item.isNotEmpty && item != 'null')
+          .toList();
     }
     return <String>[];
   }
@@ -448,7 +456,19 @@ class CachedApiService {
 
     final data = _requireSuccessData(response, 'Failed to load grade colors');
     if (data is Map) {
-      return Map<String, String>.from(data);
+      final result = <String, String>{};
+      for (final entry in data.entries) {
+        final key = entry.key?.toString();
+        final value = entry.value?.toString();
+        if (key == null || key.isEmpty || key == 'null') {
+          continue;
+        }
+        if (value == null || value.isEmpty || value == 'null') {
+          continue;
+        }
+        result[key] = value;
+      }
+      return result;
     }
     return <String, String>{};
   }
