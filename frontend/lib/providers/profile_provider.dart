@@ -23,6 +23,7 @@ class ProfileProvider extends ChangeNotifier {
   List<Project> _userProjects = [];
   List<GradeStatistics> _gradeStats = [];
   ProfileStats? _profileStats;
+  int _totalComments = 0;
   ProfileTimeFilter _timeFilter = ProfileTimeFilter.all;
   Future<void>? _ongoingLoad;
   DateTime? _lastLoadedAt;
@@ -135,6 +136,7 @@ class ProfileProvider extends ChangeNotifier {
         _loadUserTicks(forceRefresh: forceRefresh),
         _loadUserLikes(forceRefresh: forceRefresh),
         _loadUserProjects(forceRefresh: forceRefresh),
+        _loadUserStats(forceRefresh: forceRefresh),
       ]);
 
       _calculateGradeStats();
@@ -173,6 +175,26 @@ class ProfileProvider extends ChangeNotifier {
     } catch (e) {
       throw 'Failed to load user projects: $e';
     }
+  }
+
+  Future<void> _loadUserStats({bool forceRefresh = false}) async {
+    try {
+      final data = await _apiService.getUserStats(forceRefresh: forceRefresh);
+      _totalComments = _parseIntValue(data['total_comments']);
+    } catch (_) {
+      // User stats are non-blocking for profile rendering.
+      _totalComments = 0;
+    }
+  }
+
+  int _parseIntValue(dynamic value) {
+    if (value is int) {
+      return value;
+    }
+    if (value is String) {
+      return int.tryParse(value) ?? 0;
+    }
+    return 0;
   }
 
   void _calculateGradeStats() {
@@ -254,7 +276,7 @@ class ProfileProvider extends ChangeNotifier {
 
     _profileStats = ProfileStats(
       totalLikes: totalLikes,
-      totalComments: 0, // Comments not tracked in frontend
+      totalComments: _totalComments,
       totalProjects: totalProjects,
       topRopeAttempts:
           _userTicks.fold<int>(0, (sum, tick) => sum + tick.topRopeAttempts),
@@ -333,7 +355,7 @@ class ProfileProvider extends ChangeNotifier {
     final ticks = startDate == null
         ? _userTicks
         : _userTicks
-            .where((tick) => tick.updatedAt.isAfter(startDate))
+            .where((tick) => tick.createdAt.isAfter(startDate))
             .toList();
 
     final likes = startDate == null

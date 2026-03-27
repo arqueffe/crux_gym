@@ -38,7 +38,7 @@ class GradeStatisticsChart extends StatelessWidget {
           spacing: 16,
           runSpacing: 8,
           children: [
-            _buildLegendItem(context, l10n.completed, Colors.blue),
+            _buildLegendItem(context, l10n.lead, Colors.blue),
             _buildLegendItem(context, l10n.flashed, Colors.orange),
             _buildLegendItem(context, l10n.flashRate, Colors.green),
           ],
@@ -250,9 +250,9 @@ class GradeStatisticsChart extends StatelessWidget {
                 columnSpacing: 16,
                 columns: [
                   DataColumn(label: Text(l10n.grade)),
-                  DataColumn(label: Text(l10n.completed)),
+                  DataColumn(label: Text(l10n.lead)),
                   DataColumn(label: Text(l10n.flashes)),
-                  DataColumn(label: Text(l10n.averageAttempts)),
+                  DataColumn(label: Text(l10n.leadAverageAttempts)),
                   DataColumn(label: Text(l10n.flashRate)),
                 ],
                 rows: gradeStats
@@ -296,8 +296,8 @@ class GradeStatisticsChart extends StatelessWidget {
             _buildDetailRow(l10n.totalAttemptsColon,
                 '${stat.leadAttempts + stat.topRopeAttempts}'),
             _buildDetailRow(l10n.flashes, '${stat.flashCount}'),
-            _buildDetailRow(
-                l10n.averageAttempts, stat.averageAttempts.toStringAsFixed(1)),
+            _buildDetailRow(l10n.leadAverageAttempts,
+                stat.averageAttempts.toStringAsFixed(1)),
             _buildDetailRow(l10n.flashRate,
                 '${(stat.flashRate * 100).toStringAsFixed(1)}%'),
           ],
@@ -327,5 +327,4 @@ class GradeStatisticsChart extends StatelessWidget {
       ),
     );
   }
-
 }

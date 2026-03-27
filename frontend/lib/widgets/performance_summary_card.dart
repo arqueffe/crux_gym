@@ -41,14 +41,13 @@ class PerformanceSummaryCard extends StatelessWidget {
     final filteredLeadSends =
         filteredTicks.where((tick) => tick.leadSend).length;
 
-    final filteredLeadFlashRate =
-        filteredLeadSends > 0 ? filteredLeadFlashes / filteredLeadSends : 0.0;
-
-    // Calculate separate attempt statistics for top rope and lead
-    final filteredTopRopeAttempts =
-        filteredTicks.fold<int>(0, (sum, tick) => sum + tick.topRopeAttempts);
-    final filteredLeadAttempts =
-        filteredTicks.fold<int>(0, (sum, tick) => sum + tick.leadAttempts);
+    // Average attempts are computed from ticks where the style was actually sent.
+    final filteredTopRopeAttempts = filteredTicks
+        .where((tick) => tick.topRopeSend)
+        .fold<int>(0, (sum, tick) => sum + tick.topRopeAttempts);
+    final filteredLeadAttempts = filteredTicks
+        .where((tick) => tick.leadSend)
+        .fold<int>(0, (sum, tick) => sum + tick.leadAttempts);
     final filteredTopRopeAverageAttempts = filteredTopRopeSends > 0
         ? filteredTopRopeAttempts / filteredTopRopeSends
         : 0.0;

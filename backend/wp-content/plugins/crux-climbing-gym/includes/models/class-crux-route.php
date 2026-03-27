@@ -184,9 +184,9 @@ class Crux_Route {
             "SELECT COUNT(*) FROM $comments_table WHERE route_id = %d", $route_id
         ));
         
-        // Count ticks
+        // Count sends (top-rope or lead), not raw tick rows.
         $stats['ticks_count'] = $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM $ticks_table WHERE route_id = %d", $route_id
+            "SELECT COUNT(*) FROM $ticks_table WHERE route_id = %d AND (top_rope_send = 1 OR lead_send = 1)", $route_id
         ));
         
         // Count warnings

@@ -18,6 +18,7 @@ class Route {
   final int commentsCount;
   final int gradeProposalsCount;
   final int warningsCount;
+  // Backend now returns send count (top-rope or lead), not raw tick-row count.
   final int ticksCount;
   final int projectsCount;
   final List<Like>? likes;
