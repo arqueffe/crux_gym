@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../generated/l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 import '../providers/locale_provider.dart';
+import '../widgets/auth_html_input.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -12,7 +13,6 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -20,6 +20,56 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  String? _emailError;
+  String? _usernameError;
+  String? _passwordError;
+  String? _confirmPasswordError;
+
+  bool _validateFields(AppLocalizations l10n) {
+    final email = _emailController.text.trim();
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+
+    setState(() {
+      if (email.isEmpty) {
+        _emailError = l10n.pleaseEnterEmail;
+      } else if (!email.contains('@') || !email.contains('.')) {
+        _emailError = l10n.emailInvalid;
+      } else {
+        _emailError = null;
+      }
+
+      if (username.isEmpty) {
+        _usernameError = l10n.pleaseEnterUsername;
+      } else if (username.length < 3) {
+        _usernameError = l10n.usernameMinLength;
+      } else {
+        _usernameError = null;
+      }
+
+      if (password.isEmpty) {
+        _passwordError = l10n.pleaseEnterPassword;
+      } else if (password.length < 6) {
+        _passwordError = l10n.passwordMinLength;
+      } else {
+        _passwordError = null;
+      }
+
+      if (confirmPassword.isEmpty) {
+        _confirmPasswordError = l10n.pleaseConfirmPassword;
+      } else if (confirmPassword != password) {
+        _confirmPasswordError = l10n.passwordsDoNotMatch;
+      } else {
+        _confirmPasswordError = null;
+      }
+    });
+
+    return _emailError == null &&
+        _usernameError == null &&
+        _passwordError == null &&
+        _confirmPasswordError == null;
+  }
 
   @override
   void dispose() {
@@ -31,7 +81,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _handleRegister() async {
-    if (!_formKey.currentState!.validate()) {
+    final l10n = AppLocalizations.of(context);
+    if (!_validateFields(l10n)) {
       return;
     }
 
@@ -115,205 +166,192 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Logo
-                  Image.asset(
-                    'assets/logo/logo_black.png',
-                    height: 100,
-                  ),
-                  const SizedBox(height: 32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Logo
+                Image.asset(
+                  'assets/logo/logo_black.png',
+                  height: 100,
+                ),
+                const SizedBox(height: 32),
 
-                  // Title
-                  Text(
-                    l10n.joinCruxClimbingGym,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    l10n.createAccountToGetStarted,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Colors.grey[600],
-                        ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 32),
-
-                  // Email field
-                  TextFormField(
-                    controller: _emailController,
-                    decoration: InputDecoration(
-                      labelText: l10n.email,
-                      prefixIcon: const Icon(Icons.email),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                // Title
+                Text(
+                  l10n.joinCruxClimbingGym,
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  l10n.createAccountToGetStarted,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: Colors.grey[600],
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+
+                // Email field
+                AuthHtmlInput(
+                  controller: _emailController,
+                  labelText: l10n.email,
+                  hintText: l10n.email,
+                  prefixIcon: Icons.email,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  autocomplete: 'email',
+                  fieldName: 'email',
+                  errorText: _emailError,
+                  enabled: !_isLoading,
+                  onChanged: (_) {
+                    if (_emailError != null) {
+                      setState(() {
+                        _emailError = null;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Username field
+                AuthHtmlInput(
+                  controller: _usernameController,
+                  labelText: l10n.username,
+                  hintText: l10n.username,
+                  prefixIcon: Icons.person,
+                  textInputAction: TextInputAction.next,
+                  helperText: l10n.atLeastThreeCharacters,
+                  autocomplete: 'username',
+                  fieldName: 'username',
+                  errorText: _usernameError,
+                  enabled: !_isLoading,
+                  onChanged: (_) {
+                    if (_usernameError != null) {
+                      setState(() {
+                        _usernameError = null;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Password field
+                AuthHtmlInput(
+                  controller: _passwordController,
+                  labelText: l10n.password,
+                  hintText: l10n.password,
+                  prefixIcon: Icons.lock,
+                  suffix: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
                     ),
-                    keyboardType: TextInputType.emailAddress,
-                    textInputAction: TextInputAction.next,
-                    enabled: !_isLoading,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return l10n.pleaseEnterEmail;
-                      }
-                      if (!value.contains('@') || !value.contains('.')) {
-                        return l10n.emailInvalid;
-                      }
-                      return null;
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
                     },
                   ),
-                  const SizedBox(height: 16),
+                  obscureText: _obscurePassword,
+                  textInputAction: TextInputAction.next,
+                  helperText: l10n.atLeastSixCharacters,
+                  autocomplete: 'new-password',
+                  fieldName: 'new-password',
+                  errorText: _passwordError,
+                  enabled: !_isLoading,
+                  onChanged: (_) {
+                    if (_passwordError != null ||
+                        _confirmPasswordError != null) {
+                      setState(() {
+                        _passwordError = null;
+                        _confirmPasswordError = null;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
 
-                  // Username field
-                  TextFormField(
-                    controller: _usernameController,
-                    decoration: InputDecoration(
-                      labelText: l10n.username,
-                      prefixIcon: const Icon(Icons.person),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      helperText: l10n.atLeastThreeCharacters,
+                // Confirm password field
+                AuthHtmlInput(
+                  controller: _confirmPasswordController,
+                  labelText: l10n.confirmPassword,
+                  hintText: l10n.confirmPassword,
+                  prefixIcon: Icons.lock_outline,
+                  suffix: IconButton(
+                    icon: Icon(
+                      _obscureConfirmPassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
                     ),
-                    textInputAction: TextInputAction.next,
-                    enabled: !_isLoading,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return l10n.pleaseEnterUsername;
-                      }
-                      if (value.trim().length < 3) {
-                        return l10n.usernameMinLength;
-                      }
-                      return null;
+                    onPressed: () {
+                      setState(() {
+                        _obscureConfirmPassword = !_obscureConfirmPassword;
+                      });
                     },
                   ),
-                  const SizedBox(height: 16),
+                  obscureText: _obscureConfirmPassword,
+                  textInputAction: TextInputAction.done,
+                  autocomplete: 'new-password',
+                  fieldName: 'confirm-password',
+                  errorText: _confirmPasswordError,
+                  enabled: !_isLoading,
+                  onChanged: (_) {
+                    if (_confirmPasswordError != null) {
+                      setState(() {
+                        _confirmPasswordError = null;
+                      });
+                    }
+                  },
+                  onSubmitted: _handleRegister,
+                ),
+                const SizedBox(height: 24),
 
-                  // Password field
-                  TextFormField(
-                    controller: _passwordController,
-                    decoration: InputDecoration(
-                      labelText: l10n.password,
-                      prefixIcon: const Icon(Icons.lock),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
+                // Register button
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _handleRegister,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(
+                          l10n.createAccountButton,
+                          style: const TextStyle(fontSize: 16),
                         ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      helperText: l10n.atLeastSixCharacters,
-                    ),
-                    obscureText: _obscurePassword,
-                    textInputAction: TextInputAction.next,
-                    enabled: !_isLoading,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return l10n.pleaseEnterPassword;
-                      }
-                      if (value.length < 6) {
-                        return l10n.passwordMinLength;
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
+                ),
+                const SizedBox(height: 16),
 
-                  // Confirm password field
-                  TextFormField(
-                    controller: _confirmPasswordController,
-                    decoration: InputDecoration(
-                      labelText: l10n.confirmPassword,
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscureConfirmPassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscureConfirmPassword = !_obscureConfirmPassword;
-                          });
-                        },
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                // Back to login link
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      l10n.alreadyHaveAccount,
+                      style: TextStyle(color: Colors.grey[600]),
                     ),
-                    obscureText: _obscureConfirmPassword,
-                    textInputAction: TextInputAction.done,
-                    enabled: !_isLoading,
-                    onFieldSubmitted: (_) => _handleRegister(),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return l10n.pleaseConfirmPassword;
-                      }
-                      if (value != _passwordController.text) {
-                        return l10n.passwordsDoNotMatch;
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Register button
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _handleRegister,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                    TextButton(
+                      onPressed: _isLoading
+                          ? null
+                          : () {
+                              Navigator.of(context).pop();
+                            },
+                      child: Text(l10n.loginLink),
                     ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(
-                            l10n.createAccountButton,
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Back to login link
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        l10n.alreadyHaveAccount,
-                        style: TextStyle(color: Colors.grey[600]),
-                      ),
-                      TextButton(
-                        onPressed: _isLoading
-                            ? null
-                            : () {
-                                Navigator.of(context).pop();
-                              },
-                        child: Text(l10n.loginLink),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),
