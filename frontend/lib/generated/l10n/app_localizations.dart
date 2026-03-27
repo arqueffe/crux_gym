@@ -536,6 +536,126 @@ abstract class AppLocalizations {
   /// **'App Settings'**
   String get appSettings;
 
+  /// No description provided for @weeklyUpdateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly update'**
+  String get weeklyUpdateTitle;
+
+  /// No description provided for @weeklyUpdateSettingsAction.
+  ///
+  /// In en, this message translates to:
+  /// **'View weekly update'**
+  String get weeklyUpdateSettingsAction;
+
+  /// No description provided for @weeklyUpdateAnnouncementsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Announcements'**
+  String get weeklyUpdateAnnouncementsTitle;
+
+  /// No description provided for @weeklyUpdateFeaturesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Features'**
+  String get weeklyUpdateFeaturesTitle;
+
+  /// No description provided for @weeklyUpdateFixesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Fixes'**
+  String get weeklyUpdateFixesTitle;
+
+  /// No description provided for @weeklyUpdateFixesFeaturesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Fixes and features'**
+  String get weeklyUpdateFixesFeaturesTitle;
+
+  /// No description provided for @weeklyUpdateShowFixes.
+  ///
+  /// In en, this message translates to:
+  /// **'Show technical fixes'**
+  String get weeklyUpdateShowFixes;
+
+  /// No description provided for @weeklyUpdateHideFixes.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide technical fixes'**
+  String get weeklyUpdateHideFixes;
+
+  /// No description provided for @weeklyUpdateAnnouncementRoutesLocking.
+  ///
+  /// In en, this message translates to:
+  /// **'Routes that already have a proposed name will be locked for printing. Unnamed routes can still be modified. Routes with proposed grades will have their overall grade adjusted for printing.'**
+  String get weeklyUpdateAnnouncementRoutesLocking;
+
+  /// No description provided for @weeklyUpdateFeatureItemSendUndo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo button added right after you register a send.'**
+  String get weeklyUpdateFeatureItemSendUndo;
+
+  /// No description provided for @weeklyUpdateFeatureItemRouteCardSentIndicator.
+  ///
+  /// In en, this message translates to:
+  /// **'Route cards now show a clear sent indicator.'**
+  String get weeklyUpdateFeatureItemRouteCardSentIndicator;
+
+  /// No description provided for @weeklyUpdateFeatureItemStatsDescriptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Added clearer stat descriptions to make metrics easier to understand.'**
+  String get weeklyUpdateFeatureItemStatsDescriptions;
+
+  /// No description provided for @weeklyUpdateFixesItemStatsQuality.
+  ///
+  /// In en, this message translates to:
+  /// **'Performance stats and graphs were fixed and cleaned for better accuracy.'**
+  String get weeklyUpdateFixesItemStatsQuality;
+
+  /// No description provided for @weeklyUpdateFixesItemNicknameSecurity.
+  ///
+  /// In en, this message translates to:
+  /// **'Nickname rules and edit permissions were tightened for safer profiles.'**
+  String get weeklyUpdateFixesItemNicknameSecurity;
+
+  /// No description provided for @weeklyUpdateFixesItemPasswordAutofill.
+  ///
+  /// In en, this message translates to:
+  /// **'Login and register now use HTML forms for better password autofill.'**
+  String get weeklyUpdateFixesItemPasswordAutofill;
+
+  /// No description provided for @weeklyUpdateFixesItemDesktopDrag.
+  ///
+  /// In en, this message translates to:
+  /// **'Fixed desktop click-drag issue on the climbing wall image.'**
+  String get weeklyUpdateFixesItemDesktopDrag;
+
+  /// No description provided for @weeklyUpdateFixesItemLocalizedErrors.
+  ///
+  /// In en, this message translates to:
+  /// **'Login errors now show properly and are localized.'**
+  String get weeklyUpdateFixesItemLocalizedErrors;
+
+  /// No description provided for @weeklyUpdateFixesItemThemePolish.
+  ///
+  /// In en, this message translates to:
+  /// **'Color theme normalization for more consistent visuals.'**
+  String get weeklyUpdateFixesItemThemePolish;
+
+  /// No description provided for @weeklyUpdateFixesItemBackendStability.
+  ///
+  /// In en, this message translates to:
+  /// **'Backend stability improved for deleted rows and crux_users data handling.'**
+  String get weeklyUpdateFixesItemBackendStability;
+
+  /// No description provided for @weeklyUpdateFooterNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Thanks for climbing with us!'**
+  String get weeklyUpdateFooterNote;
+
   /// No description provided for @account.
   ///
   /// In en, this message translates to:

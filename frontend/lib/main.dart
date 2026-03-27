@@ -11,8 +11,10 @@ import 'providers/profile_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/locale_provider.dart';
 import 'providers/role_provider.dart';
+import 'services/weekly_announcement_service.dart';
 import 'screens/main_navigation_screen.dart';
 import 'screens/login_screen.dart';
+import 'widgets/weekly_update_dialog.dart';
 
 bool _shouldForwardLog(String message) {
   if (kDebugMode) {
@@ -130,6 +132,9 @@ class AuthWrapper extends StatefulWidget {
 }
 
 class _AuthWrapperState extends State<AuthWrapper> {
+  bool _hasCheckedWeeklyUpdate = false;
+  bool _isCheckingWeeklyUpdate = false;
+
   @override
   void initState() {
     super.initState();
@@ -137,6 +142,37 @@ class _AuthWrapperState extends State<AuthWrapper> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AuthProvider>().initialize();
     });
+  }
+
+  void _resetWeeklyUpdateCheck() {
+    _hasCheckedWeeklyUpdate = false;
+    _isCheckingWeeklyUpdate = false;
+  }
+
+  Future<void> _checkAndShowWeeklyUpdateIfNeeded() async {
+    if (!mounted || _hasCheckedWeeklyUpdate || _isCheckingWeeklyUpdate) {
+      return;
+    }
+
+    _isCheckingWeeklyUpdate = true;
+
+    try {
+      final service = WeeklyAnnouncementService();
+      final shouldShow = await service.shouldShowCurrentVersion();
+
+      if (!mounted) {
+        return;
+      }
+
+      if (shouldShow) {
+        await showWeeklyUpdateDialog(context);
+        await service.markCurrentVersionShown();
+      }
+
+      _hasCheckedWeeklyUpdate = true;
+    } finally {
+      _isCheckingWeeklyUpdate = false;
+    }
   }
 
   @override
@@ -161,10 +197,17 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
         // Show login screen if not authenticated
         if (!authProvider.isAuthenticated) {
+          _resetWeeklyUpdateCheck();
           return const LoginScreen();
         }
 
         // Show main app if authenticated
+        if (!_hasCheckedWeeklyUpdate && !_isCheckingWeeklyUpdate) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _checkAndShowWeeklyUpdateIfNeeded();
+          });
+        }
+
         return const MainNavigationScreen();
       },
     );

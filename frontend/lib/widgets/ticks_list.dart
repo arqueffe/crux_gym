@@ -9,12 +9,14 @@ class TicksList extends StatelessWidget {
   final List<UserTick> ticks;
   final Map<String, String>? gradeColors;
   final VoidCallback? onRouteSelected;
+  final String Function(int routeId, String routeName)? resolveRouteName;
 
   const TicksList({
     super.key,
     required this.ticks,
     this.gradeColors,
     this.onRouteSelected,
+    this.resolveRouteName,
   });
 
   @override
@@ -26,6 +28,9 @@ class TicksList extends StatelessWidget {
       itemCount: ticks.length,
       itemBuilder: (context, index) {
         final tick = ticks[index];
+        final displayRouteName =
+            resolveRouteName?.call(tick.routeId, tick.routeName) ??
+                tick.routeName;
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           child: InkWell(
@@ -58,7 +63,7 @@ class TicksList extends StatelessWidget {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    tick.routeName,
+                                    displayRouteName,
                                     style: Theme.of(context)
                                         .textTheme
                                         .titleMedium

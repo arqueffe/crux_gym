@@ -9,12 +9,14 @@ class ProjectsList extends StatelessWidget {
   final List<Project> projects;
   final Map<String, String>? gradeColors;
   final VoidCallback? onRouteSelected;
+  final String Function(int routeId, String routeName)? resolveRouteName;
 
   const ProjectsList({
     super.key,
     required this.projects,
     this.gradeColors,
     this.onRouteSelected,
+    this.resolveRouteName,
   });
 
   @override
@@ -26,6 +28,11 @@ class ProjectsList extends StatelessWidget {
       itemCount: projects.length,
       itemBuilder: (context, index) {
         final project = projects[index];
+        final rawRouteName = project.routeName;
+        final displayRouteName = rawRouteName != null
+            ? (resolveRouteName?.call(project.routeId, rawRouteName) ??
+                rawRouteName)
+            : null;
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           child: InkWell(
@@ -70,7 +77,7 @@ class ProjectsList extends StatelessWidget {
                           children: [
                             Expanded(
                               child: Text(
-                                project.routeName ?? l10n.unknownRoute,
+                                displayRouteName ?? l10n.unknownRoute,
                                 style: Theme.of(context)
                                     .textTheme
                                     .titleMedium

@@ -16,6 +16,7 @@ import '../widgets/projects_list.dart';
 import '../widgets/language_selector.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/empty_state_display.dart';
+import '../widgets/weekly_update_dialog.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -412,6 +413,18 @@ class _RoutesTabState extends State<RoutesTab>
     );
   }
 
+  String _resolveRouteName(
+    RouteProvider routeProvider,
+    int routeId,
+    String routeName,
+  ) {
+    if (routeName != 'Unnamed') {
+      return routeName;
+    }
+
+    return routeProvider.getTopProposedNameForRoute(routeId) ?? routeName;
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
@@ -587,6 +600,12 @@ class _RoutesTabState extends State<RoutesTab>
                     child: TicksList(
                       ticks: leadSends,
                       gradeColors: context.read<RouteProvider>().gradeColors,
+                      resolveRouteName: (routeId, routeName) =>
+                          _resolveRouteName(
+                        context.read<RouteProvider>(),
+                        routeId,
+                        routeName,
+                      ),
                       onRouteSelected: widget.onRouteReturn,
                     ),
                   ),
@@ -633,6 +652,12 @@ class _RoutesTabState extends State<RoutesTab>
                     child: TicksList(
                       ticks: inProgressRoutes,
                       gradeColors: context.read<RouteProvider>().gradeColors,
+                      resolveRouteName: (routeId, routeName) =>
+                          _resolveRouteName(
+                        context.read<RouteProvider>(),
+                        routeId,
+                        routeName,
+                      ),
                       onRouteSelected: widget.onRouteReturn,
                     ),
                   ),
@@ -679,6 +704,12 @@ class _RoutesTabState extends State<RoutesTab>
                     child: LikesList(
                       likes: likes,
                       gradeColors: context.read<RouteProvider>().gradeColors,
+                      resolveRouteName: (routeId, routeName) =>
+                          _resolveRouteName(
+                        context.read<RouteProvider>(),
+                        routeId,
+                        routeName,
+                      ),
                       onRouteSelected: widget.onRouteReturn,
                     ),
                   ),
@@ -725,6 +756,12 @@ class _RoutesTabState extends State<RoutesTab>
                     child: ProjectsList(
                       projects: projects,
                       gradeColors: context.read<RouteProvider>().gradeColors,
+                      resolveRouteName: (routeId, routeName) =>
+                          _resolveRouteName(
+                        context.read<RouteProvider>(),
+                        routeId,
+                        routeName,
+                      ),
                       onRouteSelected: widget.onRouteReturn,
                     ),
                   ),
@@ -954,6 +991,16 @@ class _SettingsTabState extends State<SettingsTab>
                   title: Text(l10n.githubSupportAction),
                   trailing: const Icon(Icons.open_in_new),
                   onTap: () => _openSupportUrl(_githubIssuesUri, l10n),
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.campaign_outlined),
+                  title: Text(l10n.weeklyUpdateSettingsAction),
+                  trailing: const Icon(Icons.open_in_new),
+                  onTap: () => showWeeklyUpdateDialog(context),
                 ),
               ),
               const SizedBox(height: 24),

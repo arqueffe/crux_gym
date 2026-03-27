@@ -147,6 +147,40 @@ class RouteProvider extends ChangeNotifier {
     return _userTickedRouteIds.contains(routeId);
   }
 
+  String? getTopProposedNameForRoute(int routeId) {
+    Route? route;
+
+    if (_selectedRoute?.id == routeId) {
+      route = _selectedRoute;
+    }
+
+    route ??= _routes.cast<Route?>().firstWhere(
+          (candidate) => candidate?.id == routeId,
+          orElse: () => null,
+        );
+
+    if (route == null || route.name != 'Unnamed') {
+      return null;
+    }
+
+    final proposals = route.nameProposals;
+    if (proposals == null || proposals.isEmpty) {
+      return null;
+    }
+
+    final sorted = List<NameProposal>.from(proposals)
+      ..sort((a, b) {
+        final voteComparison = b.voteCount.compareTo(a.voteCount);
+        if (voteComparison != 0) {
+          return voteComparison;
+        }
+        return a.createdAt.compareTo(b.createdAt);
+      });
+
+    final proposedName = sorted.first.proposedName.trim();
+    return proposedName.isEmpty ? null : proposedName;
+  }
+
   // Load initial data
   Future<void> loadInitialData({bool forceRefresh = false}) async {
     print('🔧 RouteProvider.loadInitialData() called');

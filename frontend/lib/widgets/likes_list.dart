@@ -9,12 +9,14 @@ class LikesList extends StatelessWidget {
   final List<UserLike> likes;
   final Map<String, String>? gradeColors;
   final VoidCallback? onRouteSelected;
+  final String Function(int routeId, String routeName)? resolveRouteName;
 
   const LikesList({
     super.key,
     required this.likes,
     this.gradeColors,
     this.onRouteSelected,
+    this.resolveRouteName,
   });
 
   @override
@@ -26,6 +28,9 @@ class LikesList extends StatelessWidget {
       itemCount: likes.length,
       itemBuilder: (context, index) {
         final like = likes[index];
+        final displayRouteName =
+            resolveRouteName?.call(like.routeId, like.routeName) ??
+                like.routeName;
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           child: InkWell(
@@ -67,7 +72,7 @@ class LikesList extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          like.routeName,
+                          displayRouteName,
                           style:
                               Theme.of(context).textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.bold,

@@ -233,6 +233,77 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appSettings => 'App Settings';
 
   @override
+  String get weeklyUpdateTitle => 'Weekly update';
+
+  @override
+  String get weeklyUpdateSettingsAction => 'View weekly update';
+
+  @override
+  String get weeklyUpdateAnnouncementsTitle => 'Announcements';
+
+  @override
+  String get weeklyUpdateFeaturesTitle => 'Features';
+
+  @override
+  String get weeklyUpdateFixesTitle => 'Fixes';
+
+  @override
+  String get weeklyUpdateFixesFeaturesTitle => 'Fixes and features';
+
+  @override
+  String get weeklyUpdateShowFixes => 'Show technical fixes';
+
+  @override
+  String get weeklyUpdateHideFixes => 'Hide technical fixes';
+
+  @override
+  String get weeklyUpdateAnnouncementRoutesLocking =>
+      'Routes that already have a proposed name will be locked for printing. Unnamed routes can still be modified. Routes with proposed grades will have their overall grade adjusted for printing.';
+
+  @override
+  String get weeklyUpdateFeatureItemSendUndo =>
+      'Undo button added right after you register a send.';
+
+  @override
+  String get weeklyUpdateFeatureItemRouteCardSentIndicator =>
+      'Route cards now show a clear sent indicator.';
+
+  @override
+  String get weeklyUpdateFeatureItemStatsDescriptions =>
+      'Added clearer stat descriptions to make metrics easier to understand.';
+
+  @override
+  String get weeklyUpdateFixesItemStatsQuality =>
+      'Performance stats and graphs were fixed and cleaned for better accuracy.';
+
+  @override
+  String get weeklyUpdateFixesItemNicknameSecurity =>
+      'Nickname rules and edit permissions were tightened for safer profiles.';
+
+  @override
+  String get weeklyUpdateFixesItemPasswordAutofill =>
+      'Login and register now use HTML forms for better password autofill.';
+
+  @override
+  String get weeklyUpdateFixesItemDesktopDrag =>
+      'Fixed desktop click-drag issue on the climbing wall image.';
+
+  @override
+  String get weeklyUpdateFixesItemLocalizedErrors =>
+      'Login errors now show properly and are localized.';
+
+  @override
+  String get weeklyUpdateFixesItemThemePolish =>
+      'Color theme normalization for more consistent visuals.';
+
+  @override
+  String get weeklyUpdateFixesItemBackendStability =>
+      'Backend stability improved for deleted rows and crux_users data handling.';
+
+  @override
+  String get weeklyUpdateFooterNote => 'Thanks for climbing with us!';
+
+  @override
   String get account => 'Account';
 
   @override

@@ -236,6 +236,77 @@ class AppLocalizationsFr extends AppLocalizations {
   String get appSettings => 'Paramètres de l\'application';
 
   @override
+  String get weeklyUpdateTitle => 'Mise à jour hebdomadaire';
+
+  @override
+  String get weeklyUpdateSettingsAction => 'Voir la mise à jour hebdomadaire';
+
+  @override
+  String get weeklyUpdateAnnouncementsTitle => 'Annonces';
+
+  @override
+  String get weeklyUpdateFeaturesTitle => 'Fonctionnalités';
+
+  @override
+  String get weeklyUpdateFixesTitle => 'Correctifs';
+
+  @override
+  String get weeklyUpdateFixesFeaturesTitle => 'Correctifs et fonctionnalités';
+
+  @override
+  String get weeklyUpdateShowFixes => 'Afficher les correctifs techniques';
+
+  @override
+  String get weeklyUpdateHideFixes => 'Masquer les correctifs techniques';
+
+  @override
+  String get weeklyUpdateAnnouncementRoutesLocking =>
+      'Les voies qui ont déjà un nom proposé seront verrouillées pour l\'impression. Les voies sans nom peuvent encore être modifiées. Les voies avec des cotations proposées verront leur cotation globale ajustée pour l\'impression.';
+
+  @override
+  String get weeklyUpdateFeatureItemSendUndo =>
+      'Bouton Annuler ajouté juste après l\'enregistrement d\'un enchaînement.';
+
+  @override
+  String get weeklyUpdateFeatureItemRouteCardSentIndicator =>
+      'Les cartes de voies affichent désormais clairement si la voie est enchaînée.';
+
+  @override
+  String get weeklyUpdateFeatureItemStatsDescriptions =>
+      'Descriptions des statistiques ajoutées pour mieux comprendre les mesures.';
+
+  @override
+  String get weeklyUpdateFixesItemStatsQuality =>
+      'Les statistiques de performance et les graphiques ont été corrigés et nettoyés pour de meilleures mesures.';
+
+  @override
+  String get weeklyUpdateFixesItemNicknameSecurity =>
+      'Les règles de pseudo et les permissions de modification ont été renforcées pour des profils plus sûrs.';
+
+  @override
+  String get weeklyUpdateFixesItemPasswordAutofill =>
+      'Connexion et inscription utilisent désormais des formulaires HTML pour un meilleur remplissage automatique des mots de passe.';
+
+  @override
+  String get weeklyUpdateFixesItemDesktopDrag =>
+      'Correction du bug de cliquer-glisser sur l\'image du mur en version desktop.';
+
+  @override
+  String get weeklyUpdateFixesItemLocalizedErrors =>
+      'Les erreurs de connexion s\'affichent correctement et sont maintenant localisées.';
+
+  @override
+  String get weeklyUpdateFixesItemThemePolish =>
+      'Normalisation du thème de couleurs pour un rendu plus cohérent.';
+
+  @override
+  String get weeklyUpdateFixesItemBackendStability =>
+      'Stabilité backend améliorée pour la gestion des lignes supprimées et la table crux_users.';
+
+  @override
+  String get weeklyUpdateFooterNote => 'Merci de grimper avec nous!';
+
+  @override
   String get account => 'Compte';
 
   @override
